@@ -1,9 +1,10 @@
 [package]
-name = "RustCollSim"
+name = "research_rust"
 version = "0.1.0"
-authors = ["Mark Lewis <mlewis@trinity.edu>"]
+authors = ["Jonathan Rotter"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ncurses = "5.99.0"
