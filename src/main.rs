@@ -132,7 +132,7 @@ fn test_group_6_collision() {
 fn main() {
     println!("Hello, world!");
 
-    test_group_6_collision();
+    test_group_5_graphics(2);
     
     //test_group_2_kick_step_1();
 

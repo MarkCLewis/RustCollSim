@@ -1,5 +1,4 @@
 
-
 pub mod data {
 
     pub const PI: f64 = 3.141592653589793;
@@ -9,8 +8,11 @@ pub mod data {
         fn square(x: f64) -> f64 { x * x }
 
         // x, y, z for all
+        #[derive(Clone, Copy)]
         pub struct Displacement(pub f64, pub f64, pub f64);
+        #[derive(Clone, Copy)]
         pub struct Velocity(pub f64, pub f64, pub f64);
+        #[derive(Clone, Copy)]
         pub struct Acceleration(pub f64, pub f64, pub f64);
 
         impl Displacement {
@@ -68,11 +70,21 @@ pub mod data {
     }
 
     pub mod systems {
+        use itertools::izip;
         use super::basic::*;
         use super::K;
 
+        struct State(pub Displacement, pub Velocity);
+
         struct Derivative(pub Velocity, pub Acceleration);
 
+        impl Derivative {
+            pub fn multiply_integrate(&self, t: f64) -> State {
+                State(self.0.multiply_integrate(t), self.1.multiply_integrate(t))
+            }
+        }
+
+        #[derive(Clone, Copy)]
         pub struct Particle {
             pub location: Displacement,
             velocity: Velocity,
@@ -161,6 +173,12 @@ pub mod data {
                 return deriv;
             }
 
+            fn add_state_to_self(&mut self, state: Vec<State>) {
+                for (p, s) in izip!(self.0.iter_mut(), state.iter()) {
+
+                }
+            }
+
             pub fn push(&mut self, p: Particle) {
                 self.0.push(p);
             }
@@ -216,15 +234,18 @@ pub mod data {
             //      * idk what to do with x for now
             //      */
                 
-            //     //let mut sysOld = System(self.0.clone());
-            //     Vector oldState(data);
+            //     let mut sysOld = System(self.0.clone());
+            //     //Vector oldState(data);
             
             //     // k1 = hF(xn, yn)
-            //     Vector k1;
-            //     derivative(k1);
-            //     k1 *= h;
+            //     // Vector k1;
+            //     // derivative(k1);
+            //     let k1: Vec<State> = self.derivative().into_iter().map(|x| x.multiply_integrate(h)).collect();
+            //     // k1 *= h;
             
             //     // k2 = hF(xn + h/2, yn + k1/2)
+
+
             //     (*this) += k1 / 2;
             
             //     Vector k2;
