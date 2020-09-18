@@ -38,28 +38,59 @@ fn main() {
     let earthM: f64 = 1e-10;
     let sunM: f64 = 1;
 
-    let eParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
+    let mut eParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
                                 vel: Vector{x: vx, y: vy, z: vz }, 
                                 avect: Vector{a: ax, b: ay, c: az},
                                 mass: earthM };
 
-    let sParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
+    let mut sParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
                                 vel: Vector{x: vx, y: vy, z: vz }, 
                                 avect: Vector{a: ax, b: ay, c: az},
                                 mass: sunM };
 
-    // array of particles
+    // array of particles - fxn for reading in from file?
+
+    let particles = [(eParticle, sParticle)];
+    let loops = 10; // make a user input variable
+    let timestep: f64 = 1e-3;
+    
+    for i in 0...particles.len() {
+        for j in 0...(particles.len() + 1) {
+            particles[i]
+        }
+    }
+
+    // for i in particles.iter() {
+    //     velocity(i.0, timestep);
+    //     velocity(i.1, timestep);
+    //     updatePosition(i.0, timestep);
+    //     updatePosition(i.1 , timestep);
+    // }
+    
     // outer for loop (timestep)
         // doubly nested loop that calculates acceleration btwn two particles
         // loop applies accelerations, then velocities (outside)
 }
 
-fn force(mass1: f64, mass2: f64, r: f64) {
-    //vector quantities between two bodies
- 
-    // calculate distance, use that
-    (-1 * (m1 * m2)) / (r*r*r);    // multiply by seperation between them (only vector), divide by r^3
+fn acceleration(par: Particle, force: Vector) {
+    let ax = force.x / par.mass;
+    let ay = force.y / par.mass;
+    let az = force.z / par.mass;
 }
+
+fn force(par1: Particle, par2: Particle) -> Vector { // make vector values negative for par2
+    let dx = par2.pos.x - par1.pos.x;
+    let dy = par2.pos.y - par1.pos.y;
+    let dz = par2.pos.z - par1.pos.z;
+
+    let r = sqrt((dx*dx) + (dy*dy) + (dz*dz));
+
+    let fx = -dx * (par1.mass * par2.mass) / (r*r*r); 
+    let fy = -dy * (par1.mass * par2.mass) / (r*r*r);
+    let fz = -dz * (par1.mass * par2.mass) / (r*r*r);
+    Vector(fx, fy, fz);
+}
+
 fn velocity (par: Particle) { // give back particle? or pass in mut
     //v + dt * a;
     particle.vel.x = particle.vel.x + timestep * particle.acc.x;
