@@ -1,19 +1,18 @@
 #![allow(dead_code)]
 
 mod data;
-
 mod graphics;
+mod system;
 
-use data::data::systems;
-use data::data::PI;
+use data::PI;
 
 fn test_group_2_kick_step_1() {
     let h: f64 = 1e-3;
 
-    let mut sys = systems::build_system(-1., -1.);
+    let mut sys = system::build_system(-1., -1.);
 
-    sys.push(systems::build_particle(0.,0.,0.,0.,0.,0., 1.0, 1e-7));
-    sys.push(systems::build_particle(1.,0.,0.,0.,1.,0.,1e-10, 1e-7));
+    sys.push(data::advanced::build_particle(0.,0.,0.,0.,0.,0., 1.0, 1e-7));
+    sys.push(data::advanced::build_particle(1.,0.,0.,0.,1.,0.,1e-10, 1e-7));
 
     println!("N-body simulation");
     println!("Number of bodies: {}" , sys.len());
@@ -32,10 +31,10 @@ fn test_group_2_kick_step_1() {
 fn test_group_3_rk4_1() {
     let h: f64 = 1e-3;
 
-    let mut sys = systems::build_system(-1., -1.);
+    let mut sys = system::build_system(-1., -1.);
 
-    sys.push(systems::build_particle(0.,0.,0.,0.,0.,0., 1.0, 1e-7));
-    sys.push(systems::build_particle(1.,0.,0.,0.,1.,0.,1e-10, 1e-7));
+    sys.push(data::advanced::build_particle(0.,0.,0.,0.,0.,0., 1.0, 1e-7));
+    sys.push(data::advanced::build_particle(1.,0.,0.,0.,1.,0.,1e-10, 1e-7));
 
     println!("N-body simulation");
     println!("Number of bodies: {}" , sys.len());
@@ -54,7 +53,7 @@ fn test_group_3_rk4_1() {
 fn test_group_5_graphics(orbits: i32) {
     let h: f64 = 1e-2;
 
-    let mut sys = systems::build_system(-1., -1.);
+    let mut sys = system::build_system(-1., -1.);
 
     sys.add_body(0., 0., 0., 0., 0., 0., 1., 0.00465479256);
     sys.add_body(1., 0., 0., 0., 1., 0., 1e-8, 4.25879793e-5);
@@ -102,7 +101,7 @@ fn test_group_5_graphics(orbits: i32) {
 fn test_group_6_collision() {
     let h = 1e-2;
 
-    let mut sys = systems::build_system(-1., -1.);
+    let mut sys = system::build_system(-1., -1.);
 
     sys.add_body(-1e-1, 0., 0., 0., 0., 0., 1e-2, 4.25879793e-5);
     sys.add_body(1e-1, 0., 0., 0., 0., 0., 1e-2, 4.25879793e-5);
@@ -163,7 +162,7 @@ pub fn collision(k: f64,drag: f64) {
 
     let h: f64 = 1e-5;
     //std::cerr << "> k = " << k << ", drag = " << drag << '\n';
-    let mut sys = systems::build_system(k, drag);
+    let mut sys = system::build_system(k, drag);
 
     // State sys(h, 0, 0, k, drag);
 
@@ -228,11 +227,11 @@ pub fn collision(k: f64,drag: f64) {
         // mvprintw(0, 0, "Energy = %e", totalE);
         let msg = format!("Time = {:.3e}", i);
         g.print(0, 0, &msg[..], graphics::WHITE_ON_BLACK);
-        let v0: data::data::basic::Velocity = sys.get_velocity(0);
+        let v0: data::basic::Velocity = sys.get_velocity(0);
         let msg = format!("Velocity 1 = <{:.5e}, {:.5e}, {:.5e}>", v0.0, v0.1, v0.2);
         g.print(0, 1, &msg[..], graphics::WHITE_ON_BLACK);
 
-        let v1: data::data::basic::Velocity = sys.get_velocity(1);
+        let v1: data::basic::Velocity = sys.get_velocity(1);
         let msg2 = format!("Velocity 2 = <{:.5e}, {:.5e}, {:.5e}>", v1.0, v1.1, v1.2);
         //mvprintw(3, 0, "v 1 = <%e, %e, %e>", v0.x, v0.y, v0.z);
         g.print(0, 2, &msg2[..], graphics::WHITE_ON_BLACK);
