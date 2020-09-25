@@ -36,27 +36,38 @@ fn main() {
     let az: f64 = 0.0;
 
     let earthM: f64 = 1e-10;
-    let sunM: f64 = 1;
+    let sunM: f64 = 1.0;
 
-    let mut eParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
+    let eParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
                                 vel: Vector{x: vx, y: vy, z: vz }, 
-                                avect: Vector{a: ax, b: ay, c: az},
+                                acc: Vector{x: ax, y: ay, z: az},
                                 mass: earthM };
 
-    let mut sParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
+    let sParticle = Particle {pos: Vector{x: px, y: py, z: pz,}, 
                                 vel: Vector{x: vx, y: vy, z: vz }, 
-                                avect: Vector{a: ax, b: ay, c: az},
+                                acc: Vector{x: ax, y: ay, z: az},
                                 mass: sunM };
 
     // array of particles - fxn for reading in from file?
 
-    let particles = [(eParticle, sParticle)];
-    let loops = 10; // make a user input variable
+    let particles = [eParticle, sParticle];
+    let loops = 31400; // make a user input variable
     let timestep: f64 = 1e-3;
     
-    for i in 0...particles.len() {
-        for j in 0...(particles.len() + 1) {
-            particles[i]
+    while loops != 0 {
+        for i in 0..particles.len() {
+            for j in 1..particles.len() {
+                let force = force(particles[i], particles[j]);
+                let negforce = Vector{x: -1.0 * force.x, y: -1.0 * force.y, z: -1.0 * force.z};
+
+                acceleration(particles[i], force);
+                acceleration(particles[j], negforce);
+                velocity(particles[i], timestep);
+                velocity(particles[j], timestep);
+
+                updatePosition(particles[i], timestep);
+                updatePosition(particles[j], timestep);
+            }
         }
     }
 
@@ -72,10 +83,18 @@ fn main() {
         // loop applies accelerations, then velocities (outside)
 }
 
-fn acceleration(par: Particle, force: Vector) {
-    let ax = force.x / par.mass;
-    let ay = force.y / par.mass;
-    let az = force.z / par.mass;
+fn printParticle(par: Particle) {
+    println!("Particle has position {posx} {posy} {posz}",
+    posx=par.pos.x,
+    posy=par.pos.y,
+    posz=par.pos.z
+    );
+}
+
+fn acceleration(mut par: Particle, force: Vector) {
+    par.acc.x = force.x / par.mass;
+    par.acc.y = force.y / par.mass;
+    par.acc.z = force.z / par.mass;
 }
 
 fn force(par1: Particle, par2: Particle) -> Vector { // make vector values negative for par2
@@ -83,26 +102,26 @@ fn force(par1: Particle, par2: Particle) -> Vector { // make vector values negat
     let dy = par2.pos.y - par1.pos.y;
     let dz = par2.pos.z - par1.pos.z;
 
-    let r = sqrt((dx*dx) + (dy*dy) + (dz*dz));
+    let r = ((dx*dx) + (dy*dy) + (dz*dz)).sqrt();
 
     let fx = -dx * (par1.mass * par2.mass) / (r*r*r); 
     let fy = -dy * (par1.mass * par2.mass) / (r*r*r);
     let fz = -dz * (par1.mass * par2.mass) / (r*r*r);
-    Vector(fx, fy, fz);
+    return Vector{x: fx, y: fy, z: fz};
 }
 
-fn velocity (par: Particle) { // give back particle? or pass in mut
+fn velocity (mut par: Particle, timestep: f64) { // give back particle? or pass in mut
     //v + dt * a;
-    particle.vel.x = particle.vel.x + timestep * particle.acc.x;
-    particle.vel.y = particle.vel.y + timestep * particle.acc.y;
-    particle.vel.z = particle.vel.z + timestep * particle.acc.z;
+    par.vel.x = par.vel.x + timestep * par.acc.x;
+    par.vel.y = par.vel.y + timestep * par.acc.y;
+    par.vel.z = par.vel.z + timestep * par.acc.z;
     // done to x, y, z separately @ v
 }
 
-fn updatePosition (par: Particle, timestep: f64) {
-    particle.pos.x = particle.pos.x + timestep * particle.vel.x;
-    particle.pos.y = particle.pos.y + timestep * particle.vel.y;
-    particle.pos.z = particle.pos.z + timestep * particle.vel.z;
+fn updatePosition (mut par: Particle, timestep: f64) {
+    par.pos.x = par.pos.x + timestep * par.vel.x;
+    par.pos.y = par.pos.y + timestep * par.vel.y;
+    par.pos.z = par.pos.z + timestep * par.vel.z;
     // done to x, y, z separately @ x 
 }
 
