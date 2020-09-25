@@ -34,6 +34,8 @@ pub fn build_graphics() -> Graphics {
   }
 }
 
+pub const WHITE_ON_BLACK: i16 = 4;
+
 impl Graphics {
   pub fn init(&mut self) {
     ncurses::initscr();
@@ -58,8 +60,9 @@ impl Graphics {
       
       ncurses::init_pair(0, ncurses::COLOR_YELLOW, ncurses::COLOR_BLACK);
       ncurses::init_pair(1, ncurses::COLOR_CYAN, ncurses::COLOR_BLACK);
-      ncurses::init_pair(2, ncurses::COLOR_WHITE, ncurses::COLOR_BLACK);
+      ncurses::init_pair(2, ncurses::COLOR_MAGENTA, ncurses::COLOR_BLACK);
       ncurses::init_pair(3, ncurses::COLOR_RED, ncurses::COLOR_BLACK);
+      ncurses::init_pair(WHITE_ON_BLACK, ncurses::COLOR_WHITE, ncurses::COLOR_BLACK);
     }
   }
 
@@ -86,7 +89,29 @@ impl Graphics {
 
     ncurses::mvaddch(y as i32, x as i32, c);
 
-    if color >= 0 && color < 4 && self.has_colors {
+    if color >= 0 && color < 5 && self.has_colors {
+      ncurses::attr_off(ncurses::COLOR_PAIR(color));
+    }
+  }
+
+  pub fn print(&mut self, x: i32, y: i32, s: &str, color: i16 ) {
+    if !self.initialized { panic!("Not initialized"); }
+
+    //let x = x * (self.scale_factor * 3.0 * 5.0/6.0);
+    //let y = y * self.scale_factor;
+
+    //let x = x + (self.screen_size.max_x / 2) as f64;
+    //let y = y + (self.screen_size.max_y / 2) as f64;
+
+    // std::cerr << "x = " << (int)x << ", y = " << (int)y << '\n';
+
+    if color >= 0 && color < 5 && self.has_colors {
+      ncurses::attr_on(ncurses::COLOR_PAIR(color));
+    }
+
+    ncurses::mvprintw(y, x, s);
+
+    if color >= 0 && color < 5 && self.has_colors {
       ncurses::attr_off(ncurses::COLOR_PAIR(color));
     }
   }
