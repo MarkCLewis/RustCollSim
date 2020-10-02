@@ -61,6 +61,10 @@ pub mod basic {
             Vector(self.0 / len, self.1 / len, self.2 / len)
         }
 
+        pub fn mag(&self) -> f64 {
+            (square(self.0) + square(self.1) + square(self.2)).sqrt()
+        }
+
         // fn copy(&self) -> Displacement {
         //     Displacement(self.0, self.1, self.2)
         // }
@@ -101,8 +105,16 @@ pub mod basic {
             Displacement(self.0 * t, self.1 * t, self.2 * t)
         }
 
+        pub fn mag(&self) -> f64 {
+            (square(self.0) + square(self.1) + square(self.2)).sqrt()
+        }
+
+        pub fn mag_sq(&self) -> f64 {
+            square(self.0) + square(self.1) + square(self.2)
+        }
+
         pub fn unit_vector(&self) -> Vector {
-            let len = (square(self.0) + square(self.1) + square(self.2)).sqrt();
+            let len = self.mag();
             Vector(self.0 / len, self.1 / len, self.2 / len)
         }
 
@@ -149,6 +161,10 @@ pub mod basic {
         pub fn unit_vector(&self) -> Vector {
             let len = (square(self.0) + square(self.1) + square(self.2)).sqrt();
             Vector(self.0 / len, self.1 / len, self.2 / len)
+        }
+
+        pub fn mag(&self) -> f64 {
+            (square(self.0) + square(self.1) + square(self.2)).sqrt()
         }
 
     }

@@ -90,6 +90,8 @@ fn test_group_5_graphics(orbits: i32) {
         }
         g.refresh();
 
+        info(i, &mut g, &sys);
+
         graphics::sleep(10000);
 
         i += h;
@@ -145,7 +147,7 @@ fn test_group_6_collision() {
     g.end();
 }
 
-pub fn collision(k: f64,drag: f64) {
+pub fn collision(k: f64, drag: f64) {
     let mut g = graphics::build_graphics();
     g.init();
 
@@ -207,7 +209,7 @@ pub fn collision(k: f64,drag: f64) {
     //std::cerr << "Survived init" << std::endl;
 
     let mut i: f64 = 0.0;
-    while i < 100. * PI * 2. as f64 * 2.0 * PI { 
+    while i < 100. * PI * 2. * 2.0 * PI { 
         //clear();
 
         for (c, p) in sys.state.iter().enumerate() {
@@ -225,20 +227,7 @@ pub fn collision(k: f64,drag: f64) {
         //g.print(0, 0, )
         
         // mvprintw(0, 0, "Energy = %e", totalE);
-        let msg = format!("Time = {:.3e}", i);
-        g.print(0, 0, &msg[..], graphics::WHITE_ON_BLACK);
-        let v0: data::basic::Velocity = sys.get_velocity(0);
-        let msg = format!("Velocity 1 = <{:.5e}, {:.5e}, {:.5e}>", v0.0, v0.1, v0.2);
-        g.print(0, 1, &msg[..], graphics::WHITE_ON_BLACK);
-
-        let v1: data::basic::Velocity = sys.get_velocity(1);
-        let msg2 = format!("Velocity 2 = <{:.5e}, {:.5e}, {:.5e}>", v1.0, v1.1, v1.2);
-        //mvprintw(3, 0, "v 1 = <%e, %e, %e>", v0.x, v0.y, v0.z);
-        g.print(0, 2, &msg2[..], graphics::WHITE_ON_BLACK);
-
-        g.print(0, g.get_max_y() - 1, "Press ^C to close", graphics::WHITE_ON_BLACK);
-
-        g.refresh();
+        info(i, &mut g, &sys);
 
         // int c = g.sleepInterruptible(1); // returns 0 on no char typed
 
@@ -263,13 +252,34 @@ pub fn collision(k: f64,drag: f64) {
     g.end();
 }
 
+fn info(i: f64, g: &mut graphics::Graphics, sys: &system::System) {
+    let msg = format!("Time = {:.3e}", i);
+    g.print(0, 0, &msg[..], graphics::WHITE_ON_BLACK);
+    let v0: data::basic::Velocity = sys.get_velocity(0);
+    let msg = format!("Velocity 1 = <{:.5e}, {:.5e}, {:.5e}>", v0.0, v0.1, v0.2);
+    g.print(0, 1, &msg[..], graphics::WHITE_ON_BLACK);
+
+    let v1: data::basic::Velocity = sys.get_velocity(1);
+    let msg2 = format!("Velocity 2 = <{:.5e}, {:.5e}, {:.5e}>", v1.0, v1.1, v1.2);
+    //mvprintw(3, 0, "v 1 = <%e, %e, %e>", v0.x, v0.y, v0.z);
+    g.print(0, 2, &msg2[..], graphics::WHITE_ON_BLACK);
+
+    let e = sys.energy();
+    let msg2 = format!("Energy = {:.5e}", e);
+    g.print(0, 3, &msg2[..], graphics::WHITE_ON_BLACK);
+
+    g.print(0, g.get_max_y() - 1, "Press ^C to close", graphics::WHITE_ON_BLACK);
+
+    g.refresh();
+}
+
 fn main() {
     println!("Hello, world!");
 
-    //test_group_5_graphics(2);
-    // test_group_3_rk4_1();
+    test_group_5_graphics(2);
+    //test_group_3_rk4_1();
     //test_group_6_collision();
-    collision(1e-15, 0.0);
+    //collision(1e-15, 1e-20);
     //test_group_2_kick_step_1();
 
 }

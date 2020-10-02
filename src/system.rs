@@ -5,6 +5,12 @@ use crate::data::{DRAG_DEFAULT, K_DEFAULT};
 use itertools::izip;
 use std::ops::AddAssign;
 
+/**
+ * Approximate going forward with higher order deriv
+ * 
+ * particle shouldn't be able to jump over curve between 0 and -k deriv
+ */ 
+
 pub struct System {
     pub state: Vec<Particle>,
     pub k: f64,
@@ -23,6 +29,44 @@ impl System {
 
     pub fn get_velocity(&self, index: usize) -> Velocity {
         self.state[index].state.1
+    }
+
+    pub fn kinetic_energy(&self) -> f64 {
+        // 1/2 mv^2
+        let mut energy = 0.;
+
+        for p in self.state.iter() {
+            energy += p.state.1.mag_sq() * p.mass / 2.;
+        }
+
+        energy
+    }
+
+    pub fn potential_energy(&self) -> f64 {
+        // -G (mM) / R
+        let mut energy = 0.;
+
+        for i in 0..self.state.len()
+        {
+            for j in (i+1)..self.state.len()
+            {
+                // compute R
+                let r = (self.state[i].state.0 - self.state[j].state.0).mag();
+                // square(data[i] - data[j]) + square(data[i+1] - data[j+1]) + square(data[i+2] - data[j+2]);
+    
+                // G is 1
+                //energy += - (masses[i / 6] * masses[j / 6] / r);
+                energy += -self.state[i].mass * self.state[j].mass / r;
+                //printf("PE[%d] on [%d] = %e\n", i / 6, j / 6, - (masses[i / 6] * masses[j / 6] / r));
+            }
+            
+        }
+        //printf("U = %e\n", energy);
+        return energy;
+    }
+
+    pub fn energy(&self) -> f64 {
+        return self.kinetic_energy() + self.potential_energy();
     }
 
     fn derivative(&self) -> Vec<Derivative> {
@@ -75,13 +119,22 @@ impl System {
 
                         let rel: Velocity = other.state.1 -this.state.1;
 
-                        let v_mag: f64 = rel.0 * c.0 + rel.1 * c.1 + rel.2 * c.2;
+                        let v_dot_c: f64 = rel.0 * c.0 + rel.1 * c.1 + rel.2 * c.2;
                         //rel.dot(c);
 
                         // in dir -c (away from other object)
-                        let a: f64 = (-self.k * -delta_x + self.drag * v_mag) / this.mass;
+                        let a: f64 = (-self.k * -delta_x + self.drag * v_dot_c) / this.mass;
+
+                        
+                        assert_eq!((c.0*c.0 + c.1*c.1 + c.2*c.2).sqrt() - 1. < 0.00001, true); // c is a unit vec
                         
                         let ca = c * a;
+                        if i == 0 {
+                            eprintln!("velocity = {:.5e}", v_dot_c);
+                            eprintln!("push acc = {:.5e}", (self.k * delta_x) / this.mass);
+                            eprintln!("drag acc = {:.5e}", (self.drag * v_dot_c) / this.mass);
+                            eprintln!("grav acc = <{:.5e}, {:.5e}, {:.5e}>", acc_vector.0, acc_vector.1, acc_vector.2);
+                        }
                         acc_vector = acc_vector + Acceleration(ca.0, ca.1, ca.2);
     
                         // // in dir -c (away from other object)
@@ -183,6 +236,7 @@ impl System {
         let mut sys_copy = build_system2(self.k, self.drag, self.state.clone());
         //System(self.0.clone());
         //Vector oldState(data);
+        let mut final_k: Vec<State> = Vec::new();
     
         // k1 = hF(xn, yn)
         // Vector k1;
@@ -195,7 +249,6 @@ impl System {
         let halved: Vec<State> = k1_tmp.into_iter().map(|x| x / 2.0).collect();
         sys_copy += &halved;
         // (*this) += k1 / 2;
-
 
 
         let k2: Vec<State> = self.derivative().into_iter().map(|x| x.multiply_integrate(h)).collect();
@@ -233,7 +286,7 @@ impl System {
         // data = oldState;
         // // 1/6 * (k1 + 2k2 + 2k3 + k4)
 
-        let mut final_k: Vec<State> = Vec::new();
+        
     
         // Vector K(data.size());
     
