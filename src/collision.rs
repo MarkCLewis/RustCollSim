@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 
 use crate::system;
 use crate::data::PI;
@@ -173,5 +174,19 @@ pub fn collision_no_graphics(k: f64, drag: f64, max_store_samples: i32) -> FullS
     
 
     // to 0.15
+}
+
+pub fn collision_drag_analysis(k: f64, drags: Vec<f64>) {
+
+    for &drag in drags.iter() {
+        let out = collision_no_graphics(k, drag, 10);
+
+        let firstE = out.states[0].total_e;
+        let lastE = out.states[out.states.len()-1].total_e;
+
+        let coeffOfRest = lastE / firstE;
+
+        println!("coeff = {:.5}, firstE = {:.5e}, lastE = {:.5e}", coeffOfRest, firstE, lastE);
+    }
 }
 

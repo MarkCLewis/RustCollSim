@@ -155,9 +155,17 @@ fn main() {
     //test_group_5_graphics(2);
     //test_group_3_rk4_1();
     //test_group_6_collision();
-    let output = collision::collision_no_graphics(1e-8, 1e-15, 10);
-    output.print_out_json();
+
+    //collision::collision(1e-8, 5e-15);
+    
+    // let output = collision::collision_no_graphics(1e-8, 1e-15, 10);
+    // output.print_out_json();
     
     //test_group_2_kick_step_1();
+
+    let drag = vec!(1e-15, 2e-15, 3e-15, 4e-15, 5e-15);
+    let k = 1e-8;
+
+    collision::collision_drag_analysis(k, drag);
 
 }
