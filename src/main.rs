@@ -6,6 +6,13 @@ mod system;
 
 use data::PI;
 
+extern crate rustc_serialize;
+use rustc_serialize::json;
+
+use system::data_storage_help::*;
+use rustc_serialize::json::{ToJson}; 
+
+
 fn test_group_2_kick_step_1() {
     let h: f64 = 1e-3;
 
@@ -156,13 +163,13 @@ pub fn collision(k: f64, drag: f64) {
         min = g.get_max_y();
     }
 
-    let factor: f64 = min as f64 / (1e-6 * 2.5);
+    let factor: f64 = min as f64 / (1e-7 * 3.);
 
     g.set_scale_factor(factor);
 
     // std::cerr << "Survived g.init\n";
 
-    let h: f64 = 1e-5;
+    let h: f64 = 1e-6;
     //std::cerr << "> k = " << k << ", drag = " << drag << '\n';
     let mut sys = system::build_system(k, drag);
 
@@ -216,7 +223,7 @@ pub fn collision(k: f64, drag: f64) {
             g.draw_point(p.state.0.0, p.state.0.1, '.' as u64, (c % 4) as i16);
         }
 
-        sys.rk4(h);
+        sys.kick_step(h);
 
         for (c, p) in sys.state.iter().enumerate() {
             g.draw_point(p.state.0.0, p.state.0.1, 'o' as u64, (c % 4) as i16);
@@ -252,6 +259,72 @@ pub fn collision(k: f64, drag: f64) {
     g.end();
 }
 
+pub fn collision_no_graphics(k: f64, drag: f64, max_store_samples: i32) -> FullSimulationState {
+    let h: f64 = 1e-6;
+    let mut sys = system::build_system(k, drag);
+
+
+    let r: f64 = 1e-7; // 130000 km
+
+    // 2g/cm^3
+
+    // saturns mass = 5.683e26 kg
+    //              = 5.683e29 g
+    //
+    // radius       = 1.3e5 km
+    //              = 1.3e8 m
+    //              = 1.3e10 cm
+    //
+    //                          (1.3e10)^3
+    // so conversion factor = --------------
+    //                           5.683e29
+
+    let rho: f64 = 7.7; //129000; sat mass/ ring radius^3
+    let mass: f64 = 4.0/3.0 * 3.14159 * r * r * r * rho;
+
+    sys.add_body(-2. * r, 0., 0., 2e-6, 0., 0., mass, r);
+    sys.add_body(2. * r, 0., 0., -2e-6, 0., 0., mass, r);
+
+    let mut i: f64 = 0.0;
+    let up_to: f64 = 1.5e-1;
+
+    
+
+    let mut output = build_full_simulation_state(&sys);
+
+    let mut counter = 1;
+
+    let mut counter_max = 20;
+    if max_store_samples > 0 {
+        let time_step_between_samples = up_to / max_store_samples as f64;
+        counter_max = (time_step_between_samples / h) as i32;
+    }
+
+
+    while i < up_to { 
+        sys.kick_step(h);
+
+        //info(i, &mut g, &sys);
+        
+        if counter > counter_max {
+            output.push_state(&sys, i);
+            counter = 0;
+        }
+        counter += 1;
+
+        i += h;
+    }
+
+    if max_store_samples > 0 {
+        assert_eq!(true, (output.states.len() as i32 - max_store_samples).abs() <= 1);
+    }
+
+    return output;
+    
+
+    // to 0.15
+}
+
 fn info(i: f64, g: &mut graphics::Graphics, sys: &system::System) {
     let msg = format!("Time = {:.3e}", i);
     g.print(0, 0, &msg[..], graphics::WHITE_ON_BLACK);
@@ -274,12 +347,14 @@ fn info(i: f64, g: &mut graphics::Graphics, sys: &system::System) {
 }
 
 fn main() {
-    println!("Hello, world!");
+    eprintln!("Hello, world!");
 
-    test_group_5_graphics(2);
+    //test_group_5_graphics(2);
     //test_group_3_rk4_1();
     //test_group_6_collision();
-    //collision(1e-15, 1e-20);
+    let output = collision_no_graphics(1e-8, 1e-15, 10);
+    let encoded = json::encode(&output.to_json()).unwrap();
+    println!("{}",encoded);
     //test_group_2_kick_step_1();
 
 }

@@ -100,6 +100,20 @@ pub mod basic {
         }
     }
 
+    use rustc_serialize::json::{ToJson, Json};
+    use std::collections::BTreeMap;
+
+    impl ToJson for Displacement {
+        fn to_json(&self) -> Json {
+            let mut d = BTreeMap::new();
+            // All standard types implement `to_json()`, so use it
+            d.insert("x".to_string(), self.0.to_json());
+            d.insert("y".to_string(), self.1.to_json());
+            d.insert("z".to_string(), self.2.to_json());
+            Json::Object(d)
+        }
+    }
+
     impl Velocity {
         pub fn multiply_integrate(&self, t: f64) -> Displacement {
             Displacement(self.0 * t, self.1 * t, self.2 * t)
@@ -120,6 +134,17 @@ pub mod basic {
 
         pub fn copy(&self) -> Velocity {
             Velocity(self.0, self.1, self.2)
+        }
+    }
+
+    impl ToJson for Velocity {
+        fn to_json(&self) -> Json {
+            let mut d = BTreeMap::new();
+            // All standard types implement `to_json()`, so use it
+            d.insert("x".to_string(), self.0.to_json());
+            d.insert("y".to_string(), self.1.to_json());
+            d.insert("z".to_string(), self.2.to_json());
+            Json::Object(d)
         }
     }
 
@@ -268,6 +293,19 @@ pub mod advanced {
             ),
             mass: mass,
             size: size
+        }
+    }
+
+    use rustc_serialize::json::{ToJson, Json};
+    use std::collections::BTreeMap;
+
+    impl ToJson for Particle {
+        fn to_json(&self) -> Json {
+            let mut d = BTreeMap::new();
+            // All standard types implement `to_json()`, so use it
+            d.insert("displacement".to_string(), self.state.0.to_json());
+            d.insert("velocity".to_string(), self.state.1.to_json());
+            Json::Object(d)
         }
     }
 }

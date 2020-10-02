@@ -347,3 +347,86 @@ pub fn build_system2(k: f64, drag: f64, state: Vec<Particle>) -> System {
         drag: drag
     };
 }
+
+pub mod data_storage_help {
+    use crate::data::advanced::Particle;
+    use rustc_serialize::json::{ToJson, Json};
+    use std::collections::BTreeMap;
+
+    pub struct SimulationState {
+        pub kinetic_e: f64,
+        pub potential_e: f64,
+        pub total_e: f64,
+        pub states: Vec<Particle>,
+        pub time: f64
+    }
+
+    pub fn build_simulation_state(sys: &super::System, time: f64) -> SimulationState {
+        let kinetic_e = sys.kinetic_energy();
+        let potential_e = sys.potential_energy();
+        return SimulationState {
+            kinetic_e: kinetic_e,
+            potential_e: potential_e,
+            total_e: kinetic_e + potential_e,
+            states: sys.state.clone(),
+            time: time
+        };
+    }
+
+    impl ToJson for SimulationState {
+        fn to_json(&self) -> Json {
+            let mut d = BTreeMap::new();
+            // All standard types implement `to_json()`, so use it
+            d.insert("KE".to_string(), self.kinetic_e.to_json());
+            d.insert("GPE".to_string(), self.potential_e.to_json());
+            d.insert("E".to_string(), self.total_e.to_json());
+            d.insert("time".to_string(), self.time.to_json());
+            d.insert("states".to_string(), self.states.to_json());
+            Json::Object(d)
+        }
+    }
+
+    pub struct FullSimulationState {
+        pub states: Vec<SimulationState>,
+        pub k: f64,
+        pub drag: f64,
+        pub masses: Vec<f64>,
+        pub sizes: Vec<f64>
+    }
+
+    use super::System;
+    pub fn build_full_simulation_state(sys: &System) -> FullSimulationState {
+        FullSimulationState {
+            states: Vec::new(),
+            k: sys.k,
+            drag: sys.drag,
+            masses: sys.state.iter().map(|p| p.mass).collect(),
+            sizes: sys.state.iter().map(|p| p.size).collect()
+        }
+    }
+
+    impl FullSimulationState {
+
+        pub fn push(&mut self, s: SimulationState) {
+            self.states.push(s);
+        }
+
+        pub fn push_state(&mut self, sys: &super::System, time: f64) {
+            self.states.push(build_simulation_state(sys, time));
+        }
+    }
+
+    // JSON value representation
+    impl ToJson for FullSimulationState {
+        fn to_json(&self) -> Json {
+            let mut d = BTreeMap::new();
+            // All standard types implement `to_json()`, so use it
+            d.insert("k".to_string(), self.k.to_json());
+            d.insert("drag".to_string(), self.drag.to_json());
+            d.insert("masses".to_string(), self.masses.to_json());
+            d.insert("sizes".to_string(), self.masses.to_json());
+            d.insert("states".to_string(), self.states.to_json());
+            Json::Object(d)
+        }
+    }
+}

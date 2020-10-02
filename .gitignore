@@ -1,2 +1,5 @@
 /target
 *.log
+out*
+moveToWindows.sh
+graphing/*.png
