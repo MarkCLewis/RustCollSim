@@ -5,6 +5,7 @@ use crate::data::{DRAG_DEFAULT, K_DEFAULT};
 use itertools::izip;
 use std::ops::AddAssign;
 
+
 /**
  * Approximate going forward with higher order deriv
  * 
@@ -351,6 +352,7 @@ pub fn build_system2(k: f64, drag: f64, state: Vec<Particle>) -> System {
 pub mod data_storage_help {
     use crate::data::advanced::Particle;
     use rustc_serialize::json::{ToJson, Json};
+    use rustc_serialize::json;
     use std::collections::BTreeMap;
 
     pub struct SimulationState {
@@ -391,17 +393,21 @@ pub mod data_storage_help {
         pub k: f64,
         pub drag: f64,
         pub masses: Vec<f64>,
-        pub sizes: Vec<f64>
+        pub sizes: Vec<f64>,
+        pub h: f64,
+        pub integrator: String
     }
 
     use super::System;
-    pub fn build_full_simulation_state(sys: &System) -> FullSimulationState {
+    pub fn build_full_simulation_state(sys: &System, h: f64, integrator: String) -> FullSimulationState {
         FullSimulationState {
             states: Vec::new(),
             k: sys.k,
             drag: sys.drag,
             masses: sys.state.iter().map(|p| p.mass).collect(),
-            sizes: sys.state.iter().map(|p| p.size).collect()
+            sizes: sys.state.iter().map(|p| p.size).collect(),
+            h: h,
+            integrator: integrator
         }
     }
 
@@ -414,6 +420,11 @@ pub mod data_storage_help {
         pub fn push_state(&mut self, sys: &super::System, time: f64) {
             self.states.push(build_simulation_state(sys, time));
         }
+
+        pub fn print_out_json(&self) {
+            let encoded = json::encode(&self.to_json()).unwrap();
+            println!("{}",encoded);
+        }
     }
 
     // JSON value representation
@@ -423,6 +434,8 @@ pub mod data_storage_help {
             // All standard types implement `to_json()`, so use it
             d.insert("k".to_string(), self.k.to_json());
             d.insert("drag".to_string(), self.drag.to_json());
+            d.insert("h".to_string(), self.h.to_json());
+            d.insert("integrator".to_string(), self.integrator.to_json());
             d.insert("masses".to_string(), self.masses.to_json());
             d.insert("sizes".to_string(), self.masses.to_json());
             d.insert("states".to_string(), self.states.to_json());

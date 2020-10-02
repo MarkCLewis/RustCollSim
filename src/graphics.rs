@@ -1,5 +1,7 @@
 extern crate ncurses;
 use std::{thread, time};
+use crate::system::System;
+use crate::data::basic;
 
 
 mod graphics_internal {
@@ -137,6 +139,29 @@ impl Graphics {
     if !self.initialized { panic!("Not initialized"); }
 
     ncurses::refresh();
+  }
+
+  pub fn info(&mut self, i: f64, sys: &System) {
+    if !self.initialized { panic!("Not initialized"); }
+
+    let msg = format!("Time = {:.3e}", i);
+    self.print(0, 0, &msg[..], WHITE_ON_BLACK);
+    let v0: basic::Velocity = sys.get_velocity(0);
+    let msg = format!("Velocity 1 = <{:.5e}, {:.5e}, {:.5e}>", v0.0, v0.1, v0.2);
+    self.print(0, 1, &msg[..], WHITE_ON_BLACK);
+  
+    let v1: basic::Velocity = sys.get_velocity(1);
+    let msg2 = format!("Velocity 2 = <{:.5e}, {:.5e}, {:.5e}>", v1.0, v1.1, v1.2);
+    //mvprintw(3, 0, "v 1 = <%e, %e, %e>", v0.x, v0.y, v0.z);
+    self.print(0, 2, &msg2[..], WHITE_ON_BLACK);
+  
+    let e = sys.energy();
+    let msg2 = format!("Energy = {:.5e}", e);
+    self.print(0, 3, &msg2[..], WHITE_ON_BLACK);
+  
+    self.print(0, self.get_max_y() - 1, "Press ^C to close", WHITE_ON_BLACK);
+  
+    self.refresh();
   }
 }
 
