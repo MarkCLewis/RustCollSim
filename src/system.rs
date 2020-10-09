@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 
 use crate::data::advanced::*;
 use crate::data::basic::*;
@@ -15,7 +16,10 @@ use std::ops::AddAssign;
 pub struct System {
     pub state: Vec<Particle>,
     pub k: f64,
-    pub drag: f64
+    pub drag: f64,
+    pub n: f64,
+    pub kappa: f64,
+    pub n_z: f64
 }
 
 impl AddAssign<&Vec<State>> for System {
@@ -30,6 +34,10 @@ impl System {
 
     pub fn get_velocity(&self, index: usize) -> Velocity {
         self.state[index].state.1
+    }
+
+    pub fn get_displacement(&self, index: usize) -> Displacement {
+        self.state[index].state.0
     }
 
     pub fn kinetic_energy(&self) -> f64 {
@@ -147,13 +155,37 @@ impl System {
                     }
                 }
             }
-    
-    
-            deriv.push(Derivative(this.state.1.copy(), acc_vector));
+            let acc = self.hillsForce(&sys[i]);
+            
+            deriv.push(Derivative(this.state.1.copy(), acc_vector + acc));
         } 
     
         return deriv;
     }
+
+    pub fn hillsForce(&self, p: &Particle) -> Acceleration {
+        Acceleration(
+            2. * self.n * p.vy() - (self.kappa * self.kappa - 4. * self.n * self.n) * p.x(),
+            -2. * self.n * p.vx(),
+            -self.n_z * self.n_z * p.z()
+        )
+    }
+
+    pub fn slidingBrickBoundary(p: &mut Particle, _time: f64, sx: f64, sy: f64) {
+        let bx = sx * 0.5;
+        let by = sy * 0.5;
+        if p.y() < -by { p.state.0.1 += sy; }
+        else if p.y() > by { p.state.0.1 -= sy; }
+        // TODO fix x for sliding with time
+
+        if p.x() < -bx {
+          p.state.0.0 += sx;
+          p.state.1.0 -= 1.5 * sx;
+        } else if p.x() > bx {
+          p.state.0.0 -= sx;
+          p.state.1.0 += 1.5 * sx;
+        }
+      }
 
     pub fn push(&mut self, p: Particle) {
         self.state.push(p);
@@ -328,14 +360,7 @@ impl System {
 }
 
 pub fn build_system(k: f64, drag: f64) -> System {
-    let k = if k < 0.0 { K_DEFAULT } else { k };
-    let drag = if drag < 0.0 { DRAG_DEFAULT } else { drag };
-
-    return System {
-        state: Vec::new(),
-        k: k,
-        drag: drag
-    };
+    return build_system2(k, drag, Vec::new());
 }
 
 pub fn build_system2(k: f64, drag: f64, state: Vec<Particle>) -> System {
@@ -345,7 +370,10 @@ pub fn build_system2(k: f64, drag: f64, state: Vec<Particle>) -> System {
     return System {
         state: state,
         k: k,
-        drag: drag
+        drag: drag,
+        kappa: 1.,
+        n_z: 1.,
+        n: 1.
     };
 }
 

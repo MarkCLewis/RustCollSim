@@ -283,6 +283,13 @@ pub mod advanced {
             let Velocity(vx, vy, vz) = self.state.1;
             println!("Position = <{}, {}, {}> Velocity = <{}, {}, {}>", x, y, z, vx, vy, vz);
         }
+
+        pub fn x(&self) -> f64 { self.state.0.0 }
+        pub fn y(&self) -> f64 { self.state.0.1 }
+        pub fn z(&self) -> f64 { self.state.0.2 }
+        pub fn vx(&self) -> f64 { self.state.1.0 }
+        pub fn vy(&self) -> f64 { self.state.1.1 }
+        pub fn vz(&self) -> f64 { self.state.1.2 }
     }
     
     pub fn build_particle(x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, mass: f64, size: f64) -> Particle {

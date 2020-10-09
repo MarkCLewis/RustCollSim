@@ -158,10 +158,51 @@ impl Graphics {
     let e = sys.energy();
     let msg2 = format!("Energy = {:.5e}", e);
     self.print(0, 3, &msg2[..], WHITE_ON_BLACK);
+
+    let x0: basic::Displacement = sys.get_displacement(0);
+    let msg = format!("Displacement 0 = <{:.5e}, {:.5e}, {:.5e}>", x0.0, x0.1, x0.2);
+    self.print(0, 4, &msg[..], WHITE_ON_BLACK);
   
     self.print(0, self.get_max_y() - 1, "Press ^C to close", WHITE_ON_BLACK);
   
     self.refresh();
+  }
+
+  pub fn centeredBox(&self)
+  {
+    if !self.initialized { panic!("Not initialized"); }
+
+    let mut max_y = 0;
+    let mut max_x = 0;
+    ncurses::getmaxyx(ncurses::stdscr(), &mut max_y, &mut max_x);
+
+    let mut min = max_x;
+    if max_y < min {
+      min = max_y;
+    }
+
+    let mid_y = max_y / 2;
+    let mid_x = max_x / 2;
+
+
+    let xMin = (min as f64 * 3.0 * 5.0/6.0) as i32;
+    ncurses::mvhline(mid_y - min/2, mid_x - xMin/2, 0, xMin);
+    ncurses::mvhline(max_y - 1, mid_x - xMin/2, 0, xMin);
+    ncurses::mvvline(mid_y - min/2, mid_x - xMin/2, 0, min);
+    ncurses::mvvline(mid_y - min/2, mid_x + xMin/2, 0, min);
+
+    ncurses::mvaddch(mid_y - min/2, mid_x - xMin/2, ncurses::ACS_ULCORNER());
+    ncurses::mvaddch(max_y - 1, mid_x - xMin/2, ncurses::ACS_LLCORNER());
+    ncurses::mvaddch(mid_y - min/2, mid_x + xMin/2, ncurses::ACS_URCORNER());
+    ncurses::mvaddch(max_y - 1, mid_x + xMin/2, ncurses::ACS_LRCORNER());
+
+    self.refresh();
+  }
+
+  pub fn clear(&self) {
+    if !self.initialized { panic!("Not initialized"); }
+
+    ncurses::clear();
   }
 }
 

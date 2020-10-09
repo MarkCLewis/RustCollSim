@@ -9,7 +9,7 @@
 - G(x) = g(x) * s(-xb)
 
 - y = F(x) + G(x)
-- x > 0.2
+- x < 0.2
 
 x is distance between surfaces, x < 0 if there is a collision  
 y is force

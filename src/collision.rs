@@ -6,6 +6,8 @@ use crate::system::data_storage_help::*;
 use crate::graphics;
 
 pub fn collision(k: f64, drag: f64) {
+    let cellSize = 10e-7;//3e-4;
+
     let mut g = graphics::build_graphics();
     g.init();
 
@@ -13,10 +15,13 @@ pub fn collision(k: f64, drag: f64) {
     if g.get_max_y() < min {
         min = g.get_max_y();
     }
+    min -= 2; // cause box
 
-    let factor: f64 = min as f64 / (1e-7 * 3.);
+    let factor: f64 = min as f64 / cellSize;
 
     g.set_scale_factor(factor);
+
+    
 
     // std::cerr << "Survived g.init\n";
 
@@ -66,26 +71,49 @@ pub fn collision(k: f64, drag: f64) {
 
     //std::cerr << "Survived init" << std::endl;
 
+    let mut counter = 0;
+    const COUNTER_MAX: i32 = 300;
+
     let mut i: f64 = 0.0;
     while i < 100. * PI * 2. * 2.0 * PI { 
         //clear();
 
-        for (c, p) in sys.state.iter().enumerate() {
-            g.draw_point(p.state.0.0, p.state.0.1, '.' as u64, (c % 4) as i16);
+        if counter > COUNTER_MAX {
+            g.clear();
+
+            for (c, p) in sys.state.iter().enumerate() {
+                g.draw_point(p.state.0.0, p.state.0.1, '.' as u64, (c % 4) as i16);
+            }
         }
 
         sys.kick_step(h);
 
-        for (c, p) in sys.state.iter().enumerate() {
-            g.draw_point(p.state.0.0, p.state.0.1, 'o' as u64, (c % 4) as i16);
+        for p in sys.state.iter_mut() {
+            system::System::slidingBrickBoundary(p, i, cellSize, cellSize);
         }
 
-        //double totalE = sys.computeEnergy();
+        if counter > COUNTER_MAX {
+            for (c, p) in sys.state.iter().enumerate() {
+                let color = (c % 4) as i16;
 
-        //g.print(0, 0, )
-        
-        // mvprintw(0, 0, "Energy = %e", totalE);
-        g.info(i, &sys);
+                g.draw_point(p.state.0.0 - p.size, p.state.0.1, '|' as u64, color);
+                g.draw_point(p.state.0.0 + p.size, p.state.0.1, '|' as u64, color);
+                g.draw_point(p.state.0.0, p.state.0.1 - p.size, '-' as u64, color);
+                g.draw_point(p.state.0.0, p.state.0.1 + p.size, '-' as u64, color);
+                g.draw_point(p.state.0.0, p.state.0.1, 'o' as u64, color);
+            }
+
+            //double totalE = sys.computeEnergy();
+
+            //g.print(0, 0, )
+            
+            // mvprintw(0, 0, "Energy = %e", totalE);
+            g.centeredBox();
+            g.info(i, &sys);
+
+            counter = 0;
+        }
+        counter += 1;
 
         // int c = g.sleepInterruptible(1); // returns 0 on no char typed
 
@@ -100,7 +128,7 @@ pub fn collision(k: f64, drag: f64) {
         //     break; // close program if any key is hit
         // }
 
-        graphics::sleep(100);
+        graphics::sleep(10);
 
         i += h;
     }
