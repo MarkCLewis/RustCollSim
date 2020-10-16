@@ -150,10 +150,10 @@ impl Graphics {
     let msg = format!("Velocity 1 = <{:.5e}, {:.5e}, {:.5e}>", v0.0, v0.1, v0.2);
     self.print(0, 1, &msg[..], WHITE_ON_BLACK);
   
-    let v1: basic::Velocity = sys.get_velocity(1);
-    let msg2 = format!("Velocity 2 = <{:.5e}, {:.5e}, {:.5e}>", v1.0, v1.1, v1.2);
-    //mvprintw(3, 0, "v 1 = <%e, %e, %e>", v0.x, v0.y, v0.z);
-    self.print(0, 2, &msg2[..], WHITE_ON_BLACK);
+    // let v1: basic::Velocity = sys.get_velocity(1);
+    // let msg2 = format!("Velocity 2 = <{:.5e}, {:.5e}, {:.5e}>", v1.0, v1.1, v1.2);
+    // //mvprintw(3, 0, "v 1 = <%e, %e, %e>", v0.x, v0.y, v0.z);
+    // self.print(0, 2, &msg2[..], WHITE_ON_BLACK);
   
     let e = sys.energy();
     let msg2 = format!("Energy = {:.5e}", e);
@@ -208,4 +208,16 @@ impl Graphics {
 
 pub fn sleep(micros: u64) {
   thread::sleep(time::Duration::from_micros(micros));
+}
+
+pub struct GraphicsPoint {
+  pub x: f64,
+  pub y: f64
+}
+
+pub fn build_graphics_point(x: f64, y: f64) -> GraphicsPoint {
+  GraphicsPoint { 
+    x, 
+    y 
+  }
 }

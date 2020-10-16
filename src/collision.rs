@@ -4,6 +4,7 @@ use crate::system;
 use crate::data::PI;
 use crate::system::data_storage_help::*;
 use crate::graphics;
+use itertools::izip;
 
 pub fn collision(k: f64, drag: f64) {
     let cellSize = 10e-7;//3e-4;
@@ -49,9 +50,9 @@ pub fn collision(k: f64, drag: f64) {
     let rho: f64 = 7.7; //129000; sat mass/ ring radius^3
     let mass: f64 = 4.0/3.0 * 3.14159 * r * r * r * rho;
 
-    sys.add_body(-2. * r, 0., 0., 2e-6, 0., 0., mass, r);
-    sys.add_body(2. * r, 0., 0., -2e-6, 0., 0., mass, r);
-
+    //sys.add_body(-2. * r, 0., 0., 2e-6, 0., 0., mass, r);
+    //sys.add_body(2. * r, 0., 0., -2e-6, 0., 0., mass, r);
+    sys.add_body(0., 1e-7, 0., 1e-7, 0., 0., mass, r);
 
 
     //sys.addBody(0, 35e-4, 0, 5, 0, 0, 1e-2, 4.25879793e-4);
@@ -72,18 +73,26 @@ pub fn collision(k: f64, drag: f64) {
     //std::cerr << "Survived init" << std::endl;
 
     let mut counter = 0;
-    const COUNTER_MAX: i32 = 300;
+    const COUNTER_MAX: i32 = 600;
+
+    let mut lastPos: Vec<graphics::GraphicsPoint> = Vec::new();
 
     let mut i: f64 = 0.0;
     while i < 100. * PI * 2. * 2.0 * PI { 
         //clear();
 
         if counter > COUNTER_MAX {
-            g.clear();
 
-            for (c, p) in sys.state.iter().enumerate() {
-                g.draw_point(p.state.0.0, p.state.0.1, '.' as u64, (c % 4) as i16);
+
+            for (p, (c, pa)) in izip!(lastPos.iter(), sys.state.iter().enumerate()) {
+                let color = (c % 4) as i16;
+                g.draw_point(p.x - pa.size, p.y, ' ' as u64, color);
+                g.draw_point(p.x + pa.size, p.y, ' ' as u64, color);
+                g.draw_point(p.x, p.y - pa.size, ' ' as u64, color);
+                g.draw_point(p.x, p.y + pa.size, ' ' as u64, color);
+                g.draw_point(p.x, p.y, '.' as u64, (c % 4) as i16);
             }
+            lastPos.clear();
         }
 
         sys.kick_step(h);
@@ -93,6 +102,7 @@ pub fn collision(k: f64, drag: f64) {
         }
 
         if counter > COUNTER_MAX {
+            //g.clear();
             for (c, p) in sys.state.iter().enumerate() {
                 let color = (c % 4) as i16;
 
@@ -101,6 +111,8 @@ pub fn collision(k: f64, drag: f64) {
                 g.draw_point(p.state.0.0, p.state.0.1 - p.size, '-' as u64, color);
                 g.draw_point(p.state.0.0, p.state.0.1 + p.size, '-' as u64, color);
                 g.draw_point(p.state.0.0, p.state.0.1, 'o' as u64, color);
+
+                lastPos.push(graphics::build_graphics_point(p.state.0.0, p.state.0.1));
             }
 
             //double totalE = sys.computeEnergy();
@@ -112,6 +124,7 @@ pub fn collision(k: f64, drag: f64) {
             g.info(i, &sys);
 
             counter = 0;
+
         }
         counter += 1;
 
@@ -128,7 +141,7 @@ pub fn collision(k: f64, drag: f64) {
         //     break; // close program if any key is hit
         // }
 
-        graphics::sleep(10);
+        graphics::sleep(100);
 
         i += h;
     }
