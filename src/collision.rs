@@ -5,9 +5,32 @@ use crate::data::PI;
 use crate::system::data_storage_help::*;
 use crate::graphics;
 use itertools::izip;
+use rand::Rng;
+
+
 
 pub fn collision(k: f64, drag: f64) {
-    let cellSize = 10e-7;//3e-4;
+    let r: f64 = 1e-7; // 130000 km
+    /*
+     * diameter = 2e-7
+     * area(sq) = 4e-14 
+     * 1000 -> 4e-11
+     * 1% space covered, aka * 100
+     * sqrt( 4e-9 )
+     * 6.324555320336759e-05
+     */
+    let areaAsSquare = (2.*r)*(2.*r);
+
+    let count = 1000;
+    let areaCovered = areaAsSquare * count as f64;
+
+    let fullAreaCovered = areaCovered * 100.;
+    let edgeLen = fullAreaCovered.sqrt();
+
+    // 
+
+    let cellSize = edgeLen;
+    //10e-7;//3e-4;
 
     let mut g = graphics::build_graphics();
     g.init();
@@ -16,7 +39,7 @@ pub fn collision(k: f64, drag: f64) {
     if g.get_max_y() < min {
         min = g.get_max_y();
     }
-    min -= 2; // cause box
+    min -= 2; // because box
 
     let factor: f64 = min as f64 / cellSize;
 
@@ -26,13 +49,13 @@ pub fn collision(k: f64, drag: f64) {
 
     // std::cerr << "Survived g.init\n";
 
-    let h: f64 = 1e-6;
+    let h: f64 = 1e-5;//1e-6;
     //std::cerr << "> k = " << k << ", drag = " << drag << '\n';
     let mut sys = system::build_system(k, drag);
 
     // State sys(h, 0, 0, k, drag);
 
-    let r: f64 = 1e-7; // 130000 km
+    
 
     // 2g/cm^3
 
@@ -52,7 +75,22 @@ pub fn collision(k: f64, drag: f64) {
 
     //sys.add_body(-2. * r, 0., 0., 2e-6, 0., 0., mass, r);
     //sys.add_body(2. * r, 0., 0., -2e-6, 0., 0., mass, r);
-    sys.add_body(0., 1e-7, 0., 1e-7, 0., 0., mass, r);
+    //sys.add_body(2e-7, 1e-7, 0., 1e-7, 0., 0., mass, r);
+    // sys.add_body(0., 5e-7, 0., 1e-7, 0., 0., mass, r);
+    // sys.add_body(0., 1e-7, 0., 1e-7, 0., 0., mass, r);
+
+    let mut rng = rand::thread_rng();
+    
+    for _ in 0..count {
+        sys.add_body(
+            rng.gen_range(-cellSize, cellSize), 
+            rng.gen_range(-cellSize, cellSize), 
+            rng.gen_range(-cellSize, cellSize), 
+            0.,//rng.gen_range(-1e-7, 1e-7), 
+            0.,//rng.gen_range(-1e-7, 1e-7), 
+            0.,//rng.gen_range(-1e-7, 1e-7), 
+            mass, r);
+    }
 
 
     //sys.addBody(0, 35e-4, 0, 5, 0, 0, 1e-2, 4.25879793e-4);
@@ -231,3 +269,87 @@ pub fn collision_drag_analysis(k: f64, drags: Vec<f64>) {
     }
 }
 
+
+pub fn collisionLots(k: f64, drag: f64) {
+    let r: f64 = 1e-7; // 130000 km
+    /*
+     * diameter = 2e-7
+     * area(sq) = 4e-14 
+     * 1000 -> 4e-11
+     * 1% space covered, aka * 100
+     * sqrt( 4e-9 )
+     * 6.324555320336759e-05
+     */
+    let areaAsSquare = (2.*r)*(2.*r);
+
+    let count = 1000;
+    let areaCovered = areaAsSquare * count as f64;
+
+    let fullAreaCovered = areaCovered * 100.;
+    let edgeLen = fullAreaCovered.sqrt();
+
+    let cellSize = edgeLen;
+    //10e-7;//3e-4;
+
+    // std::cerr << "Survived g.init\n";
+
+    let h: f64 = 1e-5;//1e-6;
+    //std::cerr << "> k = " << k << ", drag = " << drag << '\n';
+    let mut sys = system::build_system(k, drag);
+
+    // State sys(h, 0, 0, k, drag);
+
+    // 2g/cm^3
+
+    // saturns mass = 5.683e26 kg
+    //              = 5.683e29 g
+    //
+    // radius       = 1.3e5 km
+    //              = 1.3e8 m
+    //              = 1.3e10 cm
+    //
+    //                          (1.3e10)^3
+    // so conversion factor = --------------
+    //                           5.683e29
+
+    let rho: f64 = 7.7; //129000; sat mass/ ring radius^3
+    let mass: f64 = 4.0/3.0 * 3.14159 * r * r * r * rho;
+
+    let mut rng = rand::thread_rng();
+    
+    for _ in 0..count {
+        sys.add_body(
+            rng.gen_range(-cellSize, cellSize), 
+            rng.gen_range(-cellSize, cellSize), 
+            rng.gen_range(-1e-7, 1e-7), 
+            0.,//rng.gen_range(-1e-7, 1e-7), 
+            0.,//rng.gen_range(-1e-7, 1e-7), 
+            0.,//rng.gen_range(-1e-7, 1e-7), 
+            mass, r);
+    }
+
+    const COUNTER_MAX: i32 = 600;
+
+    let mut counter = 0;
+
+    let mut i: f64 = 0.0;
+    while i < 100. * PI * 2. * 2.0 * PI { 
+        sys.kick_step(h);
+
+        for p in sys.state.iter_mut() {
+            system::System::slidingBrickBoundary(p, i, cellSize, cellSize);
+        }
+
+        if counter >= 1000 {
+            counter = 0;
+            eprintln!("{}", i);
+            sys.print_out(i);
+        }
+        counter += 1;
+        
+
+        
+
+        i += h;
+    }
+}

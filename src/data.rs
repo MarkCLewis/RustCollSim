@@ -281,7 +281,7 @@ pub mod advanced {
         pub fn print_out(&self) {
             let Displacement(x, y, z) = self.state.0;
             let Velocity(vx, vy, vz) = self.state.1;
-            println!("Position = <{}, {}, {}> Velocity = <{}, {}, {}>", x, y, z, vx, vy, vz);
+            println!("x = <{}, {}, {}> v = <{}, {}, {}>", x, y, z, vx, vy, vz);
         }
 
         pub fn x(&self) -> f64 { self.state.0.0 }

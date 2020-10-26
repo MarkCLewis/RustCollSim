@@ -134,7 +134,9 @@ impl System {
                         // in dir -c (away from other object)
                         let a: f64 = (-self.k * -delta_x + self.drag * v_dot_c) / this.mass;
 
-                        
+                        if !((c.0*c.0 + c.1*c.1 + c.2*c.2).sqrt() - 1. < 0.00001) {
+                            eprintln!("c = <{:.5e}, {:.5e}, {:.5e}>", c.0, c.1, c.2);
+                        }
                         assert_eq!((c.0*c.0 + c.1*c.1 + c.2*c.2).sqrt() - 1. < 0.00001, true); // c is a unit vec
                         
                         let ca = c * a;
@@ -172,6 +174,20 @@ impl System {
     }
 
     pub fn slidingBrickBoundary(p: &mut Particle, _time: f64, sx: f64, sy: f64) {
+        /*
+        val bx = sx * 0.5
+        val by = sy * 0.5
+        if (pi.p.y < -by) pi.p.y += sy
+        else if (pi.p.y > by) pi.p.y -= sy
+        // TODO fix x for sliding with time
+        if (pi.p.x < -bx) {
+        pi.p.x += sx
+        pi.v.y -= 1.5 * sx
+        } else if (pi.p.x > bx) {
+        pi.p.x -= sx
+        pi.v.y += 1.5 * sx
+        }
+        */
         let bx = sx * 0.5;
         let by = sy * 0.5;
         if p.y() < -by { p.state.0.1 += sy; }
@@ -345,10 +361,10 @@ impl System {
         *self += &final_k;
     }
 
-    pub fn print_out(&self) {
+    pub fn print_out(&self, i: f64) {
         let sys = &self.state;
         
-        println!("[");
+        println!("[ i = {}", i);
     
         for p in sys.iter() {
             print!("  ");

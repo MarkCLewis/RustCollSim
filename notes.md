@@ -13,3 +13,6 @@
 
 x is distance between surfaces, x < 0 if there is a collision  
 y is force
+
+ - how many derivs do we need?
+ - simpsons rule - quadratic

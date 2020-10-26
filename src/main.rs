@@ -28,7 +28,7 @@ fn test_group_2_kick_step_1() {
     }
 
     println!("Final Result:");
-    sys.print_out();
+    sys.print_out(-1.);
 }
 
 fn test_group_3_rk4_1() {
@@ -50,7 +50,7 @@ fn test_group_3_rk4_1() {
     }
 
     println!("Final Result:");
-    sys.print_out();
+    sys.print_out(-1.);
 }
 
 fn test_group_5_graphics(orbits: i32) {
@@ -157,7 +157,7 @@ fn main() {
     //test_group_3_rk4_1();
     //test_group_6_collision();
 
-    collision::collision(1e-8, 5e-15);
+    collision::collisionLots(1e-8, 5e-15);
     
     // let output = collision::collision_no_graphics(1e-8, 1e-15, 10);
     // output.print_out_json();
