@@ -5,6 +5,7 @@ mod data;
 mod graphics;
 mod system;
 mod collision;
+mod sim1D;
 
 use data::PI;
 
@@ -153,11 +154,13 @@ fn test_group_6_collision() {
 fn main() {
     eprintln!("Hello, world!");
 
+    sim1D::testing();
+
     //test_group_5_graphics(2);
     //test_group_3_rk4_1();
     //test_group_6_collision();
 
-    collision::collisionLots(1e-8, 5e-15);
+    //collision::collisionLots(1e-8, 5e-15);
     
     // let output = collision::collision_no_graphics(1e-8, 1e-15, 10);
     // output.print_out_json();
