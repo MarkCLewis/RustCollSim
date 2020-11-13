@@ -154,7 +154,7 @@ fn test_group_6_collision() {
 fn main() {
     eprintln!("Hello, world!");
 
-    sim1D::testing();
+    sim1D::testing2();
 
     //test_group_5_graphics(2);
     //test_group_3_rk4_1();
