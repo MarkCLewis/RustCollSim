@@ -282,7 +282,7 @@ pub fn collisionLots(k: f64, drag: f64) {
      */
     let areaAsSquare = (2.*r)*(2.*r);
 
-    let count = 1000;
+    let count: i32 = 1000;
     let areaCovered = areaAsSquare * count as f64;
 
     let fullAreaCovered = areaCovered * 100.;
@@ -317,16 +317,33 @@ pub fn collisionLots(k: f64, drag: f64) {
 
     let mut rng = rand::thread_rng();
     
-    for _ in 0..count {
-        sys.add_body(
-            rng.gen_range(-cellSize, cellSize), 
-            rng.gen_range(-cellSize, cellSize), 
-            rng.gen_range(-1e-7, 1e-7), 
-            0.,//rng.gen_range(-1e-7, 1e-7), 
-            0.,//rng.gen_range(-1e-7, 1e-7), 
-            0.,//rng.gen_range(-1e-7, 1e-7), 
-            mass, r);
+    let root = ((count as f64).sqrt()) as i32;
+
+    let sep = (2.*cellSize) / (root as f64 + 1.);
+
+    for i in 0..root {
+        for j in 0..root {
+            sys.add_body(
+                rng.gen_range(-sep/3., sep/3.) - cellSize + sep * i as f64, 
+                rng.gen_range(-sep/3., sep/3.) - cellSize + sep * j as f64, 
+                rng.gen_range(-r, r), 
+                0.,//rng.gen_range(-1e-7, 1e-7), 
+                0.,//rng.gen_range(-1e-7, 1e-7), 
+                0.,//rng.gen_range(-1e-7, 1e-7), 
+                mass, r);
+        }
     }
+
+    // for _ in 0..count {
+    //     sys.add_body(
+    //         rng.gen_range(-cellSize, cellSize), 
+    //         rng.gen_range(-cellSize, cellSize), 
+    //         rng.gen_range(-r, r), 
+    //         0.,//rng.gen_range(-1e-7, 1e-7), 
+    //         0.,//rng.gen_range(-1e-7, 1e-7), 
+    //         0.,//rng.gen_range(-1e-7, 1e-7), 
+    //         mass, r);
+    // }
 
     const COUNTER_MAX: i32 = 600;
 
