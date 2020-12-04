@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
-const b: f64 = 10.0 / 1e-7;
-const k: f64 = 5.0e-7;
+const b: f64 = 1e10;
+const k: f64 = 1e-18;
 
 use crate::data::PI;
 
@@ -41,9 +41,14 @@ pub fn acc(this: &Particle1D, other: &Particle1D) -> f64 {
     
     let gravAcc = 1.0 * other.mass / (r * r);
 
-    let springAcc = (-k * (r - (other.radius + this.radius)) + p) / this.mass;
+    let springAcc = (-k * penDepth + p) / this.mass;
 
+    // actually acc, not force
     let force = springAcc * sigma(-b * penDepth) - gravAcc * sigma(b * penDepth);
+    // print everything
+
+    //eprintln!("{} {} {} {}", springAcc, sigma(-b * penDepth), -gravAcc, sigma(b * penDepth));
+
     if other.x > this.x {
         return -force;
     }
@@ -84,7 +89,7 @@ pub fn testing2() {
     let mut counter = 0;
 
     let mut i: f64 = 0.0;
-    while i < 1e-3 * PI * 2. { 
+    while i < 1e-2 * PI * 2. { 
         let acc1 = acc(&p1, &p2);
         let acc2 = acc(&p2, &p1);
         // kick step
@@ -99,6 +104,10 @@ pub fn testing2() {
             break;
         }
 
+        // if counter > 20 {
+        //     break;
+        // }
+
         if counter >= 100 {
             counter = 0;
             println!("{}, {}, {}, {}, {}", i, p1.x, acc1, p2.x, acc2);
@@ -108,6 +117,4 @@ pub fn testing2() {
 
         i += h;
     }
-
-    
 }

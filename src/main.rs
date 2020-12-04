@@ -151,10 +151,22 @@ fn test_group_6_collision() {
     g.end();
 }
 
+mod no_explode;
+
+mod sim1D_piecewise;
+
 fn main() {
     eprintln!("Hello, world!");
 
-    sim1D::testing2();
+    // let v0 = 0.0000001;
+    // let m = 1.0266666666666665e-20;
+
+    // let (b,k) = compute::b_and_k(v0, m);
+    // eprintln!("b = {:e}, k = {:e}", b, k);
+
+    //sim1D::testing2();
+
+    sim1D_piecewise::testing2();
 
     //test_group_5_graphics(2);
     //test_group_3_rk4_1();
