@@ -42,29 +42,32 @@ impl Simulation {
         let gravAcc = 1.0 * other.mass / (r * r);
 
         
-        let acc = if penDepth < 0. {
+        let (acc1, acc2) = if penDepth < 0. {
             if self.v0 == 0. {
                 self.v0 = (this.v - other.v).abs();
                 let (b, k) = b_and_k(self.v0, this.mass);
                 self.b = b;
                 self.k = k;
-                eprintln!("b = {:e} k = {:e}", b,k);
+                eprintln!("b = {:e} k = {:e}", self.b,self.k);
             }
 
             assert_ne!(self.b, 0.);
-            let springAcc = - (self.b / this.mass) * (this.v - other.v).abs() - (self.k / this.mass ) * penDepth;
+            let springAcc = - (self.k / this.mass ) * penDepth;
+            //eprintln!("{:e} {:e}", - (self.b / this.mass) * (this.v - other.v), - (self.k / this.mass ) * penDepth);
 
-            -springAcc
+            (-springAcc, -(self.b / this.mass) * (this.v - other.v) )
         }
         else {
             self.v0 = 0.;
-            gravAcc
+            (gravAcc, 0.)
         };
 
-        if other.x < this.x {
-            return -acc;
+        let signedAcc = if other.x < this.x {
+            -acc1 + acc2
         }
-        return acc;
+        else { acc1 + acc2 };
+
+        return signedAcc;
     }
 }
 
@@ -94,10 +97,10 @@ pub fn testing2() {
     let rho: f64 = 7.7; //129000; sat mass/ ring radius^3
     let mass: f64 = 4.0/3.0 * 3.14159 * r * r * r * rho;
 
-    let h: f64 = 5e-6;//1e-6;
+    let h: f64 = 1e-4;//1e-6;
 
     let mut p1 = Particle1D::new(0., 0., mass, r);
-    let mut p2 = Particle1D::new(3. * r, -2.*r, mass, r);//-3e-6
+    let mut p2 = Particle1D::new(3. * r, 0., mass, r);//-3e-6
 
     let mut counter = 0;
 
