@@ -1,4 +1,5 @@
 use crate::data::basic::*;
+use crate::graphicsM;
 use crate::graphics;
 
 const M_PI: f64 = 3.141592653589793;
@@ -119,26 +120,25 @@ pub fn main() {
     pos[1].print();
     vel[1].print();
 
-    // let mut g = graphics::build_graphics();
-    // g.init();
-
-    // let mut min: i32 = g.get_max_x();
-    // if g.get_max_y() < min {
-    //     min = g.get_max_y();
-    // }
-
-    // let factor: f64 = min as f64 / (1e-0 * 2.5);
-
-    // g.set_scale_factor(factor);
+    let mut g = graphicsM!();
   
     calcAccJerk(&pos, &vel, &rad, rho, &mut acc, &mut jerk);
     let mut t = 0.;
-    while t < 1. * M_PI { // 2e5
+    while t < 10. * M_PI { // 2e5
         evolveStep(&mut pos, &mut vel, &rad, rho, &mut acc, &mut jerk, dt);
         if !pos[0].is_finite() {
             pos[0].print();
             panic!("Got non-finite value for position of particle 0 at t = {}", t);
         }
+
+        for c in 0..pos.len() {
+            g.draw_point(pos[c].0, pos[c].1, 'o' as u64, (c % 4) as i16);
+
+        }
+        g.refresh();
+
+        graphics::sleep(10000);
+
         t += dt;
     }
 

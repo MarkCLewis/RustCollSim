@@ -222,3 +222,23 @@ pub fn build_graphics_point(x: f64, y: f64) -> GraphicsPoint {
     y 
   }
 }
+
+#[macro_export]
+macro_rules! graphicsM {
+    ( ) => {
+        {
+          let mut g = graphics::build_graphics();
+          g.init();
+      
+          let mut min: i32 = g.get_max_x();
+          if g.get_max_y() < min {
+              min = g.get_max_y();
+          }
+      
+          let factor: f64 = min as f64 / (1e-0 * 2.5);
+      
+          g.set_scale_factor(factor);
+          g
+        }
+    };
+}
