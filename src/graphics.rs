@@ -2,6 +2,7 @@ extern crate ncurses;
 use std::{thread, time};
 use crate::system::System;
 use crate::data::basic;
+use std::convert::TryInto;
 
 
 mod graphics_internal {
@@ -89,7 +90,7 @@ impl Graphics {
       ncurses::attr_on(ncurses::COLOR_PAIR(color));
     }
 
-    ncurses::mvaddch(y as i32, x as i32, c);
+    ncurses::mvaddch(y as i32, x as i32, c.try_into().unwrap());
 
     if color >= 0 && color < 5 && self.has_colors {
       ncurses::attr_off(ncurses::COLOR_PAIR(color));

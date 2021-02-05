@@ -6,6 +6,7 @@ mod graphics;
 mod system;
 mod collision;
 mod sim1D;
+mod fourthOrderInt;
 
 use data::PI;
 
@@ -157,6 +158,10 @@ mod sim1D_piecewise;
 
 fn main() {
     eprintln!("Hello, world!");
+
+    fourthOrderInt::main();
+
+    return;
 
     // let v0 = 0.0000001;
     // let m = 1.0266666666666665e-20;

@@ -5,13 +5,23 @@ pub const K_DEFAULT: f64 =  1e11;
 pub const DRAG_DEFAULT: f64 = 1e3;
 
 pub mod basic {
-    use std::ops::{Mul, Div, Sub, Add};
+    use std::ops::{Mul, Div, Sub, Add, AddAssign, SubAssign};
 
     fn square(x: f64) -> f64 { x * x }
 
     // x, y, z for all
     #[derive(Clone, Copy)]
     pub struct Vector(pub f64, pub f64, pub f64);
+
+    impl Vector {
+        pub fn dot(&self, other: &Vector) -> f64 {
+            self.0 * other.0 + self.1 * other.1 + self.2 + other.2
+        }
+
+        pub fn print(&self) {
+            println!("<{}, {}, {}>", self.0, self.1, self.2);
+        }
+    }
 
     impl Add for Vector {
         type Output = Self;
@@ -20,10 +30,22 @@ pub mod basic {
         }
     }
 
+    impl AddAssign for Vector {
+        fn add_assign(&mut self, other: Self) {
+            *self = Self(self.0 + other.0, self.1 + other.1, self.2 + other.2);
+        }
+    }
+
     impl Sub for Vector {
         type Output = Self;
         fn sub(self, other: Self) -> Self {
             Self(self.0 - other.0, self.1 - other.1, self.2 - other.2)
+        }
+    }
+
+    impl SubAssign for Vector {
+        fn sub_assign(&mut self, other: Self) {
+            *self = Self(self.0 - other.0, self.1 - other.1, self.2 - other.2);
         }
     }
 
@@ -63,6 +85,22 @@ pub mod basic {
 
         pub fn mag(&self) -> f64 {
             (square(self.0) + square(self.1) + square(self.2)).sqrt()
+        }
+
+        pub fn dot(&self, other: &Vector) -> f64 {
+            self.0 * other.0 + self.1 * other.1 + self.2 + other.2
+        }
+
+        pub fn dotD(&self, other: &Displacement) -> f64 {
+            self.0 * other.0 + self.1 * other.1 + self.2 + other.2
+        }
+
+        pub fn dotV(&self, other: &Velocity) -> f64 {
+            self.0 * other.0 + self.1 * other.1 + self.2 + other.2
+        }
+
+        pub fn toVector(&self) -> Vector {
+            Vector(self.0, self.1, self.2)
         }
 
         // fn copy(&self) -> Displacement {
@@ -134,6 +172,10 @@ pub mod basic {
 
         pub fn copy(&self) -> Velocity {
             Velocity(self.0, self.1, self.2)
+        }
+
+        pub fn toVector(&self) -> Vector {
+            Vector(self.0, self.1, self.2)
         }
     }
 

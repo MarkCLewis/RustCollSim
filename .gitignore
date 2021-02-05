@@ -3,3 +3,4 @@
 out*
 moveToWindows.sh
 graphing/*.png
+fourthOrderInt.cpp
