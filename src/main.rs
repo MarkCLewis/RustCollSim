@@ -171,7 +171,7 @@ fn main() {
 
     //sim1D::testing2();
 
-    sim1D_piecewise::testing2();
+    //--------------sim1D_piecewise::testing2();
 
     //test_group_5_graphics(2);
     //test_group_3_rk4_1();

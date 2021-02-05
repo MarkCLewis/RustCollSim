@@ -19,7 +19,11 @@ pub mod basic {
         }
 
         pub fn print(&self) {
-            println!("<{}, {}, {}>", self.0, self.1, self.2);
+            println!("<{:e}, {:e}, {:e}>", self.0, self.1, self.2);
+        }
+
+        pub fn is_finite(&self) -> bool {
+            self.0.is_finite() && self.1.is_finite() && self.2.is_finite()
         }
     }
 
