@@ -11,7 +11,7 @@ fn sigmoid(x: f64) -> f64 {
 
 fn sigmoidP(x: f64) -> f64 {
     if x > 100.0 {
-        return 0.0; // wrong way around?
+        return 0.0;
     }
     let denom: f64 = x.exp() + 1.0;
     return x.exp() / (denom * denom);
@@ -27,8 +27,8 @@ fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f64, a
 
     for i in 0..(pos.len()) {
         for j in (i+1)..(pos.len()) {
-            let rji = pos[j] - pos[i];
-            let vji = vel[j] - vel[i];
+            let rji = pos[j] - pos[i]; // relative pos
+            let vji = vel[j] - vel[i]; // relative vel
             //rji.print();
             let r2 = rji.dot(&rji);
             let rv_r2 = rji.dot(&vji) / r2;
@@ -36,7 +36,7 @@ fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f64, a
             let r3 = r * r2;
 
             //println!("{} {} {} {} {} {}", rji.is_finite(), vji.is_finite(), r2, rv_r2, r, r3);
-        
+
             let da = rji / r3;
             let dj = (vji - rji * 3. * rv_r2) / r3;
             let massi = 4. * M_PI * rho / 3. * rad[i] * rad[i] * rad[i];
@@ -121,7 +121,7 @@ pub fn main() {
     vel[1].print();
 
     let mut g = graphicsM!();
-  
+
     calcAccJerk(&pos, &vel, &rad, rho, &mut acc, &mut jerk);
     let mut t = 0.;
     while t < 10. * M_PI { // 2e5

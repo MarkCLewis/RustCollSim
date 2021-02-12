@@ -9,6 +9,7 @@ mod sim1D;
 mod fourthOrderInt;
 
 use data::PI;
+use std::env;
 
 
 fn test_group_2_kick_step_1() {
@@ -159,7 +160,25 @@ mod sim1D_piecewise;
 fn main() {
     eprintln!("Hello, world!");
 
-    fourthOrderInt::main();
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+
+    if args.len() < 2 {
+        println!("Usage: {} 4thOrder", args[0]);
+        println!("       {} noExplode", args[0]);
+        return;
+    }
+
+    let arg = args[1].to_lowercase();
+
+    if arg == "4thorder" {
+        fourthOrderInt::main();
+    }
+    else if arg == "noexplode" {
+        // let (b,k) = compute::b_and_k(v0, m);
+        // eprintln!("b = {:e}, k = {:e}", b, k);
+    }
+
 
     return;
 

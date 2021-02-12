@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
 
 const b: f64 = 1e10;
 const k: f64 = 1e-18;
