@@ -157,6 +157,11 @@ mod no_explode;
 
 mod sim1D_piecewise;
 
+fn usage(arg0: &String) {
+    println!("Usage: {} 4thOrder", arg0);
+    println!("       {} noExplode v_0 density radius", arg0);
+}
+
 fn main() {
     eprintln!("Hello, world!");
 
@@ -164,8 +169,7 @@ fn main() {
     println!("{:?}", args);
 
     if args.len() < 2 {
-        println!("Usage: {} 4thOrder", args[0]);
-        println!("       {} noExplode", args[0]);
+        usage(&args[0]);
         return;
     }
 
@@ -175,12 +179,25 @@ fn main() {
         fourthOrderInt::main();
     }
     else if arg == "noexplode" {
-        // let (b,k) = compute::b_and_k(v0, m);
-        // eprintln!("b = {:e}, k = {:e}", b, k);
+        if args.len() != 5 {
+            usage(&args[0]);
+            return;
+        }
+
+        let v_o: f64 = args[2].parse().unwrap();
+        let rho: f64 = args[3].parse().unwrap();
+        let radius: f64 = args[4].parse().unwrap();
+
+        let pen_depth = radius * no_explode::compute::PEN_RATIO_DEFAULT;
+        let mass = rho * 4./3. * std::f64::consts::PI * radius * radius * radius;
+
+        println!("v_o = {:e}, rho = {:e}, radius = {:e}, pen_depth = {:e}, mass = {:e}", v_o, rho, radius, pen_depth, mass);
+        let (b, k) = no_explode::compute::b_and_k2(v_o, mass, pen_depth);
+        println!("b = {:e}, k = {:e}", b, k);
     }
-
-
-    return;
+    else {
+        usage(&args[0]);
+    }
 
     // let v0 = 0.0000001;
     // let m = 1.0266666666666665e-20;

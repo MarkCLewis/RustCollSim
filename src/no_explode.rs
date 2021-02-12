@@ -14,7 +14,8 @@ pub mod compute {
     use std::f64::consts::PI;
 
     pub const R_DEFAULT: f64 = 1e-7; // v_o 1e-7
-    const PEN_MAX_DEFAULT: f64 = R_DEFAULT * 0.02;
+    pub const PEN_RATIO_DEFAULT: f64 = 0.02;
+    const PEN_MAX_DEFAULT: f64 = R_DEFAULT * PEN_RATIO_DEFAULT;
 
     const COEFF_RES: f64 = 0.5;
     const LN_COEFF_RES: f64 = -0.6931471805599453; //COEFF_RES.ln(); // ln(c)
@@ -31,6 +32,14 @@ pub mod compute {
     
     pub fn omega_0_sq(beta_val: f64) -> f64 {
         ( beta_val * beta_val * (LN_COEFF_RES_SQ + 4. * PI * PI) ) / ( 4. * LN_COEFF_RES_SQ )
+    }
+
+    // returns (b, k)
+    pub fn b_and_k2(v_0: f64, m: f64, pen_depth: f64) -> (f64, f64) {
+        let beta_val = beta2(v_0, pen_depth);
+        let omega_0_sq_val = omega_0_sq(beta_val);
+
+        (beta_val * m, omega_0_sq_val * m)
     }
 
     // returns (b, k)
