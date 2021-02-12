@@ -25,6 +25,15 @@ pub mod basic {
         pub fn is_finite(&self) -> bool {
             self.0.is_finite() && self.1.is_finite() && self.2.is_finite()
         }
+
+        pub fn mag(&self) -> f64 {
+            (square(self.0) + square(self.1) + square(self.2)).sqrt()
+        }
+
+        pub fn unit_vector(&self) -> Vector {
+            let len = self.mag();
+            Vector(self.0 / len, self.1 / len, self.2 / len)
+        }
     }
 
     impl Add for Vector {
