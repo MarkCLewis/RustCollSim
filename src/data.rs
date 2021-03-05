@@ -30,6 +30,10 @@ pub mod basic {
             (square(self.0) + square(self.1) + square(self.2)).sqrt()
         }
 
+        pub fn magSq(&self) -> f64 {
+            square(self.0) + square(self.1) + square(self.2)
+        }
+
         pub fn unit_vector(&self) -> Vector {
             let len = self.mag();
             Vector(self.0 / len, self.1 / len, self.2 / len)

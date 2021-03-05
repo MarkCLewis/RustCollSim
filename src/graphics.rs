@@ -211,6 +211,15 @@ pub fn sleep(micros: u64) {
   thread::sleep(time::Duration::from_micros(micros));
 }
 
+pub fn getch_sleep(milis: i32) -> char {
+  assert_eq!(milis > 0, true);
+  let x = ncurses::getch();
+  if x >= 0 && x < 256 {
+    x as u8 as char
+  }
+  else { '\0' }
+}
+
 pub struct GraphicsPoint {
   pub x: f64,
   pub y: f64
@@ -225,7 +234,7 @@ pub fn build_graphics_point(x: f64, y: f64) -> GraphicsPoint {
 
 #[macro_export]
 macro_rules! graphicsM {
-    ( ) => {
+    ( $scale:expr ) => {
         {
           let mut g = graphics::build_graphics();
           g.init();
@@ -235,7 +244,7 @@ macro_rules! graphicsM {
               min = g.get_max_y();
           }
       
-          let factor: f64 = min as f64 / (1e-0 * 2.5);
+          let factor: f64 = min as f64 / ($scale as f64 * 2.5);
       
           g.set_scale_factor(factor);
           g

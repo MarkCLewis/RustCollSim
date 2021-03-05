@@ -178,6 +178,9 @@ fn main() {
     if arg == "4thorder" {
         fourthOrderInt::main();
     }
+    else if arg == "4thorder2" {
+        fourthOrderInt::main_collisions();
+    }
     else if arg == "noexplode" {
         if args.len() != 5 {
             usage(&args[0]);
