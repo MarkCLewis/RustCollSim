@@ -3,12 +3,16 @@ use crate::graphicsM;
 use crate::graphics;
 use std::f64::consts::PI;
 
-
 // for r, v_0 = 1e-7, rho = 0.88
 // b = 3.4194745456729856e-20, k = 6.595530918688126e-18
 const B: f64 = 3.4194745456729856e-20;
 const K: f64 = 6.595530918688126e-18;
 
+pub fn scale(data: &mut Vec<Vector>, scalar: f64) {
+    for x in data.iter_mut() {
+        *x = *x * scalar;
+    }
+}
 
 fn sigmoid(x: f64) -> f64 {
     // sigmoid(100) = 1.0
@@ -78,7 +82,7 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f6
                 jerk[j] -= dj * massi;
 
             }
-            else {
+            else {//if delta < 0. {
                 // collision!
                 let f_spring = x_hat * -K * delta;
                 let f_damp = vji * -B;
@@ -192,6 +196,41 @@ pub fn evolveStep(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, 
     //assert_eq!(pos[0].is_finite(), true);
 }
 
+fn integrate_kick_step_kick_1(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, acc: &Vec<Vector>, dt: f64) {
+    for i in 0..pos.len() {
+        // TODO: These might not be optimally efficient without expression templates.
+        // TODO: figure out what this todo means
+        //println!("{}, {}, {}, {}, {}, {}", vel[i].is_finite(), dt, acc[i].is_finite(), dt2, jerk[i].is_finite(), dt3);
+        vel[i] += acc[i] * dt/2.;
+        pos[i] += vel[i] * dt;
+    }
+}
+
+fn integrate_kick_step_kick_2(vel: &mut Vec<Vector>, acc: &Vec<Vector>, dt: f64) {
+    for i in 0..vel.len() {
+        // TODO: These might not be optimally efficient without expression templates.
+        // TODO: figure out what this todo means
+        //println!("{}, {}, {}, {}, {}, {}", vel[i].is_finite(), dt, acc[i].is_finite(), dt2, jerk[i].is_finite(), dt3);
+        vel[i] += acc[i] * dt/2.;
+    }
+}
+
+pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, rho: f64, 
+    acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, dt: f64) {
+    // TODO: This isn't ideally efficient. Better to keep two vectors around and reuse, but it will do for now.
+    
+    // this assumes acc has already been calculated
+
+    integrate_kick_step_kick_1(pos, vel, acc, dt);
+
+    calcAccJerk(pos, vel, rad, rho, acc, jerk);
+
+    integrate_kick_step_kick_2(vel, acc, dt);
+    //assert_eq!(pos[0].is_finite(), true);
+    
+    //assert_eq!(pos[0].is_finite(), true);
+}
+
 // const n: f64 = 1.0;
 // const kappa: f64 = 1.0;
 // const n_z: f64 = 1.0;
@@ -278,8 +317,8 @@ pub fn main_collisions() {
     let dt = 0.001 * 2. * PI;
     //let mut pos: Vec<Vector> = vec!(Vector(-1e-6, 0.0, 0.0), Vector(0.0, 0.0, 0.0));
     //let mut vel: Vec<Vector> = vec!(Vector(0.1e-7, 0.0, 0.0), Vector(0.0, 0.0, 0.0));
-    let mut pos: Vec<Vector> = vec!(Vector(-3e-7, 0.0, 0.0), Vector(3e-7, 0.0, 0.0));
-    let mut vel: Vec<Vector> = vec!(Vector(5e-9, 0.0, 0.0), Vector(-5e-9, 0.0, 0.0));
+    let mut pos: Vec<Vector> = vec!(Vector(-1.1e-7, 0.0, 0.0), Vector(1.1e-7, 0.0, 0.0));
+    let mut vel: Vec<Vector> = vec!(Vector(0.5e-6, 0.0, 0.0), Vector(-0.5e-6, 0.0, 0.0));
     let rad: Vec<f64> = vec!(1e-7, 1e-7);
     let rho: f64 = 0.88; // 3.0 / (4.0 * PI *rad[0]*rad[0]*rad[0]); // what is this line mean?
     let mut acc: Vec<Vector> = vec!(Vector(0., 0., 0.), Vector(0., 0., 0.));
@@ -296,7 +335,7 @@ pub fn main_collisions() {
     let mut g = graphicsM!(1e-6);
 
     let dataPoints = 1000;
-    let timeTo = 5. * PI;
+    let timeTo = 0.5 * PI;
 
     let spacing = timeTo / (dataPoints - 1) as f64;
 
@@ -313,7 +352,7 @@ pub fn main_collisions() {
         }
         
 
-        evolveStep(&mut pos, &mut vel, &rad, rho, &mut acc, &mut jerk, dt);
+        evolveStepKickStepKick(&mut pos, &mut vel, &rad, rho, &mut acc, &mut jerk, dt);
         if !pos[0].is_finite() {
             pos[0].print();
             panic!("Got non-finite value for position of particle 0 at t = {}", t);

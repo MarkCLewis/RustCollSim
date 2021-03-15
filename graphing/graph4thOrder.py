@@ -57,20 +57,28 @@ data: List[TimeMoment] = list(map(TimeMoment, run['data']))
 
 enter = None
 enter_velocities = None
+enter_E = None
 for i, e in enumerate(data):
     if e.isColliding:
         enter = e.time
         enter_velocities = map(mag, e.particles_v)
         print("collision v0 =", e.deltaV())
+        enter_E = [a + b for a, b in zip(e.KE, e.PE)]
         break
 
 exit_time = None
 exit_velocities = None
+exit_E = None
 for e in data[i:]:
     if not e.isColliding:
         exit_velocities = map(mag, e.particles_v)
         exit_time = e.time
+        exit_E = [a + b for a, b in zip(e.KE, e.PE)]
         break
+
+minVal = min(map(lambda x: x.delta() - 2*1e-7, data))
+
+print(f'Max pen depth = {abs(minVal/1e-7)}%')
 
 assert enter and exit_time, 'did not find collision'
 print(enter, exit_time)
@@ -82,7 +90,9 @@ print(enter_velocities, exit_velocities)
 # 
 # KE/KE = v^2 / v^2 (rest cancels)
 # 
-print('Coeff of Res. =', [a**2 / b**2 for a, b in zip(exit_velocities, enter_velocities)])
+print('Coeff of Res. =', [a / b for a, b in zip(exit_velocities, enter_velocities)])
+# print('Coeff of Res. Try 2 =', [a / b for a, b in zip(exit_E, enter_E)])
+
 
 t = [e.time for e in data]
 d = [e.particles_x[0][0] for e in data]
