@@ -101,6 +101,7 @@ d = [e.particles_x[1][0] for e in data]
 plt.plot(t, d)
 plt.axvline(enter, linestyle='dotted')
 plt.axvline(exit_time, linestyle='dotted')
+plt.title('Position vs time')
 plt.show()
 
 d = [e.particles_v[0][0] for e in data]
@@ -109,13 +110,14 @@ d = [e.particles_v[1][0] for e in data]
 plt.plot(t, d)
 plt.axvline(enter, linestyle='dotted')
 plt.axvline(exit_time, linestyle='dotted')
+plt.title('Velocity vs time')
 plt.show()
 
 
-d = [e.KE[0] + e.PE[0] for e in data]
-plt.plot(t, d)
-d = [e.KE[1] + e.PE[1] for e in data]
-plt.plot(t, d)
-plt.axvline(enter, linestyle='dotted')
-plt.axvline(exit_time, linestyle='dotted')
-plt.show()
+# d = [e.KE[0] + e.PE[0] for e in data]
+# plt.plot(t, d)
+# d = [e.KE[1] + e.PE[1] for e in data]
+# plt.plot(t, d)
+# plt.axvline(enter, linestyle='dotted')
+# plt.axvline(exit_time, linestyle='dotted')
+# plt.show()

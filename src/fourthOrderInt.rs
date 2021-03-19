@@ -8,19 +8,30 @@ use std::f64::consts::PI;
 const B: f64 = 3.4194745456729856e-20;
 const K: f64 = 6.595530918688126e-18;
 
+const C: f64 = 1.0; // sigmoid modifier
+
 pub fn scale(data: &mut Vec<Vector>, scalar: f64) {
     for x in data.iter_mut() {
         *x = *x * scalar;
     }
 }
 
-fn sigmoid(x: f64) -> f64 {
+fn sigmoid(delta: f64) -> f64 {
     // sigmoid(100) = 1.0
     // sigmoid(-100) = 3.7200759760208356e-44 ~ 0
-    if x > 100. { 1. }
-    else if x < -100. { 0. }
+    if delta > 100. { 1. }
+    else if delta < -100. { 0. }
     else {
-        1.0 / (1.0 + (-x).exp())
+        1.0 / (1.0 + (-delta).exp())
+    }
+}
+
+fn sigmoidDot(deltaDot: f64, delta: f64) -> f64 {
+    // sigmoidDot(deltaDot, -100) = deltaDot * 3.7200759760208356e-44
+    if delta < -100. { 0. }
+    else {
+        let denom = 1. + (-delta).exp();
+        deltaDot * (-delta).exp() / (denom * denom) 
     }
 }
 
@@ -73,44 +84,67 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f6
             let massi = 4. * PI * rho / 3. * rad[i] * rad[i] * rad[i];
             let massj = 4. * PI * rho / 3. * rad[j] * rad[j] * rad[j];
 
-            if delta > 0. {
+            let sig_pos = sigmoid(delta * C);
+            let sig_neg = sigmoid(-delta * C);
+
+            let sig_dot_pos = sigmoidDot(delta_dot * C, delta * C);
+            let sig_dot_neg = sigmoidDot(-delta_dot * C, -delta * C);
+
+            //if delta > 0. {
                 // no collision
-                acc[i] += da * massj;
-                acc[j] -= da * massi;
+            
+            let ai_g = da * massj;
+            let aj_g = da * massi;
+            
+            let ji_g = dj * massj;
+            let jj_g = dj * massi;
+            
+            // gravity
+            acc[i] += ai_g * sig_pos;
+            acc[j] -= aj_g * sig_pos;
 
-                jerk[i] += dj * massj;
-                jerk[j] -= dj * massi;
+            jerk[i] += ji_g * sig_dot_pos + ai_g * sig_pos; // TODO: ????
+            jerk[j] -= jj_g * sig_dot_pos + ai_g * sig_pos;
+            // mj = sig dot * force + sig * jerk
 
-            }
-            else {//if delta < 0. {
+            //}
+            //else {//if delta < 0. {
                 // collision!
-                let f_spring = x_hat * -K * delta;
-                let f_damp = vji * -B;
+            
+            // collision
+            let f_spring = x_hat * -K * delta;
+            let f_damp = vji * -B;
 
-                let f_total = f_spring + f_damp;
+            let f_total = f_spring + f_damp;
 
-                // F = m_i * a_i
-                // a_i = F / m_i
-                let ai = f_total / massi;
-                let aj = f_total / massj;
-                let aji = aj - ai;
+            // F = m_i * a_i
+            // a_i = F / m_i
+            let ai = f_total / massi;
+            let aj = f_total / massj;
+            let aji = aj - ai;
 
-                // someone somewhere suggested this as d/dt F
-                let yank_spring = (x_hat * delta_dot + x_hat_dot * delta) * -K;
-                let yank_damp = aji * -B;
+            // someone somewhere suggested this as d/dt F
+            let yank_spring = (x_hat * delta_dot + x_hat_dot * delta) * -K;
+            let yank_damp = aji * -B;
 
-                let yank_total = yank_spring + yank_damp;
+            let yank_total = yank_spring + yank_damp;
 
-                // F = m_i * a_i
-                // d/dt F = m_i * jerk_i
-                // jerk_i = d/dt F / m_i
+            // F = m_i * a_i
+            // d/dt F = m_i * jerk_i
+            // jerk_i = d/dt F / m_i
 
-                acc[i] -= ai;
-                acc[j] += aj;
+            let ji = yank_total / massi;
+            let jj = yank_total / massj;
 
-                jerk[i] -= yank_total / massi;
-                jerk[j] += yank_total / massj;
-            }
+            acc[i] -= ai * sig_neg;
+            acc[j] += aj * sig_neg;
+
+            // jerk[i] -= ji; // TODO: ???
+            // jerk[j] += jj;
+            // mj = sig dot * force + sig * jerk
+            jerk[i] -= ai * sig_dot_neg + ji * sig_neg;
+            jerk[j] += aj * sig_dot_neg + jj * sig_neg;
+            // }
         }
     }
 }
@@ -218,7 +252,7 @@ fn integrate_kick_step_kick_2(vel: &mut Vec<Vector>, acc: &Vec<Vector>, dt: f64)
 pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, rho: f64, 
     acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, dt: f64) {
     // TODO: This isn't ideally efficient. Better to keep two vectors around and reuse, but it will do for now.
-    
+
     // this assumes acc has already been calculated
 
     integrate_kick_step_kick_1(pos, vel, acc, dt);
@@ -227,7 +261,7 @@ pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad:
 
     integrate_kick_step_kick_2(vel, acc, dt);
     //assert_eq!(pos[0].is_finite(), true);
-    
+
     //assert_eq!(pos[0].is_finite(), true);
 }
 

@@ -159,6 +159,7 @@ mod sim1D_piecewise;
 
 fn usage(arg0: &String) {
     println!("Usage: {} 4thOrder", arg0);
+    println!("       {} 4thorder2", arg0);
     println!("       {} noExplode v_0 density radius", arg0);
 }
 
