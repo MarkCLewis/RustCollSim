@@ -1,14 +1,12 @@
 use crate::data::basic::*;
 use crate::graphicsM;
 use crate::graphics;
+//use crate::no_explode::{K, B};
+use crate::test_automation::*;
 use std::f64::consts::PI;
 
-// for r, v_0 = 1e-7, rho = 0.88
-// b = 3.4194745456729856e-20, k = 6.595530918688126e-18
-const B: f64 = 3.4194745456729856e-20;
-const K: f64 = 6.595530918688126e-18;
 
-const C: f64 = 1.0; // sigmoid modifier
+//const C: f64 = 1.0; // sigmoid modifier
 
 pub fn scale(data: &mut Vec<Vector>, scalar: f64) {
     for x in data.iter_mut() {
@@ -52,7 +50,7 @@ fn sigmoidDot(deltaDot: f64, delta: f64) -> f64 {
 //     return x.exp() / (denom * denom);
 // }
 
-pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f64, acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>) {
+pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, test: &TestSetup) {
 
     for i in 0..(pos.len()) {
         acc[i] = Vector(0., 0., 0.);
@@ -81,14 +79,14 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f6
 
             let da = rji / rCube;
             let dj = (vji - rji * 3. * rv_r2) / rCube;
-            let massi = 4. * PI * rho / 3. * rad[i] * rad[i] * rad[i];
-            let massj = 4. * PI * rho / 3. * rad[j] * rad[j] * rad[j];
+            let massi = 4. * PI * test.rho / 3. * rad[i] * rad[i] * rad[i];
+            let massj = 4. * PI * test.rho / 3. * rad[j] * rad[j] * rad[j];
 
-            let sig_pos = sigmoid(delta * C);
-            let sig_neg = sigmoid(-delta * C);
+            let sig_pos = sigmoid(delta * test.sig_c);
+            let sig_neg = sigmoid(-delta * test.sig_c);
 
-            let sig_dot_pos = sigmoidDot(delta_dot * C, delta * C);
-            let sig_dot_neg = sigmoidDot(-delta_dot * C, -delta * C);
+            let sig_dot_pos = sigmoidDot(delta_dot * test.sig_c, delta * test.sig_c);
+            let sig_dot_neg = sigmoidDot(-delta_dot * test.sig_c, -delta * test.sig_c);
 
             //if delta > 0. {
                 // no collision
@@ -112,8 +110,8 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f6
                 // collision!
             
             // collision
-            let f_spring = x_hat * -K * delta;
-            let f_damp = vji * -B;
+            let f_spring = x_hat * -test.k * delta;
+            let f_damp = vji * -test.b;
 
             let f_total = f_spring + f_damp;
 
@@ -124,8 +122,8 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, rho: f6
             let aji = aj - ai;
 
             // someone somewhere suggested this as d/dt F
-            let yank_spring = (x_hat * delta_dot + x_hat_dot * delta) * -K;
-            let yank_damp = aji * -B;
+            let yank_spring = (x_hat * delta_dot + x_hat_dot * delta) * -test.k;
+            let yank_damp = aji * -test.b;
 
             let yank_total = yank_spring + yank_damp;
 
@@ -214,19 +212,19 @@ fn potential_energy2(pos: &Vec<Vector>, rad: &Vec<f64>, rho: f64) -> Vec<f64> {
     return vec;
 }
 
-pub fn evolveStep(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, rho: f64, 
-    acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, dt: f64) {
+pub fn evolveStep(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, 
+    acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, test: &TestSetup) {
     // TODO: This isn't ideally efficient. Better to keep two vectors around and reuse, but it will do for now.
     let oldPos = pos.clone();
     let oldVel = vel.clone();
     let oldAcc = acc.clone();
     let oldJerk = jerk.clone();
 
-    predictStep(pos, vel, acc, jerk, dt);
+    predictStep(pos, vel, acc, jerk, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
-    calcAccJerk(pos, vel, rad, rho, acc, jerk);
+    calcAccJerk(pos, vel, rad, acc, jerk, test);
     //assert_eq!(pos[0].is_finite(), true);
-    correctStep(pos, vel, acc, jerk, &oldPos, &oldVel, &oldAcc, &oldJerk, dt);
+    correctStep(pos, vel, acc, jerk, &oldPos, &oldVel, &oldAcc, &oldJerk, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
 }
 
@@ -249,17 +247,17 @@ fn integrate_kick_step_kick_2(vel: &mut Vec<Vector>, acc: &Vec<Vector>, dt: f64)
     }
 }
 
-pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, rho: f64, 
-    acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, dt: f64) {
+pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, 
+        acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, test: &TestSetup) {
     // TODO: This isn't ideally efficient. Better to keep two vectors around and reuse, but it will do for now.
 
     // this assumes acc has already been calculated
 
-    integrate_kick_step_kick_1(pos, vel, acc, dt);
+    integrate_kick_step_kick_1(pos, vel, acc, test.dt);
 
-    calcAccJerk(pos, vel, rad, rho, acc, jerk);
+    calcAccJerk(pos, vel, rad, acc, jerk, test);
 
-    integrate_kick_step_kick_2(vel, acc, dt);
+    integrate_kick_step_kick_2(vel, acc, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
 
     //assert_eq!(pos[0].is_finite(), true);
@@ -279,44 +277,47 @@ pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad:
 //     jerk.2 += -n_z * n_z * vel.2;
 // }
 
-pub fn main() {
-    // gravity test
-    let dt = 0.001 * 2. * PI;
-    let mut pos: Vec<Vector> = vec!(Vector(0.0, 0.0, 0.0), Vector(1.0, 0.0, 0.0));
-    let mut vel: Vec<Vector> = vec!(Vector(0.0, 0.0, 0.0), Vector(0.0, 1.0, 0.0));
-    let rad: Vec<f64> = vec!(1e-7, 1e-14);
-    let rho: f64 = 3.0 / (4.0 * PI *rad[0]*rad[0]*rad[0]); // what?
-    let mut acc: Vec<Vector> = vec!(Vector(0., 0., 0.), Vector(0., 0., 0.));
-    let mut jerk: Vec<Vector> = vec!(Vector(0., 0., 0.), Vector(0., 0., 0.));
 
-    pos[1].print();
-    vel[1].print();
+// pub fn main() {
+//     // gravity test
 
-    let mut g = graphicsM!(1e-0);
+//     let dt = 0.001 * 2. * PI;
 
-    calcAccJerk(&pos, &vel, &rad, rho, &mut acc, &mut jerk);
-    let mut t = 0.;
-    while t < 10. * PI { // 2e5
-        evolveStep(&mut pos, &mut vel, &rad, rho, &mut acc, &mut jerk, dt);
-        if !pos[0].is_finite() {
-            pos[0].print();
-            panic!("Got non-finite value for position of particle 0 at t = {}", t);
-        }
+//     let mut pos: Vec<Vector> = vec!(Vector(0.0, 0.0, 0.0), Vector(1.0, 0.0, 0.0));
+//     let mut vel: Vec<Vector> = vec!(Vector(0.0, 0.0, 0.0), Vector(0.0, 1.0, 0.0));
+//     let rad: Vec<f64> = vec!(1e-7, 1e-14);
+//     let rho: f64 = 3.0 / (4.0 * PI *rad[0]*rad[0]*rad[0]); // what?
+//     let mut acc: Vec<Vector> = vec!(Vector(0., 0., 0.), Vector(0., 0., 0.));
+//     let mut jerk: Vec<Vector> = vec!(Vector(0., 0., 0.), Vector(0., 0., 0.));
 
-        for c in 0..pos.len() {
-            g.draw_point(pos[c].0, pos[c].1, 'o' as u64, (c % 4) as i16);
+//     pos[1].print();
+//     vel[1].print();
 
-        }
-        g.refresh();
+//     let mut g = graphicsM!(1e-0);
 
-        graphics::sleep(10000);
+//     calcAccJerk(&pos, &vel, &rad, rho, &mut acc, &mut jerk);
+//     let mut t = 0.;
+//     while t < 10. * PI { // 2e5
+//         evolveStep(&mut pos, &mut vel, &rad, rho, &mut acc, &mut jerk, dt);
+//         if !pos[0].is_finite() {
+//             pos[0].print();
+//             panic!("Got non-finite value for position of particle 0 at t = {}", t);
+//         }
 
-        t += dt;
-    }
+//         for c in 0..pos.len() {
+//             g.draw_point(pos[c].0, pos[c].1, 'o' as u64, (c % 4) as i16);
 
-    pos[1].print();
-    vel[1].print();
-}
+//         }
+//         g.refresh();
+
+//         graphics::sleep(10000);
+
+//         t += dt;
+//     }
+
+//     pos[1].print();
+//     vel[1].print();
+// }
 
 fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &Vec<f64>, rho: f64) {
     if !first {
@@ -348,23 +349,19 @@ fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &V
 
 pub fn main_collisions() {
     // collision test
-    let dt = 0.001 * 2. * PI;
-    //let mut pos: Vec<Vector> = vec!(Vector(-1e-6, 0.0, 0.0), Vector(0.0, 0.0, 0.0));
-    //let mut vel: Vec<Vector> = vec!(Vector(0.1e-7, 0.0, 0.0), Vector(0.0, 0.0, 0.0));
-    let mut pos: Vec<Vector> = vec!(Vector(-1.1e-7, 0.0, 0.0), Vector(1.1e-7, 0.0, 0.0));
-    let mut vel: Vec<Vector> = vec!(Vector(0.5e-6, 0.0, 0.0), Vector(-0.5e-6, 0.0, 0.0));
-    let rad: Vec<f64> = vec!(1e-7, 1e-7);
-    let rho: f64 = 0.88; // 3.0 / (4.0 * PI *rad[0]*rad[0]*rad[0]); // what is this line mean?
-    let mut acc: Vec<Vector> = vec!(Vector(0., 0., 0.), Vector(0., 0., 0.));
-    let mut jerk: Vec<Vector> = vec!(Vector(0., 0., 0.), Vector(0., 0., 0.));
+    let tmp_dt = 0.001 * 2. * PI;
 
-    pos[1].print();
-    vel[1].print();
+    let test = TestSetup::newBasic(1e-7, tmp_dt);
+
+    let mut testData = TestData::new(&test);
+
+    testData.pos[1].print();
+    testData.vel[1].print();
 
     eprintln!("INIT");
     eprintln!("{{");
-    eprintln!("\t\"dt\": {:e},", dt);
-    eprintln!("\t\"rho\": {:e},", rho);
+    eprintln!("\t\"dt\": {:e},", test.dt);
+    eprintln!("\t\"rho\": {:e},", test.rho);
 
     let mut g = graphicsM!(1e-6);
 
@@ -373,43 +370,58 @@ pub fn main_collisions() {
 
     let spacing = timeTo / (dataPoints - 1) as f64;
 
-    eprintln!("\t\"data\": [");
-    state_dump(&pos, &vel, 0., true, &rad, rho);
+    testData.collisionUpdate();
 
-    calcAccJerk(&pos, &vel, &rad, rho, &mut acc, &mut jerk);
+    eprintln!("\t\"data\": [");
+    state_dump(&testData.pos, &testData.vel, 0., true, &testData.rad, test.rho);
+
+    calcAccJerk(&testData.pos, &testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
     let mut t = 0.;
     let mut t_spacer = 0.;
     while t < timeTo { // 2e5
         if t_spacer > spacing {
-            state_dump(&pos, &vel, t, false, &rad, rho);
+            state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
             t_spacer = 0.;
         }
-        
 
-        evolveStepKickStepKick(&mut pos, &mut vel, &rad, rho, &mut acc, &mut jerk, dt);
-        if !pos[0].is_finite() {
-            pos[0].print();
+        match test.integrator {
+            Integrator::Jerk => {
+                evolveStep(&mut testData.pos, &mut testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
+            }
+            Integrator::KickStepKick => {
+                evolveStepKickStepKick(&mut testData.pos, &mut testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
+            }
+        }
+        
+        if !testData.pos[0].is_finite() {
+            testData.pos[0].print();
             panic!("Got non-finite value for position of particle 0 at t = {}", t);
         }
 
-        for c in 0..pos.len() {
-            g.draw_point(pos[c].0, pos[c].1, 'o' as u64, (c % 4) as i16);
+        testData.collisionUpdate(); // test analysis
 
+        for c in 0..testData.pos.len() {
+            g.draw_point(testData.pos[c].0, testData.pos[c].1, 'o' as u64, (c % 4) as i16);
         }
         g.refresh();
-
         graphics::sleep(1000);
 
-        t += dt;
-        t_spacer += dt;
+        t += test.dt;
+        t_spacer += test.dt;
     }
-    state_dump(&pos, &vel, t, false, &rad, rho);
+    state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
     eprintln!("\n\t]");
 
     g.end();
 
     eprintln!("}}");
 
-    pos[1].print();
-    vel[1].print();
+    testData.pos[1].print();
+    testData.vel[1].print();
+
+    println!("Results:");
+    println!("  Coeff of Res.   = {:.3}", testData.exit_rel_vel / testData.entry_rel_vel);
+    println!("  Max pen depth   = {:.3}%", testData.max_pen_depth.abs() / test.r1 * 100.);
+    println!("  Max pen depth   = {:.3}%", testData.max_pen_depth.abs() / test.r2 * 100.);
+    println!("  Collision Steps = {}", testData.colliding_steps);
 }

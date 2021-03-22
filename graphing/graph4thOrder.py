@@ -78,7 +78,7 @@ for e in data[i:]:
 
 minVal = min(map(lambda x: x.delta() - 2*1e-7, data))
 
-print(f'Max pen depth = {abs(minVal/1e-7)}%')
+print(f'Max pen depth = {abs(minVal/1e-7)}')
 
 assert enter and exit_time, 'did not find collision'
 print(enter, exit_time)

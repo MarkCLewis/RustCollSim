@@ -9,6 +9,11 @@
  *  omega'^2 = k/m
  */
 
+// for r, v_0 = 1e-7, rho = 0.88
+// b = 3.4194745456729856e-20, k = 6.595530918688126e-18
+pub const B: f64 = 3.4194745456729856e-20;
+pub const K: f64 = 6.595530918688126e-18;
+
 
 pub mod compute {
     use std::f64::consts::PI;

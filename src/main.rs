@@ -7,6 +7,7 @@ mod system;
 mod collision;
 mod sim1D;
 mod fourthOrderInt;
+mod test_automation;
 
 use data::PI;
 use std::env;
@@ -176,10 +177,10 @@ fn main() {
 
     let arg = args[1].to_lowercase();
 
-    if arg == "4thorder" {
+    /*if arg == "4thorder" {
         fourthOrderInt::main();
     }
-    else if arg == "4thorder2" {
+    else */if arg == "4thorder2" {
         fourthOrderInt::main_collisions();
     }
     else if arg == "noexplode" {
