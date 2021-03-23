@@ -2,15 +2,13 @@ use crate::no_explode;
 use crate::data::basic::Vector;
 use std::f64::consts::PI;
 
-
 const RHO: f64 = 0.88;
-
+const DELTA_INIT_FRACTION_OF_RADII: f64 = 0.1;
 
 pub enum Integrator {
     Jerk,
     KickStepKick
 }
-
 
 pub enum CollisionPhase {
     PreCollision,
@@ -18,10 +16,19 @@ pub enum CollisionPhase {
     PostCollision
 }
 
+pub fn computeMass(r: f64, rho: f64) -> f64 {
+    4./3. * r * r * r * PI * rho
+}
+
+pub fn calculate_init_vel_for_desired_impact_vel(r0: f64, r1: f64, rho: f64, v_impact: f64, delta: f64) -> f64 {
+    let m1 = computeMass(r1, rho);
+    let G = 1.;
+    (v_impact * v_impact - 2. * G * m1 * delta / ((r0 + r1 + delta) * (r0 + r1))).sqrt()
+}
 
 pub struct TestSetup {
+    pub r0: f64,
     pub r1: f64,
-    pub r2: f64,
     pub v_impact: f64,
     pub integrator: Integrator,
     pub k: f64,
@@ -40,18 +47,40 @@ impl TestSetup {
     pub fn newBasic(v_impact: f64, dt: f64) -> TestSetup {
         let r = 1e-7;
         let v_estimate = r;
-        let (b, k) = no_explode::compute::b_and_k(v_estimate, 4./3. * r * r * r * PI * RHO);
+        let (b, k) = no_explode::compute::b_and_k(v_estimate, computeMass(r, RHO));
         TestSetup {
+            r0: r,
             r1: r,
-            r2: r,
             v_impact: v_impact,
             integrator: Integrator::Jerk,
             k: k,
             b: b,
             dt: dt,
-            sig_c: 1.0,
+            sig_c: 4.0 / r, // 1.0,
             rho: RHO,
             max_time: 0.5 * PI,
+            do_graphics: false,
+            do_state_dump: false
+        }
+    }
+
+    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64) -> TestSetup {
+        let v_estimate = r0.min(r1);
+        let mass_avg = (computeMass(r0, RHO) + computeMass(r1, RHO)) / 2.;
+        let (b, k) = no_explode::compute::b_and_k(v_estimate, mass_avg);
+        let r_avg = (r0 + r1) / 2.;
+
+        TestSetup {
+            r0: r0,
+            r1: r1,
+            v_impact: v_impact,
+            integrator: Integrator::Jerk,
+            k: k,
+            b: b,
+            dt: dt,
+            sig_c: 4.0 / r_avg,
+            rho: RHO,
+            max_time: PI,
             do_graphics: false,
             do_state_dump: false
         }
@@ -76,12 +105,31 @@ pub struct TestData {
 
 impl TestData {
 
-    pub fn new(test: &TestSetup) -> TestData {
+    pub fn newBasic(test: &TestSetup) -> TestData {
         // TODO: change position and velocity
         TestData {
             pos: vec!(Vector(-1.1e-7, 0.0, 0.0), Vector(1.1e-7, 0.0, 0.0)),
             vel: vec!(Vector(0.5e-6, 0.0, 0.0), Vector(-0.5e-6, 0.0, 0.0)),
-            rad: vec!(test.r1, test.r2),
+            rad: vec!(test.r0, test.r1),
+            acc: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
+            jerk: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
+            phase: CollisionPhase::PreCollision,
+            entry_vel: (f64::NAN, f64::NAN),
+            exit_vel: (f64::NAN, f64::NAN),
+            max_pen_depth: f64::NAN,
+            colliding_steps: 0,
+            rel_impact_vel: f64::NAN
+        }
+    }
+
+    pub fn new(test: &TestSetup) -> TestData {
+        // DELTA_INIT_FRACTION_OF_RADII
+        let multiplier = 1. + DELTA_INIT_FRACTION_OF_RADII / 2.;
+        let v0 = calculate_init_vel_for_desired_impact_vel(test.r0, test.r1, test.rho, test.v_impact, DELTA_INIT_FRACTION_OF_RADII * (test.r0 + test.r1));
+        TestData {
+            pos: vec!(Vector(-test.r0 * multiplier, 0.0, 0.0), Vector(test.r1 * multiplier, 0.0, 0.0)),
+            vel: vec!(Vector(v0/2., 0.0, 0.0), Vector(-v0/2., 0.0, 0.0)),
+            rad: vec!(test.r0, test.r1),
             acc: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             jerk: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             phase: CollisionPhase::PreCollision,
@@ -162,5 +210,41 @@ impl TestData {
                 panic!("test failed - got non-finite velocity");
             }
         }
+    }
+}
+
+
+pub struct TestResult {
+    coeff_of_res: (f64, f64),
+    max_pen_depth_percentage: (f64, f64),
+    collision_steps: i32,
+    impact_rel_vel: f64,
+    time_usage_percent: f64
+}
+
+impl TestResult {
+
+    pub fn new(data: &TestData, test: &TestSetup, t: f64) -> TestResult {
+        let (enter_vel_0, enter_vel_1) = data.entry_vel;
+        let (exit_vel_0, exit_vel_1) = data.exit_vel;
+
+        TestResult {
+            coeff_of_res: (exit_vel_0 / enter_vel_0, exit_vel_1 / enter_vel_1),
+            max_pen_depth_percentage: (data.max_pen_depth.abs() / test.r0 * 100., data.max_pen_depth.abs() / test.r1 * 100.),
+            collision_steps: data.colliding_steps,
+            impact_rel_vel: data.rel_impact_vel,
+            time_usage_percent: t / test.max_time * 100.
+        }
+    }
+
+    pub fn print(&self) {
+        println!("Results:");
+        println!("  Coeff of Res. 0 = {:.3}", self.coeff_of_res.0);
+        println!("  Coeff of Res. 1 = {:.3}", self.coeff_of_res.1);
+        println!("  Max pen depth 0 = {:.3}%", self.max_pen_depth_percentage.0);
+        println!("  Max pen depth 1 = {:.3}%", self.max_pen_depth_percentage.1);
+        println!("  Collision Steps = {}", self.collision_steps);
+        println!("  Impact velocity = {:.3e}", self.impact_rel_vel);
+        println!("  Max time usage  = {:.1}%", self.time_usage_percent);
     }
 }

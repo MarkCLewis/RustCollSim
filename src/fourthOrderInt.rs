@@ -352,16 +352,20 @@ pub fn main_collisions() {
     let tmp_dt = 0.001 * 2. * PI;
 
     let test = TestSetup::newBasic(1e-7, tmp_dt);
-    run_test(test);
+    run_test(test, true).print();
 }
 
-pub fn run_test(test: TestSetup) {
+pub fn run_test(test: TestSetup, print_debug: bool) -> TestResult {
     let mut testData = TestData::new(&test);
 
-    print!("Particle 1 init:\n  Position = ");
-    testData.pos[1].print();
-    print!("  Velocity = ");
-    testData.vel[1].print();
+    // println!("{} {}", sigmoid(0.), sigmoid(-test.r1 * test.sig_c));
+
+    if print_debug {
+        print!("Particle 1 init:\n  Position = ");
+        testData.pos[1].print();
+        print!("  Velocity = ");
+        testData.vel[1].print();
+    }
 
     let mut g = if test.do_graphics {
         graphicsM!(1e-6)
@@ -433,19 +437,14 @@ pub fn run_test(test: TestSetup) {
         eprintln!("}}");
     }
 
-    print!("Particle 1 final:\n  Position = ");
-    testData.pos[1].print();
-    print!("  Velocity = ");
-    testData.vel[1].print();
+    let result = TestResult::new(&testData, &test, t);
 
-    println!("Results:");
-    let (enter_vel_0, enter_vel_1) = testData.entry_vel;
-    let (exit_vel_0, exit_vel_1) = testData.exit_vel;
-    println!("  Coeff of Res. 0 = {:.3}", exit_vel_0 / enter_vel_0);
-    println!("  Coeff of Res. 1 = {:.3}", exit_vel_1 / enter_vel_1);
-    println!("  Max pen depth 0 = {:.3}%", testData.max_pen_depth.abs() / test.r1 * 100.);
-    println!("  Max pen depth 1 = {:.3}%", testData.max_pen_depth.abs() / test.r2 * 100.);
-    println!("  Collision Steps = {}", testData.colliding_steps);
-    println!("  Impact velocity = {:.3e}", testData.rel_impact_vel);
-    println!("  Max time usage  = {:.1}%", t / test.max_time * 100.);
+    if print_debug {
+        print!("Particle 1 final:\n  Position = ");
+        testData.pos[1].print();
+        print!("  Velocity = ");
+        testData.vel[1].print();
+    }
+
+    return result;
 }
