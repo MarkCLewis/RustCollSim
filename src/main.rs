@@ -68,7 +68,7 @@ fn test_group_5_graphics(orbits: i32) {
     // std::cerr << "N-body simulation\n";
     // std::cerr << "Number of bodies: " << sys.size() << '\n';
 
-    let mut g = graphics::build_graphics();
+    let mut g = graphics::Graphics::new();
     g.init();
 
 
@@ -118,7 +118,7 @@ fn test_group_6_collision() {
     // std::cerr << "N-body simulation\n";
     // std::cerr << "Number of bodies: " << sys.size() << '\n';
 
-    let mut g = graphics::build_graphics();
+    let mut g = graphics::Graphics::new();
     g.init();
 
     let mut min: i32 = g.get_max_x();

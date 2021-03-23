@@ -363,12 +363,14 @@ pub fn main_collisions() {
     eprintln!("\t\"dt\": {:e},", test.dt);
     eprintln!("\t\"rho\": {:e},", test.rho);
 
-    let mut g = graphicsM!(1e-6);
+    let mut g = graphics::Graphics::new();
+
+    if test.do_graphics {
+        g = graphicsM!(1e-6);
+    }
 
     let dataPoints = 1000;
-    let timeTo = 0.5 * PI;
-
-    let spacing = timeTo / (dataPoints - 1) as f64;
+    let spacing = test.max_time / (dataPoints - 1) as f64;
 
     testData.collisionUpdate();
 
@@ -378,7 +380,7 @@ pub fn main_collisions() {
     calcAccJerk(&testData.pos, &testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
     let mut t = 0.;
     let mut t_spacer = 0.;
-    while t < timeTo { // 2e5
+    while t < test.max_time && !testData.isDone() { // 2e5
         if t_spacer > spacing {
             state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
             t_spacer = 0.;
@@ -420,8 +422,13 @@ pub fn main_collisions() {
     testData.vel[1].print();
 
     println!("Results:");
-    println!("  Coeff of Res.   = {:.3}", testData.exit_rel_vel / testData.entry_rel_vel);
-    println!("  Max pen depth   = {:.3}%", testData.max_pen_depth.abs() / test.r1 * 100.);
-    println!("  Max pen depth   = {:.3}%", testData.max_pen_depth.abs() / test.r2 * 100.);
+    let (enter_vel_0, enter_vel_1) = testData.entry_vel;
+    let (exit_vel_0, exit_vel_1) = testData.exit_vel;
+    println!("  Coeff of Res. 0 = {:.3}", exit_vel_0 / enter_vel_0);
+    println!("  Coeff of Res. 1 = {:.3}", exit_vel_1 / enter_vel_1);
+    println!("  Max pen depth 0 = {:.3}%", testData.max_pen_depth.abs() / test.r1 * 100.);
+    println!("  Max pen depth 1 = {:.3}%", testData.max_pen_depth.abs() / test.r2 * 100.);
     println!("  Collision Steps = {}", testData.colliding_steps);
+    println!("  Impact velocity = {:.3e}", testData.rel_impact_vel);
+    println!("  Max time usage  = {:.1}%", t / test.max_time * 100.)
 }

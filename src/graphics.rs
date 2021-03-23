@@ -28,18 +28,18 @@ pub struct Graphics {
   has_colors: bool
 }
 
-pub fn build_graphics() -> Graphics {
-  return Graphics {
-    screen_size: graphics_internal::ScreenSizeContainer { max_x: 0, max_y: 0 },
-    initialized: false,
-    scale_factor: graphics_internal::DEFAULT_SCALE_FACTOR,
-    has_colors: false
-  }
-}
-
 pub const WHITE_ON_BLACK: i16 = 4;
 
 impl Graphics {
+  pub fn new() -> Graphics {
+    Graphics {
+      screen_size: graphics_internal::ScreenSizeContainer { max_x: 0, max_y: 0 },
+      initialized: false,
+      scale_factor: graphics_internal::DEFAULT_SCALE_FACTOR,
+      has_colors: false
+    }
+  }
+
   pub fn init(&mut self) {
     ncurses::initscr();
     ncurses::clear();
@@ -236,7 +236,7 @@ pub fn build_graphics_point(x: f64, y: f64) -> GraphicsPoint {
 macro_rules! graphicsM {
     ( $scale:expr ) => {
         {
-          let mut g = graphics::build_graphics();
+          let mut g = graphics::Graphics::new();
           g.init();
       
           let mut min: i32 = g.get_max_x();

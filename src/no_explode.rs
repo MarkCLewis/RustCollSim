@@ -47,7 +47,9 @@ pub mod compute {
         (beta_val * m, omega_0_sq_val * m)
     }
 
-    // returns (b, k)
+    /*
+     * returns (b, k)
+     */
     pub fn b_and_k(v_0: f64, m: f64) -> (f64, f64) {
         let beta_val = beta(v_0);
         let omega_0_sq_val = omega_0_sq(beta_val);

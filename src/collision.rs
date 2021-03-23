@@ -32,7 +32,7 @@ pub fn collision(k: f64, drag: f64) {
     let cellSize = edgeLen;
     //10e-7;//3e-4;
 
-    let mut g = graphics::build_graphics();
+    let mut g = graphics::Graphics::new();
     g.init();
 
     let mut min: i32 = g.get_max_x();
