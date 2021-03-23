@@ -355,34 +355,41 @@ pub fn main_collisions() {
 
     let mut testData = TestData::new(&test);
 
+    print!("Particle 1 init:\n  Position = ");
     testData.pos[1].print();
+    print!("  Velocity = ");
     testData.vel[1].print();
 
-    eprintln!("INIT");
-    eprintln!("{{");
-    eprintln!("\t\"dt\": {:e},", test.dt);
-    eprintln!("\t\"rho\": {:e},", test.rho);
-
-    let mut g = graphics::Graphics::new();
-
-    if test.do_graphics {
-        g = graphicsM!(1e-6);
+    let mut g = if test.do_graphics {
+        graphicsM!(1e-6)
     }
+    else {
+        graphics::Graphics::dummy()
+    };
 
     let dataPoints = 1000;
     let spacing = test.max_time / (dataPoints - 1) as f64;
 
     testData.collisionUpdate();
 
-    eprintln!("\t\"data\": [");
-    state_dump(&testData.pos, &testData.vel, 0., true, &testData.rad, test.rho);
+    if test.do_state_dump {
+        eprintln!("INIT");
+        eprintln!("{{");
+        eprintln!("\t\"dt\": {:e},", test.dt);
+        eprintln!("\t\"rho\": {:e},", test.rho);
+        eprintln!("\t\"data\": [");
+        state_dump(&testData.pos, &testData.vel, 0., true, &testData.rad, test.rho);
+    }
 
     calcAccJerk(&testData.pos, &testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
     let mut t = 0.;
     let mut t_spacer = 0.;
     while t < test.max_time && !testData.isDone() { // 2e5
+
         if t_spacer > spacing {
-            state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
+            if test.do_state_dump {
+                state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
+            }
             t_spacer = 0.;
         }
 
@@ -395,30 +402,37 @@ pub fn main_collisions() {
             }
         }
         
-        if !testData.pos[0].is_finite() {
-            testData.pos[0].print();
-            panic!("Got non-finite value for position of particle 0 at t = {}", t);
-        }
-
+        testData.requireFinite();
         testData.collisionUpdate(); // test analysis
 
-        for c in 0..testData.pos.len() {
-            g.draw_point(testData.pos[c].0, testData.pos[c].1, 'o' as u64, (c % 4) as i16);
+        if test.do_graphics {
+            for c in 0..testData.pos.len() {
+                g.draw_point(testData.pos[c].0, testData.pos[c].1, 'o' as u64, (c % 4) as i16);
+            }
+            g.refresh();
+            graphics::sleep(1000);
         }
-        g.refresh();
-        graphics::sleep(1000);
+        
 
         t += test.dt;
         t_spacer += test.dt;
     }
-    state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
-    eprintln!("\n\t]");
+    testData.requireDone();
 
-    g.end();
+    if test.do_state_dump {
+        state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
+        eprintln!("\n\t]");
 
-    eprintln!("}}");
+        if test.do_graphics {
+            g.end();
+        }
 
+        eprintln!("}}");
+    }
+
+    print!("Particle 1 init:\n  Position = ");
     testData.pos[1].print();
+    print!("  Velocity = ");
     testData.vel[1].print();
 
     println!("Results:");
@@ -430,5 +444,5 @@ pub fn main_collisions() {
     println!("  Max pen depth 1 = {:.3}%", testData.max_pen_depth.abs() / test.r2 * 100.);
     println!("  Collision Steps = {}", testData.colliding_steps);
     println!("  Impact velocity = {:.3e}", testData.rel_impact_vel);
-    println!("  Max time usage  = {:.1}%", t / test.max_time * 100.)
+    println!("  Max time usage  = {:.1}%", t / test.max_time * 100.);
 }

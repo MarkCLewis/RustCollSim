@@ -13,10 +13,12 @@ mod graphics_internal {
     pub max_y: i32
   }
 
-  pub fn build_screen_size_container(x: i32, y: i32) -> ScreenSizeContainer {
-    return ScreenSizeContainer {
-      max_x: x,
-      max_y: y
+  impl ScreenSizeContainer {
+    pub fn new(x: i32, y: i32) -> ScreenSizeContainer {
+      ScreenSizeContainer {
+        max_x: x,
+        max_y: y
+      }
     }
   }
 }
@@ -40,7 +42,20 @@ impl Graphics {
     }
   }
 
+  pub fn dummy() -> Graphics {
+    Graphics {
+      screen_size: graphics_internal::ScreenSizeContainer::new(0, 0),
+      initialized: false,
+      scale_factor: f64::NAN,
+      has_colors: false
+    }
+  }
+
   pub fn init(&mut self) {
+    if self.scale_factor.is_nan() {
+      panic!("This is a dummy graphics struct. It can't be initiated");
+    }
+
     ncurses::initscr();
     ncurses::clear();
     ncurses::noecho();
@@ -53,7 +68,7 @@ impl Graphics {
 
     ncurses::getmaxyx(ncurses::stdscr(), &mut max_y, &mut max_x);
 
-    self.screen_size = graphics_internal::build_screen_size_container(max_x, max_y);
+    self.screen_size = graphics_internal::ScreenSizeContainer::new(max_x, max_y);
     self.initialized = true;
 
     self.has_colors = ncurses::has_colors();

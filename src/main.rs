@@ -165,10 +165,10 @@ fn usage(arg0: &String) {
 }
 
 fn main() {
-    eprintln!("Hello, world!");
+    //eprintln!("Hello, world!");
 
     let args: Vec<String> = env::args().collect();
-    println!("{:?}", args);
+    //println!("{:?}", args);
 
     if args.len() < 2 {
         usage(&args[0]);
