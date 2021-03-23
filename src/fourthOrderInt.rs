@@ -352,7 +352,10 @@ pub fn main_collisions() {
     let tmp_dt = 0.001 * 2. * PI;
 
     let test = TestSetup::newBasic(1e-7, tmp_dt);
+    run_test(test);
+}
 
+pub fn run_test(test: TestSetup) {
     let mut testData = TestData::new(&test);
 
     print!("Particle 1 init:\n  Position = ");
@@ -430,7 +433,7 @@ pub fn main_collisions() {
         eprintln!("}}");
     }
 
-    print!("Particle 1 init:\n  Position = ");
+    print!("Particle 1 final:\n  Position = ");
     testData.pos[1].print();
     print!("  Velocity = ");
     testData.vel[1].print();
