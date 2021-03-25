@@ -1,6 +1,10 @@
 use crate::no_explode;
 use crate::data::basic::Vector;
+
 use std::f64::consts::PI;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 
 const RHO: f64 = 0.88;
 const DELTA_INIT_FRACTION_OF_RADII: f64 = 0.1;
@@ -131,7 +135,8 @@ impl TestData {
     pub fn new(test: &TestSetup) -> TestData {
         // DELTA_INIT_FRACTION_OF_RADII
         let multiplier = 1. + DELTA_INIT_FRACTION_OF_RADII / 2.;
-        let v0 = calculate_init_vel_for_desired_impact_vel(test.r0, test.r1, test.rho, test.v_impact, DELTA_INIT_FRACTION_OF_RADII * (test.r0 + test.r1));
+        let v0 = calculate_init_vel_for_desired_impact_vel(test.r0, test.r1, test.rho, 
+            test.v_impact, DELTA_INIT_FRACTION_OF_RADII * (test.r0 + test.r1));
         TestData {
             pos: vec!(Vector(-test.r0 * multiplier, 0.0, 0.0), Vector(test.r1 * multiplier, 0.0, 0.0)),
             vel: vec!(Vector(v0/2., 0.0, 0.0), Vector(-v0/2., 0.0, 0.0)),
@@ -236,7 +241,8 @@ impl TestResult {
 
         TestResult {
             coeff_of_res: (exit_vel_0 / enter_vel_0, exit_vel_1 / enter_vel_1),
-            max_pen_depth_percentage: (data.max_pen_depth.abs() / test.r0 * 100., data.max_pen_depth.abs() / test.r1 * 100.),
+            max_pen_depth_percentage: (data.max_pen_depth.abs() / test.r0 * 100., 
+                data.max_pen_depth.abs() / test.r1 * 100.),
             collision_steps: data.colliding_steps,
             impact_rel_vel: data.rel_impact_vel,
             time_usage_percent: t / test.max_time * 100.
@@ -252,5 +258,66 @@ impl TestResult {
         println!("  Collision Steps = {}", self.collision_steps);
         println!("  Impact velocity = {:.3e}", self.impact_rel_vel);
         println!("  Max time usage  = {:.1}%", self.time_usage_percent);
+
     }
 }
+
+pub struct CSVOutput {
+    file: File,
+    name: String
+}
+
+impl CSVOutput {
+
+    pub fn new(name: &str) -> CSVOutput {
+        let path = Path::new(name);
+        let display = path.display();
+
+        // Open a file in write-only mode, returns `io::Result<File>`
+        let file = match File::create(&path) {
+            Err(why) => panic!("couldn't create {}: {}", display, why),
+            Ok(file) => file,
+        };
+
+        CSVOutput {
+            name: String::from(name),
+            file: file
+        }
+    }
+
+    pub fn write(&mut self, s: String) {
+        match self.file.write_all(s.as_bytes()) {
+            Err(why) => {
+                let path = Path::new(&self.name);
+                let display = path.display();
+                panic!("couldn't write to {}: {}", display, why);
+            },
+            Ok(_) => {}
+        }
+    }
+
+    pub fn writeHeader(&mut self) {
+        let s = String::from(
+            "radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_scalar,rho,\
+            coeff_of_res_0,coeff_of_res_1,max_pen_depth_percent_0,max_pen_depth_percent_1,\
+            collision_steps,real_impact_vel\n");
+        self.write(s);
+    }
+
+    pub fn writeEntry(&mut self, test: &TestSetup, result: &TestResult) {
+        let integrator = match test.integrator {
+            Integrator::Jerk => "4th Order",
+            Integrator::KickStepKick => "2nd Order"
+        };
+        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.sig_c, test.rho);
+        
+        s = format!("{},{:e},{:e},{:e},{:e},{},{:e}\n", s, 
+            result.coeff_of_res.0, result.coeff_of_res.1, result.max_pen_depth_percentage.0, 
+            result.max_pen_depth_percentage.1, result.collision_steps, result.impact_rel_vel);
+        
+        self.write(s);
+    }
+
+}
+

@@ -1,7 +1,6 @@
 use crate::data::basic::*;
 use crate::graphicsM;
 use crate::graphics;
-use crate::no_explode::compute::b_and_k;
 
 //use crate::no_explode::{K, B};
 use crate::test_automation::*;
@@ -354,14 +353,17 @@ pub fn main_collisions() {
     let tmp_dt = 0.001 * 2. * PI;
 
     let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1);
-    run_test(test, true).print();
+    let result = run_test(&test, true);
+    result.print();
+    
+    let mut out = CSVOutput::new("data/result.csv");
+    out.writeHeader();
+    out.writeEntry(&test, &result);
 }
 
-pub fn run_test(test: TestSetup, print_debug: bool) -> TestResult {
+pub fn run_test(test: &TestSetup, print_debug: bool) -> TestResult {
     let mut testData = TestData::new(&test);
-    println!("{:e} {:e}", test.b, test.k);
-    let (a, b) = b_and_k(1e-7, 4./3. * 1e-7 * 1e-7 * 1e-7 * 0.88 * std::f64::consts::PI);
-    println!("{:e} {:e}", a, b);
+    println!("b = {:e}, k = {:e}", test.b, test.k);
 
     // println!("{} {}", sigmoid(0.), sigmoid(-test.r1 * test.sig_c));
 
