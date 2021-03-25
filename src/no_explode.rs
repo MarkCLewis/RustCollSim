@@ -18,9 +18,9 @@
 pub mod compute {
     use std::f64::consts::PI;
 
-    pub const R_DEFAULT: f64 = 1e-7; // v_o 1e-7
+    //pub const R_DEFAULT: f64 = 1e-7; // v_o 1e-7
     pub const PEN_RATIO_DEFAULT: f64 = 0.02;
-    const PEN_MAX_DEFAULT: f64 = R_DEFAULT * PEN_RATIO_DEFAULT;
+    //const PEN_MAX_DEFAULT: f64 = R_DEFAULT * PEN_RATIO_DEFAULT;
 
     const COEFF_RES: f64 = 0.5;
     const LN_COEFF_RES: f64 = -0.6931471805599453; //COEFF_RES.ln(); // ln(c)
@@ -31,9 +31,9 @@ pub mod compute {
         ( - v_0 * LN_COEFF_RES * ROOT_4_COEFF_RES ) / ( pen_depth * PI )
     }
 
-    pub fn beta(v_0: f64) -> f64 {
-        beta2(v_0, PEN_MAX_DEFAULT)
-    }
+    // pub fn beta(v_0: f64) -> f64 {
+    //     beta2(v_0, PEN_MAX_DEFAULT)
+    // }
     
     pub fn omega_0_sq(beta_val: f64) -> f64 {
         ( beta_val * beta_val * (LN_COEFF_RES_SQ + 4. * PI * PI) ) / ( 4. * LN_COEFF_RES_SQ )
@@ -55,12 +55,12 @@ pub mod compute {
     /*
      * returns (b, k)
      */
-    pub fn b_and_k(v_0: f64, m: f64) -> (f64, f64) {
-        let beta_val = beta(v_0);
-        let omega_0_sq_val = omega_0_sq(beta_val);
+    // pub fn b_and_k(v_0: f64, m: f64) -> (f64, f64) {
+    //     let beta_val = beta(v_0);
+    //     let omega_0_sq_val = omega_0_sq(beta_val);
 
-        (beta_val * m, omega_0_sq_val * m)
-    }
+    //     (beta_val * m, omega_0_sq_val * m)
+    // }
 }
 
 

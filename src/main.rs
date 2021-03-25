@@ -9,6 +9,7 @@ mod graphics;
 mod fourthOrderInt;
 mod test_automation;
 mod no_explode;
+mod tests;
 //mod sim1D_piecewise;
 mod vectors;
 
@@ -161,6 +162,7 @@ fn usage(arg0: &String) {
     println!("Usage: {} 4thOrder", arg0);
     println!("       {} 4thorder2", arg0);
     println!("       {} noExplode v_0 density radius", arg0);
+    println!("       {} test", arg0);
 }
 
 fn main() {
@@ -198,6 +200,10 @@ fn main() {
         println!("v_o = {:e}, rho = {:e}, radius = {:e}, pen_depth = {:e}, mass = {:e}", v_o, rho, radius, pen_depth, mass);
         let (b, k) = no_explode::compute::b_and_k2(v_o, mass, pen_depth);
         println!("b = {:e}, k = {:e}", b, k);
+    }
+    else if arg == "test" {
+        tests::test_suite_varying_time_steps();
+        tests::test_suite_1();
     }
     else {
         usage(&args[0]);

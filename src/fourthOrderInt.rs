@@ -3,12 +3,8 @@ use crate::vectors::Vector;
 use crate::graphicsM;
 use crate::graphics;
 
-//use crate::no_explode::{K, B};
 use crate::test_automation::*;
 use std::f64::consts::PI;
-
-
-//const C: f64 = 1.0; // sigmoid modifier
 
 pub fn scale(data: &mut Vec<Vector>, scalar: f64) {
     for x in data.iter_mut() {
@@ -34,23 +30,6 @@ fn sigmoidDot(deltaDot: f64, delta: f64) -> f64 {
         deltaDot * (-delta).exp() / (denom * denom) 
     }
 }
-
-// d sig (x(t))
-// dt    
-
-// fn sigmoid_dot(x: f64, )
-
-// fn sigmoidP(x: f64) -> f64 {
-//     // NOTE: likely incorrect derivative!
-
-//     // there would be a negative sign, but this func is even 
-//     // sigmoidP(+-100) = 3.7200759760208356e-44 ~ 0
-//     if x.abs() > 100.0 {
-//         return 0.0;
-//     }
-//     let denom: f64 = x.exp() + 1.0;
-//     return x.exp() / (denom * denom);
-// }
 
 pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, test: &TestSetup) {
 
@@ -187,7 +166,6 @@ fn kinetic_energy(vel: &Vec<Vector>, rad: &Vec<f64>, rho: f64) -> Vec<f64> {
 
 fn potential_energy2(pos: &Vec<Vector>, rad: &Vec<f64>, rho: f64) -> Vec<f64> {
     // -G (mM) / R
-    
 
     let mut vec: Vec<f64> = Vec::new();
     for i in 0..pos.len()
@@ -364,11 +342,11 @@ pub fn main_collisions() {
 
 pub fn run_test(test: &TestSetup, print_debug: bool) -> TestResult {
     let mut testData = TestData::new(&test);
-    println!("b = {:e}, k = {:e}", test.b, test.k);
 
     // println!("{} {}", sigmoid(0.), sigmoid(-test.r1 * test.sig_c));
 
     if print_debug {
+        println!("b = {:e}, k = {:e}", test.b, test.k);
         print!("Particle 1 init:\n  Position = ");
         testData.pos[1].print();
         print!("  Velocity = ");

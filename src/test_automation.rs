@@ -8,7 +8,7 @@ use std::io::prelude::*;
 use std::path::Path;
 
 const RHO: f64 = 0.88;
-const DELTA_INIT_FRACTION_OF_RADII: f64 = 0.1;
+const DELTA_INIT_FRACTION_OF_RADII: f64 = 1e-6;
 
 pub enum Integrator {
     Jerk,
@@ -25,11 +25,11 @@ pub fn computeMass(r: f64, rho: f64) -> f64 {
     4./3. * r * r * r * PI * rho
 }
 
-pub fn calculate_init_vel_for_desired_impact_vel(r0: f64, r1: f64, rho: f64, v_impact: f64, delta: f64) -> f64 {
-    let m1 = computeMass(r1, rho);
-    let G = 1.;
-    (v_impact * v_impact - 2. * G * m1 * delta / ((r0 + r1 + delta) * (r0 + r1))).sqrt()
-}
+// pub fn calculate_init_vel_for_desired_impact_vel(r0: f64, r1: f64, rho: f64, v_impact: f64, delta: f64) -> f64 {
+//     let m1 = computeMass(r1, rho);
+//     let G = 1.;
+//     (v_impact * v_impact - 2. * G * m1 * delta / ((r0 + r1 + delta) * (r0 + r1))).sqrt()
+// }
 
 pub struct TestSetup {
     pub r0: f64,
@@ -49,26 +49,26 @@ pub struct TestSetup {
 
 impl TestSetup {
     
-    pub fn newBasic(v_impact: f64, dt: f64) -> TestSetup {
-        let r = 1e-7; // do not change!! -> b_and_k assumes this value for r
-        let v_estimate = r;
-        let (b, k) = no_explode::compute::b_and_k(v_estimate, computeMass(r, RHO));
-        let w = 1.;
-        TestSetup {
-            r0: r,
-            r1: r,
-            v_impact: v_impact,
-            integrator: Integrator::Jerk,
-            k: k,
-            b: b,
-            dt: dt,
-            sig_c: 4.0 / (w * r), // 1.0,
-            rho: RHO,
-            max_time: 0.5 * PI,
-            do_graphics: false,
-            do_state_dump: false
-        }
-    }
+    // pub fn newBasic(v_impact: f64, dt: f64) -> TestSetup {
+    //     let r = 1e-7; // do not change!! -> b_and_k assumes this value for r
+    //     let v_estimate = r;
+    //     let (b, k) = no_explode::compute::b_and_k(v_estimate, computeMass(r, RHO));
+    //     let w = 1.;
+    //     TestSetup {
+    //         r0: r,
+    //         r1: r,
+    //         v_impact: v_impact,
+    //         integrator: Integrator::Jerk,
+    //         k: k,
+    //         b: b,
+    //         dt: dt,
+    //         sig_c: 4.0 / (w * r), // 1.0,
+    //         rho: RHO,
+    //         max_time: 0.5 * PI,
+    //         do_graphics: false,
+    //         do_state_dump: false
+    //     }
+    // }
 
     pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64) -> TestSetup {
         let v_estimate = r0.max(r1);
@@ -116,28 +116,28 @@ pub struct TestData {
 
 impl TestData {
 
-    pub fn newBasic(test: &TestSetup) -> TestData {
-        // TODO: change position and velocity
-        TestData {
-            pos: vec!(Vector(-1.1e-7, 0.0, 0.0), Vector(1.1e-7, 0.0, 0.0)),
-            vel: vec!(Vector(0.5e-6, 0.0, 0.0), Vector(-0.5e-6, 0.0, 0.0)),
-            rad: vec!(test.r0, test.r1),
-            acc: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
-            jerk: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
-            phase: CollisionPhase::PreCollision,
-            entry_vel: (f64::NAN, f64::NAN),
-            exit_vel: (f64::NAN, f64::NAN),
-            max_pen_depth: f64::NAN,
-            colliding_steps: 0,
-            rel_impact_vel: f64::NAN
-        }
-    }
+    // pub fn newBasic(test: &TestSetup) -> TestData {
+    //     // TODO: change position and velocity
+    //     TestData {
+    //         pos: vec!(Vector(-1.1e-7, 0.0, 0.0), Vector(1.1e-7, 0.0, 0.0)),
+    //         vel: vec!(Vector(0.5e-6, 0.0, 0.0), Vector(-0.5e-6, 0.0, 0.0)),
+    //         rad: vec!(test.r0, test.r1),
+    //         acc: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
+    //         jerk: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
+    //         phase: CollisionPhase::PreCollision,
+    //         entry_vel: (f64::NAN, f64::NAN),
+    //         exit_vel: (f64::NAN, f64::NAN),
+    //         max_pen_depth: f64::NAN,
+    //         colliding_steps: 0,
+    //         rel_impact_vel: f64::NAN
+    //     }
+    // }
 
     pub fn new(test: &TestSetup) -> TestData {
         // DELTA_INIT_FRACTION_OF_RADII
         let multiplier = 1. + DELTA_INIT_FRACTION_OF_RADII / 2.;
-        let v0 = calculate_init_vel_for_desired_impact_vel(test.r0, test.r1, test.rho, 
-            test.v_impact, DELTA_INIT_FRACTION_OF_RADII * (test.r0 + test.r1));
+        let v0 = test.v_impact; //calculate_init_vel_for_desired_impact_vel(test.r0, test.r1, test.rho, 
+        //    test.v_impact, DELTA_INIT_FRACTION_OF_RADII * (test.r0 + test.r1));
         TestData {
             pos: vec!(Vector(-test.r0 * multiplier, 0.0, 0.0), Vector(test.r1 * multiplier, 0.0, 0.0)),
             vel: vec!(Vector(v0/2., 0.0, 0.0), Vector(-v0/2., 0.0, 0.0)),
