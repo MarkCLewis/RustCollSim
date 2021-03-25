@@ -1,5 +1,6 @@
 use crate::no_explode;
-use crate::data::basic::Vector;
+//use crate::data::basic::Vector;
+use crate::vectors::Vector;
 
 use std::f64::consts::PI;
 use std::fs::File;

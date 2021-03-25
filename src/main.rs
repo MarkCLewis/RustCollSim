@@ -1,15 +1,16 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
 
-mod data;
+//mod data;
 mod graphics;
-mod system;
+//mod system;
 //mod collision;
 //mod sim1D;
 mod fourthOrderInt;
 mod test_automation;
 mod no_explode;
 //mod sim1D_piecewise;
+mod vectors;
 
 //use data::PI;
 use std::env;
