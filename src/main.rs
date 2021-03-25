@@ -4,15 +4,17 @@
 mod data;
 mod graphics;
 mod system;
-mod collision;
-mod sim1D;
+//mod collision;
+//mod sim1D;
 mod fourthOrderInt;
 mod test_automation;
+mod no_explode;
+//mod sim1D_piecewise;
 
-use data::PI;
+//use data::PI;
 use std::env;
 
-
+/*
 fn test_group_2_kick_step_1() {
     let h: f64 = 1e-3;
 
@@ -153,11 +155,7 @@ fn test_group_6_collision() {
 
     g.end();
 }
-
-mod no_explode;
-
-mod sim1D_piecewise;
-
+*/
 fn usage(arg0: &String) {
     println!("Usage: {} 4thOrder", arg0);
     println!("       {} 4thorder2", arg0);
