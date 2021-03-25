@@ -45,9 +45,10 @@ pub struct TestSetup {
 impl TestSetup {
     
     pub fn newBasic(v_impact: f64, dt: f64) -> TestSetup {
-        let r = 1e-7;
+        let r = 1e-7; // do not change!! -> b_and_k assumes this value for r
         let v_estimate = r;
         let (b, k) = no_explode::compute::b_and_k(v_estimate, computeMass(r, RHO));
+        let w = 1.;
         TestSetup {
             r0: r,
             r1: r,
@@ -56,7 +57,7 @@ impl TestSetup {
             k: k,
             b: b,
             dt: dt,
-            sig_c: 4.0 / r, // 1.0,
+            sig_c: 4.0 / (w * r), // 1.0,
             rho: RHO,
             max_time: 0.5 * PI,
             do_graphics: false,
@@ -64,11 +65,16 @@ impl TestSetup {
         }
     }
 
-    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64) -> TestSetup {
-        let v_estimate = r0.min(r1);
-        let mass_avg = (computeMass(r0, RHO) + computeMass(r1, RHO)) / 2.;
-        let (b, k) = no_explode::compute::b_and_k(v_estimate, mass_avg);
-        let r_avg = (r0 + r1) / 2.;
+    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64) -> TestSetup {
+        let v_estimate = r0.max(r1);
+        let m0 = computeMass(r0, RHO);
+        let m1 = computeMass(r0, RHO);
+        //let mass_avg = (computeMass(r0, RHO) + computeMass(r1, RHO)) / 2.;
+        // use reduced mass for b and k
+        let reduced_mass = (m0 * m1) / (m0 + m1);
+        // use smaller ?
+        let (b, k) = no_explode::compute::b_and_k3(v_estimate, reduced_mass, r0.min(r1));
+        let r_min = r0.min(r1);
 
         TestSetup {
             r0: r0,
@@ -78,7 +84,7 @@ impl TestSetup {
             k: k,
             b: b,
             dt: dt,
-            sig_c: 4.0 / r_avg,
+            sig_c: 4.0 / (w * r_min),
             rho: RHO,
             max_time: PI,
             do_graphics: false,

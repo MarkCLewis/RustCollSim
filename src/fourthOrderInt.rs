@@ -1,6 +1,8 @@
 use crate::data::basic::*;
 use crate::graphicsM;
 use crate::graphics;
+use crate::no_explode::compute::b_and_k;
+
 //use crate::no_explode::{K, B};
 use crate::test_automation::*;
 use std::f64::consts::PI;
@@ -351,12 +353,15 @@ pub fn main_collisions() {
     // collision test
     let tmp_dt = 0.001 * 2. * PI;
 
-    let test = TestSetup::newBasic(1e-7, tmp_dt);
+    let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1);
     run_test(test, true).print();
 }
 
 pub fn run_test(test: TestSetup, print_debug: bool) -> TestResult {
     let mut testData = TestData::new(&test);
+    println!("{:e} {:e}", test.b, test.k);
+    let (a, b) = b_and_k(1e-7, 4./3. * 1e-7 * 1e-7 * 1e-7 * 0.88 * std::f64::consts::PI);
+    println!("{:e} {:e}", a, b);
 
     // println!("{} {}", sigmoid(0.), sigmoid(-test.r1 * test.sig_c));
 

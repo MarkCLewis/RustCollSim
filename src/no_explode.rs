@@ -47,6 +47,11 @@ pub mod compute {
         (beta_val * m, omega_0_sq_val * m)
     }
 
+    // returns (b, k)
+    pub fn b_and_k3(v_0: f64, m: f64, radius: f64) -> (f64, f64) {
+        b_and_k2(v_0, m, radius * PEN_RATIO_DEFAULT)
+    }
+
     /*
      * returns (b, k)
      */
