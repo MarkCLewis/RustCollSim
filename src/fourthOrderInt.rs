@@ -332,7 +332,7 @@ pub fn main_collisions() {
     let tmp_dt = 0.001 * 2. * PI;
 
     let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1);
-    let result = run_test(&test, true);
+    let result = run_test(&test, true).unwrap();
     result.print();
     
     let mut out = CSVOutput::new("data/result.csv");
@@ -340,7 +340,7 @@ pub fn main_collisions() {
     out.writeEntry(&test, &result);
 }
 
-pub fn run_test(test: &TestSetup, print_debug: bool) -> TestResult {
+pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, String> {
     let mut testData = TestData::new(&test);
 
     // println!("{} {}", sigmoid(0.), sigmoid(-test.r1 * test.sig_c));
@@ -363,7 +363,9 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> TestResult {
     let dataPoints = 1000;
     let spacing = test.max_time / (dataPoints - 1) as f64;
 
-    testData.collisionUpdate();
+    if let Err(why) = testData.collisionUpdate() {
+        return Err(why);
+    }
 
     if test.do_state_dump {
         eprintln!("INIT");
@@ -396,7 +398,10 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> TestResult {
         }
         
         testData.requireFinite();
-        testData.collisionUpdate(); // test analysis
+        // test analysis
+        if let Err(why) = testData.collisionUpdate() {
+            return Err(why);
+        }
 
         if test.do_graphics {
             for c in 0..testData.pos.len() {
@@ -410,7 +415,15 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> TestResult {
         t += test.dt;
         t_spacer += test.dt;
     }
-    testData.requireDone();
+    if !testData.isDone() {
+        if testData.isColliding() {
+            return Err(String::from("test failed - collision still ongoing"));
+        }
+        else {
+            return Err(format!("test failed - collision never started"));
+        }
+        
+    }
 
     if test.do_state_dump {
         state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
@@ -432,5 +445,5 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> TestResult {
         testData.vel[1].print();
     }
 
-    return result;
+    return Ok(result);
 }

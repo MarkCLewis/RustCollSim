@@ -1,0 +1,2 @@
+radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_scalar,rho,coeff_of_res_0,coeff_of_res_1,max_pen_depth_percent_0,max_pen_depth_percent_1,collision_steps,real_impact_vel
+1e-7,1e-7,1e-7,4th Order,3.2977654593440624e-18,1.7097372728364922e-20,6.283185307179587e-3,4e8,8.8e-1,7.707054091121164e-1,7.707054091121164e-1,1.302811650095707e0,1.302811650095707e0,14,9.562160394303677e-8

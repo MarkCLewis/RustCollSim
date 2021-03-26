@@ -153,7 +153,7 @@ impl TestData {
         }
     }
 
-    pub fn collisionUpdate(&mut self) {
+    pub fn collisionUpdate(&mut self) -> Result<(), String> {
         assert_eq!(self.pos.len(), 2);
         
         let r = (self.pos[0] - self.pos[1]).mag();
@@ -162,7 +162,11 @@ impl TestData {
 
         if self.pos[0].0 >= self.pos[1].0 {
             // if particle 0 is to the right of particle 1
-            panic!("test failed - particles passed through each other");
+            if let CollisionPhase::PreCollision = self.phase {
+                // particles too fast and time step too big
+                return Err(String::from("test failed - particles passed through each other without colliding"));
+            }
+            return Err(format!("test failed - particles passed through each other in {} steps", self.colliding_steps));
         }
 
         if delta < 0. {
@@ -197,10 +201,16 @@ impl TestData {
                 self.phase = CollisionPhase::PostCollision;
             }
         }
+
+        return Ok(());
     }
 
     pub fn isDone(&self) -> bool {
         if let CollisionPhase::PostCollision = self.phase { true } else { false }
+    }
+
+    pub fn isColliding(&self) -> bool {
+        if let CollisionPhase::Colliding = self.phase { true } else { false }
     }
 
     pub fn requireDone(&self) {
@@ -317,6 +327,19 @@ impl CSVOutput {
             result.coeff_of_res.0, result.coeff_of_res.1, result.max_pen_depth_percentage.0, 
             result.max_pen_depth_percentage.1, result.collision_steps, result.impact_rel_vel);
         
+        self.write(s);
+    }
+
+    pub fn writeEntryFailed(&mut self, test: &TestSetup) {
+        let integrator = match test.integrator {
+            Integrator::Jerk => "4th Order",
+            Integrator::KickStepKick => "2nd Order"
+        };
+        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.sig_c, test.rho);
+        
+        s = format!("{},,,,,,\n", s);
+
         self.write(s);
     }
 
