@@ -299,7 +299,7 @@ pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad:
 //     vel[1].print();
 // }
 
-fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &Vec<f64>, rho: f64) {
+fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &Vec<f64>, rho: f64, acc: &Vec<Vector>) {
     if !first {
         eprintln!(",");
     }
@@ -313,7 +313,8 @@ fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &V
         eprintln!("\t\t\t\t\"displacement\": [{:e}, {:e}, {:e}],", pos[i].0, pos[i].1, pos[i].2);
         eprintln!("\t\t\t\t\"velocity\": [{:e}, {:e}, {:e}],", vel[i].0, vel[i].1, vel[i].2);
         eprintln!("\t\t\t\t\"KE\": {:e},", KEs[i]);
-        eprintln!("\t\t\t\t\"PE\": {:e}", PEs[i]);
+        eprintln!("\t\t\t\t\"PE\": {:e},", PEs[i]);
+        eprintln!("\t\t\t\t\"acceleration\": [{:e}, {:e}, {:e}]", acc[i].0, acc[i].1, acc[i].2);
 
         if i+1 < pos.len() {
             eprintln!("\t\t\t}},");
@@ -329,9 +330,9 @@ fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &V
 
 pub fn main_collisions() {
     // collision test
-    let tmp_dt = 0.001 * 2. * PI;
+    let tmp_dt = 0.0001 * 2. * PI;
 
-    let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1);
+    let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false);
     let result = run_test(&test, true).unwrap();
     result.print();
     
@@ -360,7 +361,7 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
         graphics::Graphics::dummy()
     };
 
-    let dataPoints = 1000;
+    let dataPoints = 10000;
     let spacing = test.max_time / (dataPoints - 1) as f64;
 
     if let Err(why) = testData.collisionUpdate() {
@@ -373,17 +374,19 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
         eprintln!("\t\"dt\": {:e},", test.dt);
         eprintln!("\t\"rho\": {:e},", test.rho);
         eprintln!("\t\"data\": [");
-        state_dump(&testData.pos, &testData.vel, 0., true, &testData.rad, test.rho);
+        state_dump(&testData.pos, &testData.vel, 0., true, &testData.rad, test.rho, &testData.acc);
     }
+
+    let mut firstTime = true;
 
     calcAccJerk(&testData.pos, &testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
     let mut t = 0.;
     let mut t_spacer = 0.;
     while t < test.max_time && !testData.isDone() { // 2e5
 
-        if t_spacer > spacing {
+        if t_spacer > spacing || true {
             if test.do_state_dump {
-                state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
+                state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho, &testData.acc);
             }
             t_spacer = 0.;
         }
@@ -403,6 +406,16 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
             return Err(why);
         }
 
+        if let CollisionPhase::Colliding = testData.phase {
+            if firstTime && print_debug {
+                firstTime = false;
+                println!("Debug");
+                println!("{:e}", (testData.pos[1] - testData.pos[0]).mag() - test.r0 - test.r1);
+                testData.vel[0].print();
+                testData.acc[0].print();
+            }
+        }
+
         if test.do_graphics {
             for c in 0..testData.pos.len() {
                 g.draw_point(testData.pos[c].0, testData.pos[c].1, 'o' as u64, (c % 4) as i16);
@@ -410,7 +423,6 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
             g.refresh();
             graphics::sleep(1000);
         }
-        
 
         t += test.dt;
         t_spacer += test.dt;
@@ -426,7 +438,7 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
     }
 
     if test.do_state_dump {
-        state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho);
+        state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho, &testData.acc);
         eprintln!("\n\t]");
 
         if test.do_graphics {

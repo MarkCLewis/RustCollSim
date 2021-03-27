@@ -34,6 +34,7 @@ class TimeMoment:
         self.particles_v = [s['velocity'] for s in states]
         self.KE = [s['KE'] for s in states]
         self.PE = [s['PE'] for s in states]
+        self.acceleration = [s['acceleration'] for s in states]
 
         self.isColliding = self.delta() < 2*1e-7
 
@@ -113,6 +114,16 @@ plt.axvline(exit_time, linestyle='dotted')
 plt.title('Velocity vs time')
 plt.show()
 
+print(len(d))
+t = [e.time for e in data][1:]
+d = [e.acceleration[0][0] for e in data][1:]
+plt.plot(t, d)
+d = [e.acceleration[1][0] for e in data][1:]
+plt.plot(t, d)
+plt.axvline(enter, linestyle='dotted')
+plt.axvline(exit_time, linestyle='dotted')
+plt.title('Acceleration vs time')
+plt.show()
 
 # d = [e.KE[0] + e.PE[0] for e in data]
 # plt.plot(t, d)

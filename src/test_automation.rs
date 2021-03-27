@@ -39,7 +39,7 @@ pub struct TestSetup {
     pub k: f64,
     pub b: f64,
     pub dt: f64,
-    pub sig_c: f64,
+    pub sig_c: f64, // -> (f64, f64) // TODO: add w
     pub rho: f64,
     pub max_time: f64,
     pub do_graphics: bool,
@@ -70,7 +70,7 @@ impl TestSetup {
     //     }
     // }
 
-    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64) -> TestSetup {
+    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool) -> TestSetup {
         let v_estimate = r0.max(r1);
         let m0 = computeMass(r0, RHO);
         let m1 = computeMass(r0, RHO);
@@ -93,7 +93,7 @@ impl TestSetup {
             rho: RHO,
             max_time: PI,
             do_graphics: false,
-            do_state_dump: false
+            do_state_dump: do_state_dump
         }
     }
 }

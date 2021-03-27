@@ -1,7 +1,11 @@
 use crate::fourthOrderInt::run_test;
 use crate::test_automation::*;
 
-const TIME_STEPS: [f64; 5] = [0.03, 0.01, 0.003, 0.001, 0.0003]; 
+/*
+ * 0.03 does not converse energy when drag is 0
+ */
+
+const TIME_STEPS: [f64; 5] = [0.01, 0.006, 0.003, 0.001, 0.0003]; 
 const SIGMOID_WIDTH_MODIFIER: [f64; 3] = [0.1, 0.03, 0.01];
 const VELOCITIES: [f64; 5] = [3e-8, 1e-7, 3e-7, 1e-6, 3e-6];
 
@@ -13,7 +17,7 @@ pub fn test_suite_varying_time_steps() {
     let mut fails = 0;
 
     for dt in TIME_STEPS.iter() {
-        let test = TestSetup::new(1e-7, *dt, 1e-7, 1e-7, 0.1);
+        let test = TestSetup::new(1e-7, *dt, 1e-7, 1e-7, 0.1, false);
         let result = run_test(&test, false);
         //result.print();
 
@@ -40,7 +44,7 @@ pub fn test_suite_1() {
     for dt in TIME_STEPS.iter() {
         for w in SIGMOID_WIDTH_MODIFIER.iter() {
             for v_impact in VELOCITIES.iter() {
-                let test = TestSetup::new(*v_impact, *dt, 1e-7, 1e-7, *w);
+                let test = TestSetup::new(*v_impact, *dt, 1e-7, 1e-7, *w, false);
                 let result = run_test(&test, false);
                 //result.print();
                 
