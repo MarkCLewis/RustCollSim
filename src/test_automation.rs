@@ -39,7 +39,8 @@ pub struct TestSetup {
     pub k: f64,
     pub b: f64,
     pub dt: f64,
-    pub sig_c: f64, // -> (f64, f64) // TODO: add w
+    //pub sig_c: (f64, f64), // TODO: add w
+    pub w: f64,
     pub rho: f64,
     pub max_time: f64,
     pub do_graphics: bool,
@@ -79,7 +80,7 @@ impl TestSetup {
         let reduced_mass = (m0 * m1) / (m0 + m1);
         // use smaller ?
         let (b, k) = no_explode::compute::b_and_k3(v_estimate, reduced_mass, r0.min(r1));
-        let r_min = r0.min(r1);
+        //let r_min = r0.min(r1);
 
         TestSetup {
             r0: r0,
@@ -89,7 +90,8 @@ impl TestSetup {
             k: k,
             b: b,
             dt: dt,
-            sig_c: 4.0 / (w * r_min),
+            //sig_c: (4.0 / (w * r0), 4.0 / (w * r1)),
+            w: w,
             rho: RHO,
             max_time: PI,
             do_graphics: false,
@@ -103,6 +105,7 @@ pub struct TestData {
     pub pos: Vec<Vector>, // particle 0 should be to the left of particle 1, i.e. have a lower x value
     pub vel: Vec<Vector>,
     pub rad: Vec<f64>,
+    pub sig_c: Vec<f64>,
     pub acc: Vec<Vector>,
     pub jerk: Vec<Vector>,
     pub phase: CollisionPhase,
@@ -141,6 +144,7 @@ impl TestData {
             pos: vec!(Vector(-test.r0 * multiplier, 0.0, 0.0), Vector(test.r1 * multiplier, 0.0, 0.0)),
             vel: vec!(Vector(v0/2., 0.0, 0.0), Vector(-v0/2., 0.0, 0.0)),
             rad: vec!(test.r0, test.r1),
+            sig_c: vec!(4. / (test.w * test.r0), 4. / (test.w * test.r1)),
             acc: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             jerk: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             phase: CollisionPhase::PreCollision,
@@ -307,19 +311,19 @@ impl CSVOutput {
 
     pub fn writeHeader(&mut self) {
         let s = String::from(
-            "radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_scalar,rho,\
+            "radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_width,sigmoid_scalar_0,sigmoid_scalar_1,rho,\
             coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,\
             collision_steps,real_impact_vel\n");
         self.write(s);
     }
 
-    pub fn writeEntry(&mut self, test: &TestSetup, result: &TestResult) {
+    pub fn writeEntry(&mut self, test: &TestSetup, data: &TestData, result: &TestResult) {
         let integrator = match test.integrator {
             Integrator::Jerk => "4th Order",
             Integrator::KickStepKick => "2nd Order"
         };
-        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e}", 
-            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.sig_c, test.rho);
+        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c[0], data.sig_c[1], test.rho);
         
         s = format!("{},{:e},{:e},{:e},{},{:e}\n", s, 
             result.coeff_of_res, result.max_pen_depth_percentage.0, 
@@ -328,13 +332,13 @@ impl CSVOutput {
         self.write(s);
     }
 
-    pub fn writeEntryFailed(&mut self, test: &TestSetup) {
+    pub fn writeEntryFailed(&mut self, test: &TestSetup, data: &TestData) {
         let integrator = match test.integrator {
             Integrator::Jerk => "4th Order",
             Integrator::KickStepKick => "2nd Order"
         };
-        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e}", 
-            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.sig_c, test.rho);
+        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c[0], data.sig_c[1], test.rho);
         
         s = format!("{},,,,,,\n", s);
 

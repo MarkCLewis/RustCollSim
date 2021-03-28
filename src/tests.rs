@@ -22,10 +22,10 @@ pub fn test_suite_varying_time_steps() {
         //result.print();
 
         match result {
-            Ok(data) => out.writeEntry(&test, &data),
-            Err(why) => {
+            Ok(data) => out.writeEntry(&test, &data.0, &data.1),
+            Err((why, data)) => {
                 println!("{} for dt={:e}", why, dt);
-                out.writeEntryFailed(&test);
+                out.writeEntryFailed(&test, &data);
                 fails += 1;
             }
         }
@@ -49,10 +49,10 @@ pub fn test_suite_1() {
                 //result.print();
                 
                 match result {
-                    Ok(data) => out.writeEntry(&test, &data),
-                    Err(why) => {
+                    Ok(data) => out.writeEntry(&test, &data.0, &data.1),
+                    Err((why, data)) => {
                         println!("{} for dt={:e}, w={:e}, v_impact={:e}", why, dt, w, v_impact);
-                        out.writeEntryFailed(&test);
+                        out.writeEntryFailed(&test, &data);
                         fails += 1;
                     }
                 }

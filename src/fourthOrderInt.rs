@@ -31,17 +31,17 @@ fn sigmoidDot(deltaDot: f64, delta: f64) -> f64 {
     }
 }
 
-pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, test: &TestSetup) {
+pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
 
-    for i in 0..(pos.len()) {
-        acc[i] = Vector(0., 0., 0.);
-        jerk[i] = Vector(0., 0., 0.);
+    for i in 0..(data.pos.len()) {
+        data.acc[i] = Vector(0., 0., 0.);
+        data.jerk[i] = Vector(0., 0., 0.);
     }
 
-    for i in 0..(pos.len()) {
-        for j in (i+1)..(pos.len()) {
-            let rji = pos[j] - pos[i]; // relative pos
-            let vji = vel[j] - vel[i]; // relative vel
+    for i in 0..(data.pos.len()) {
+        for j in (i+1)..(data.pos.len()) {
+            let rji = data.pos[j] - data.pos[i]; // relative pos
+            let vji = data.vel[j] - data.vel[i]; // relative vel
 
             let rSq = rji.dot(&rji);
             let r = rSq.sqrt();
@@ -50,7 +50,7 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, acc: &m
             let rv_r2 = rji.dot(&vji) / rSq;
 
             let x_hat = rji / r;
-            let delta = r - (rad[i] + rad[j]);
+            let delta = r - (data.rad[i] + data.rad[j]);
 
             let delta_dot = x_hat.dot(&vji);
 
@@ -60,14 +60,20 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, acc: &m
 
             let da = rji / rCube;
             let dj = (vji - rji * 3. * rv_r2) / rCube;
-            let massi = 4. * PI * test.rho / 3. * rad[i] * rad[i] * rad[i];
-            let massj = 4. * PI * test.rho / 3. * rad[j] * rad[j] * rad[j];
+            let massi = 4. * PI * test.rho / 3. * data.rad[i] * data.rad[i] * data.rad[i];
+            let massj = 4. * PI * test.rho / 3. * data.rad[j] * data.rad[j] * data.rad[j];
 
-            let sig_pos = sigmoid(delta * test.sig_c);
-            let sig_neg = sigmoid(-delta * test.sig_c);
+            let sig_pos_i = sigmoid(delta * data.sig_c[i]);
+            let sig_pos_j = sigmoid(delta * data.sig_c[j]);
 
-            let sig_dot_pos = sigmoidDot(delta_dot * test.sig_c, delta * test.sig_c);
-            let sig_dot_neg = sigmoidDot(-delta_dot * test.sig_c, -delta * test.sig_c);
+            let sig_neg_i = sigmoid(-delta * data.sig_c[i]);
+            let sig_neg_j = sigmoid(-delta * data.sig_c[j]);
+
+            let sig_dot_pos_i = sigmoidDot(delta_dot * data.sig_c[i], delta * data.sig_c[i]);
+            let sig_dot_pos_j = sigmoidDot(delta_dot * data.sig_c[j], delta * data.sig_c[j]);
+
+            let sig_dot_neg_i = sigmoidDot(-delta_dot * data.sig_c[i], -delta * data.sig_c[i]);
+            let sig_dot_neg_j = sigmoidDot(-delta_dot * data.sig_c[j], -delta * data.sig_c[j]);
 
             //if delta > 0. {
                 // no collision
@@ -79,11 +85,11 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, acc: &m
             let jj_g = dj * massi;
             
             // gravity
-            acc[i] += ai_g * sig_pos;
-            acc[j] -= aj_g * sig_pos;
+            data.acc[i] += ai_g * sig_pos_i;
+            data.acc[j] -= aj_g * sig_pos_j;
 
-            jerk[i] += ji_g * sig_dot_pos + ai_g * sig_pos; // TODO: ????
-            jerk[j] -= jj_g * sig_dot_pos + ai_g * sig_pos;
+            data.jerk[i] += ji_g * sig_dot_pos_i + ai_g * sig_pos_i; // TODO: ????
+            data.jerk[j] -= jj_g * sig_dot_pos_j + ai_g * sig_pos_j;
             // mj = sig dot * force + sig * jerk
 
             //}
@@ -115,14 +121,14 @@ pub fn calcAccJerk(pos: &Vec<Vector>, vel: &Vec<Vector>, rad: &Vec<f64>, acc: &m
             let ji = yank_total / massi;
             let jj = yank_total / massj;
 
-            acc[i] -= ai * sig_neg;
-            acc[j] += aj * sig_neg;
+            data.acc[i] -= ai * sig_neg_i;
+            data.acc[j] += aj * sig_neg_j;
 
             // jerk[i] -= ji; // TODO: ???
             // jerk[j] += jj;
             // mj = sig dot * force + sig * jerk
-            jerk[i] -= ai * sig_dot_neg + ji * sig_neg;
-            jerk[j] += aj * sig_dot_neg + jj * sig_neg;
+            data.jerk[i] -= ai * sig_dot_neg_i + ji * sig_neg_i;
+            data.jerk[j] += aj * sig_dot_neg_j + jj * sig_neg_j;
             // }
         }
     }
@@ -192,19 +198,18 @@ fn potential_energy2(pos: &Vec<Vector>, rad: &Vec<f64>, rho: f64) -> Vec<f64> {
     return vec;
 }
 
-pub fn evolveStep(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, 
-    acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, test: &TestSetup) {
+pub fn evolveStep(data: &mut TestData, test: &TestSetup) {
     // TODO: This isn't ideally efficient. Better to keep two vectors around and reuse, but it will do for now.
-    let oldPos = pos.clone();
-    let oldVel = vel.clone();
-    let oldAcc = acc.clone();
-    let oldJerk = jerk.clone();
+    let oldPos = data.pos.clone();
+    let oldVel = data.vel.clone();
+    let oldAcc = data.acc.clone();
+    let oldJerk = data.jerk.clone();
 
-    predictStep(pos, vel, acc, jerk, test.dt);
+    predictStep(&mut data.pos, &mut data.vel, &data.acc, &data.jerk, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
-    calcAccJerk(pos, vel, rad, acc, jerk, test);
+    calcAccJerk(data, test);
     //assert_eq!(pos[0].is_finite(), true);
-    correctStep(pos, vel, acc, jerk, &oldPos, &oldVel, &oldAcc, &oldJerk, test.dt);
+    correctStep(&mut data.pos, &mut data.vel, &data.acc, &data.jerk, &oldPos, &oldVel, &oldAcc, &oldJerk, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
 }
 
@@ -227,17 +232,16 @@ fn integrate_kick_step_kick_2(vel: &mut Vec<Vector>, acc: &Vec<Vector>, dt: f64)
     }
 }
 
-pub fn evolveStepKickStepKick(pos: &mut Vec<Vector>, vel: &mut Vec<Vector>, rad: &Vec<f64>, 
-        acc: &mut Vec<Vector>, jerk: &mut Vec<Vector>, test: &TestSetup) {
+pub fn evolveStepKickStepKick(data: &mut TestData, test: &TestSetup) {
     // TODO: This isn't ideally efficient. Better to keep two vectors around and reuse, but it will do for now.
 
     // this assumes acc has already been calculated
 
-    integrate_kick_step_kick_1(pos, vel, acc, test.dt);
+    integrate_kick_step_kick_1(&mut data.pos, &mut data.vel, &data.acc, test.dt);
 
-    calcAccJerk(pos, vel, rad, acc, jerk, test);
+    calcAccJerk(data, test);
 
-    integrate_kick_step_kick_2(vel, acc, test.dt);
+    integrate_kick_step_kick_2(&mut data.vel, &data.acc, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
 
     //assert_eq!(pos[0].is_finite(), true);
@@ -333,15 +337,18 @@ pub fn main_collisions() {
     let tmp_dt = 0.0001 * 2. * PI;
 
     let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false);
-    let result = run_test(&test, true).unwrap();
-    result.print();
+    let result = match run_test(&test, true) {
+        Ok(result) => result,
+        Err((why, _)) => panic!(why)
+    };
+    result.1.print();
     
     let mut out = CSVOutput::new("data/result.csv");
     out.writeHeader();
-    out.writeEntry(&test, &result);
+    out.writeEntry(&test, &result.0, &result.1);
 }
 
-pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, String> {
+pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestResult), (String, TestData)> {
     let mut testData = TestData::new(&test);
 
     // println!("{} {}", sigmoid(0.), sigmoid(-test.r1 * test.sig_c));
@@ -365,7 +372,7 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
     let spacing = test.max_time / (dataPoints - 1) as f64;
 
     if let Err(why) = testData.collisionUpdate() {
-        return Err(why);
+        return Err((why, testData));
     }
 
     if test.do_state_dump {
@@ -379,7 +386,7 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
 
     let mut firstTime = true;
 
-    calcAccJerk(&testData.pos, &testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
+    calcAccJerk(&mut testData, &test);
     let mut t = 0.;
     let mut t_spacer = 0.;
     while t < test.max_time && !testData.isDone() { // 2e5
@@ -393,17 +400,17 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
 
         match test.integrator {
             Integrator::Jerk => {
-                evolveStep(&mut testData.pos, &mut testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
+                evolveStep(&mut testData, &test);
             }
             Integrator::KickStepKick => {
-                evolveStepKickStepKick(&mut testData.pos, &mut testData.vel, &testData.rad, &mut testData.acc, &mut testData.jerk, &test);
+                evolveStepKickStepKick(&mut testData, &test);
             }
         }
         
         testData.requireFinite();
         // test analysis
         if let Err(why) = testData.collisionUpdate() {
-            return Err(why);
+            return Err((why, testData));
         }
 
         if let CollisionPhase::Colliding = testData.phase {
@@ -429,10 +436,10 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
     }
     if !testData.isDone() {
         if testData.isColliding() {
-            return Err(String::from("test failed - collision still ongoing"));
+            return Err((String::from("test failed - collision still ongoing"), testData));
         }
         else {
-            return Err(format!("test failed - collision never started"));
+            return Err((format!("test failed - collision never started"), testData));
         }
         
     }
@@ -457,5 +464,5 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<TestResult, Strin
         testData.vel[1].print();
     }
 
-    return Ok(result);
+    return Ok((testData, result));
 }
