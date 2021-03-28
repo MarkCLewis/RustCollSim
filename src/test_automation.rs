@@ -106,11 +106,10 @@ pub struct TestData {
     pub acc: Vec<Vector>,
     pub jerk: Vec<Vector>,
     pub phase: CollisionPhase,
-    pub entry_vel: (f64, f64),
-    pub exit_vel: (f64, f64),
     pub max_pen_depth: f64,
     pub colliding_steps: i32,
-    pub rel_impact_vel: f64
+    pub rel_impact_vel: f64,
+    pub rel_exit_vel: f64
 }
 
 
@@ -145,11 +144,10 @@ impl TestData {
             acc: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             jerk: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             phase: CollisionPhase::PreCollision,
-            entry_vel: (f64::NAN, f64::NAN),
-            exit_vel: (f64::NAN, f64::NAN),
             max_pen_depth: f64::NAN,
             colliding_steps: 0,
-            rel_impact_vel: f64::NAN
+            rel_impact_vel: f64::NAN,
+            rel_exit_vel: f64::NAN
         }
     }
 
@@ -174,7 +172,7 @@ impl TestData {
             match self.phase {
                 CollisionPhase::PreCollision => {
                     let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
-                    self.entry_vel = (self.vel[0].mag(), self.vel[1].mag());
+                    //self.entry_vel = (self.vel[0].mag(), self.vel[1].mag());
                     self.rel_impact_vel = rel_v;
 
                     self.max_pen_depth = pen_depth;
@@ -196,8 +194,9 @@ impl TestData {
             // no collision
             if let CollisionPhase::Colliding = self.phase {
                 // end of collision
-                // let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
-                self.exit_vel = (self.vel[0].mag(), self.vel[1].mag());
+                let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
+                //self.exit_vel = (self.vel[0].mag(), self.vel[1].mag());
+                self.rel_exit_vel = rel_v;
                 self.phase = CollisionPhase::PostCollision;
             }
         }
@@ -237,7 +236,7 @@ impl TestData {
 
 
 pub struct TestResult {
-    coeff_of_res: (f64, f64),
+    coeff_of_res: f64,
     max_pen_depth_percentage: (f64, f64),
     collision_steps: i32,
     impact_rel_vel: f64,
@@ -247,11 +246,11 @@ pub struct TestResult {
 impl TestResult {
 
     pub fn new(data: &TestData, test: &TestSetup, t: f64) -> TestResult {
-        let (enter_vel_0, enter_vel_1) = data.entry_vel;
-        let (exit_vel_0, exit_vel_1) = data.exit_vel;
+        //let (enter_vel_0, enter_vel_1) = data.entry_vel;
+        //let (exit_vel_0, exit_vel_1) = data.exit_vel;
 
         TestResult {
-            coeff_of_res: (exit_vel_0 / enter_vel_0, exit_vel_1 / enter_vel_1),
+            coeff_of_res: data.rel_exit_vel / data.rel_impact_vel,
             max_pen_depth_percentage: (data.max_pen_depth.abs() / test.r0 * 100., 
                 data.max_pen_depth.abs() / test.r1 * 100.),
             collision_steps: data.colliding_steps,
@@ -262,8 +261,7 @@ impl TestResult {
 
     pub fn print(&self) {
         println!("Results:");
-        println!("  Coeff of Res. 0 = {:.3}", self.coeff_of_res.0);
-        println!("  Coeff of Res. 1 = {:.3}", self.coeff_of_res.1);
+        println!("  Coeff of Res.   = {:.3}", self.coeff_of_res);
         println!("  Max pen depth 0 = {:.3}%", self.max_pen_depth_percentage.0);
         println!("  Max pen depth 1 = {:.3}%", self.max_pen_depth_percentage.1);
         println!("  Collision Steps = {}", self.collision_steps);
@@ -310,7 +308,7 @@ impl CSVOutput {
     pub fn writeHeader(&mut self) {
         let s = String::from(
             "radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_scalar,rho,\
-            coeff_of_res_0,coeff_of_res_1,max_pen_depth_percent_0,max_pen_depth_percent_1,\
+            coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,\
             collision_steps,real_impact_vel\n");
         self.write(s);
     }
@@ -323,8 +321,8 @@ impl CSVOutput {
         let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e}", 
             test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.sig_c, test.rho);
         
-        s = format!("{},{:e},{:e},{:e},{:e},{},{:e}\n", s, 
-            result.coeff_of_res.0, result.coeff_of_res.1, result.max_pen_depth_percentage.0, 
+        s = format!("{},{:e},{:e},{:e},{},{:e}\n", s, 
+            result.coeff_of_res, result.max_pen_depth_percentage.0, 
             result.max_pen_depth_percentage.1, result.collision_steps, result.impact_rel_vel);
         
         self.write(s);
