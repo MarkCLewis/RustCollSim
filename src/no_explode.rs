@@ -84,3 +84,26 @@ pub mod lewis {
         (c, k)
     }
 }
+
+pub mod schwartz {
+    use std::f64::consts::PI;
+
+    const CONST_OF_PROP: f64 = 1.;
+    const MAX_PEN_RATIO: f64 = 0.1;
+
+    pub fn k(m: f64, v_max: f64, x_max: f64) -> f64 {
+        let tmp = v_max / x_max;
+        m * CONST_OF_PROP * tmp * tmp
+    }
+
+    pub fn c(k: f64, m: f64) -> f64 {
+        let lne = crate::no_explode::COEFF_RES.ln();
+        -2. * (k * m / (PI * PI + lne * lne)).sqrt() * lne
+    }
+
+    pub fn b_and_k(v_max: f64, m: f64, r: f64) -> (f64, f64) {
+        let k = k(m, v_max, r * MAX_PEN_RATIO).abs();
+        let c = c(k, m).abs();
+        (c, k)
+    }
+}

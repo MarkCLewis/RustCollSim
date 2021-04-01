@@ -336,7 +336,7 @@ pub fn main_collisions() {
     // collision test
     let tmp_dt = 0.0001 * 2. * PI;
 
-    let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS);
+    let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)

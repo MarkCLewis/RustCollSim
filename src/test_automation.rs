@@ -10,6 +10,7 @@ use std::path::Path;
 const RHO: f64 = 0.88;
 const DELTA_INIT_FRACTION_OF_RADII: f64 = 1e-6;
 
+#[derive(Clone, Copy)]
 pub enum Integrator {
     Jerk,
     KickStepKick
@@ -21,9 +22,11 @@ pub enum CollisionPhase {
     PostCollision
 }
 
+#[derive(Clone, Copy)]
 pub enum KBCalculator {
     LEWIS,
-    ROTTER
+    ROTTER,
+    SCHWARTZ
 }
 
 pub fn computeMass(r: f64, rho: f64) -> f64 {
@@ -77,7 +80,7 @@ impl TestSetup {
     //     }
     // }
 
-    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool, k_b_calc: KBCalculator) -> TestSetup {
+    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool, k_b_calc: KBCalculator, integrator: Integrator) -> TestSetup {
         let v_estimate = r0.max(r1);
         let m0 = computeMass(r0, RHO);
         let m1 = computeMass(r0, RHO);
@@ -87,7 +90,11 @@ impl TestSetup {
         // use smaller ?
         let (b, k) = match k_b_calc {
             KBCalculator::ROTTER => no_explode::compute::b_and_k3(v_estimate, reduced_mass, r0.min(r1)),
-            KBCalculator::LEWIS => no_explode::lewis::b_and_k(v_estimate, reduced_mass, r0.min(r1))
+            KBCalculator::LEWIS => no_explode::lewis::b_and_k(v_estimate, reduced_mass, r0.min(r1)),
+            KBCalculator::SCHWARTZ => {
+                let v_max = v_estimate.max(v_impact);
+                no_explode::schwartz::b_and_k(v_max, reduced_mass, r0.min(r1))
+            }
         };
         //let r_min = r0.min(r1);
 
@@ -95,7 +102,7 @@ impl TestSetup {
             r0: r0,
             r1: r1,
             v_impact: v_impact,
-            integrator: Integrator::Jerk,
+            integrator: integrator,
             k: k,
             b: b,
             dt: dt,
