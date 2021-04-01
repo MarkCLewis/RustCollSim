@@ -194,7 +194,7 @@ fn main() {
         let rho: f64 = args[3].parse().unwrap();
         let radius: f64 = args[4].parse().unwrap();
 
-        let pen_depth = radius * no_explode::compute::PEN_RATIO_DEFAULT;
+        let pen_depth = radius * no_explode::PEN_RATIO_DEFAULT;
         let mass = rho * 4./3. * std::f64::consts::PI * radius * radius * radius;
 
         println!("v_o = {:e}, rho = {:e}, radius = {:e}, pen_depth = {:e}, mass = {:e}", v_o, rho, radius, pen_depth, mass);

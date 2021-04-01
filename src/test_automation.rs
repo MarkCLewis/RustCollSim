@@ -21,6 +21,11 @@ pub enum CollisionPhase {
     PostCollision
 }
 
+pub enum KBCalculator {
+    LEWIS,
+    ROTTER
+}
+
 pub fn computeMass(r: f64, rho: f64) -> f64 {
     4./3. * r * r * r * PI * rho
 }
@@ -36,6 +41,7 @@ pub struct TestSetup {
     pub r1: f64,
     pub v_impact: f64,
     pub integrator: Integrator,
+    pub k_b_calc: KBCalculator,
     pub k: f64,
     pub b: f64,
     pub dt: f64,
@@ -71,7 +77,7 @@ impl TestSetup {
     //     }
     // }
 
-    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool) -> TestSetup {
+    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool, k_b_calc: KBCalculator) -> TestSetup {
         let v_estimate = r0.max(r1);
         let m0 = computeMass(r0, RHO);
         let m1 = computeMass(r0, RHO);
@@ -79,7 +85,10 @@ impl TestSetup {
         // use reduced mass for b and k
         let reduced_mass = (m0 * m1) / (m0 + m1);
         // use smaller ?
-        let (b, k) = no_explode::compute::b_and_k3(v_estimate, reduced_mass, r0.min(r1));
+        let (b, k) = match k_b_calc {
+            KBCalculator::ROTTER => no_explode::compute::b_and_k3(v_estimate, reduced_mass, r0.min(r1)),
+            KBCalculator::LEWIS => no_explode::lewis::b_and_k(v_estimate, reduced_mass, r0.min(r1))
+        };
         //let r_min = r0.min(r1);
 
         TestSetup {
@@ -95,7 +104,8 @@ impl TestSetup {
             rho: RHO,
             max_time: PI,
             do_graphics: false,
-            do_state_dump: do_state_dump
+            do_state_dump: do_state_dump,
+            k_b_calc: k_b_calc
         }
     }
 }

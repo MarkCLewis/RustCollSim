@@ -14,15 +14,16 @@
 //pub const B: f64 = 3.4194745456729856e-20;
 //pub const K: f64 = 6.595530918688126e-18;
 
+pub const PEN_RATIO_DEFAULT: f64 = 0.02;
+const COEFF_RES: f64 = 0.5;
 
 pub mod compute {
     use std::f64::consts::PI;
 
     //pub const R_DEFAULT: f64 = 1e-7; // v_o 1e-7
-    pub const PEN_RATIO_DEFAULT: f64 = 0.02;
+    
     //const PEN_MAX_DEFAULT: f64 = R_DEFAULT * PEN_RATIO_DEFAULT;
-
-    const COEFF_RES: f64 = 0.5;
+    
     const ROOT_COEFF_RES: f64 = 0.7071067811865476;
     const LN_COEFF_RES: f64 = -0.6931471805599453; //COEFF_RES.ln(); // ln(c)
     const ROOT_4_COEFF_RES: f64 = 0.8408964152537145; //COEFF_RES.sqrt().sqrt(); // c^{1/4}
@@ -50,7 +51,7 @@ pub mod compute {
 
     // returns (b, k)
     pub fn b_and_k3(v_0: f64, m: f64, radius: f64) -> (f64, f64) {
-        b_and_k2(v_0, m, radius * PEN_RATIO_DEFAULT)
+        b_and_k2(v_0, m, radius * crate::no_explode::PEN_RATIO_DEFAULT)
     }
 
     /*
@@ -65,3 +66,21 @@ pub mod compute {
 }
 
 
+pub mod lewis {
+    use std::f64::consts::PI;
+
+    pub fn k(m: f64, v_i: f64, r: f64) -> f64 {
+        let delta_r = crate::no_explode::PEN_RATIO_DEFAULT * r;
+        m * v_i * v_i / (delta_r * delta_r)
+    }
+
+    pub fn c(k: f64, m: f64) -> f64 {
+        2. * (k * m).sqrt() * crate::no_explode::COEFF_RES.ln() / PI
+    }
+
+    pub fn b_and_k(v_0: f64, m: f64, radius: f64) -> (f64, f64) {
+        let k = k(m, v_0, radius);
+        let c = c(k, m).abs();
+        (c, k)
+    }
+}

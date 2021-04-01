@@ -17,7 +17,7 @@ pub fn test_suite_varying_time_steps() {
     let mut fails = 0;
 
     for dt in TIME_STEPS.iter() {
-        let test = TestSetup::new(1e-7, *dt, 1e-7, 1e-7, 0.1, false);
+        let test = TestSetup::new(1e-7, *dt, 1e-7, 1e-7, 0.1, false, KBCalculator::ROTTER);
         let result = run_test(&test, false);
         //result.print();
 
@@ -44,7 +44,7 @@ pub fn test_suite_1() {
     for dt in TIME_STEPS.iter() {
         for w in SIGMOID_WIDTH_MODIFIER.iter() {
             for v_impact in VELOCITIES.iter() {
-                let test = TestSetup::new(*v_impact, *dt, 1e-7, 1e-7, *w, false);
+                let test = TestSetup::new(*v_impact, *dt, 1e-7, 1e-7, *w, false, KBCalculator::ROTTER);
                 let result = run_test(&test, false);
                 //result.print();
                 

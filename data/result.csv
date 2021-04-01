@@ -1,2 +1,2 @@
-radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_scalar,rho,coeff_of_res_0,coeff_of_res_1,max_pen_depth_percent_0,max_pen_depth_percent_1,collision_steps,real_impact_vel
-1e-7,1e-7,1e-7,4th Order,3.2977654593440624e-18,1.7097372728364922e-20,6.283185307179586e-4,4e8,8.8e-1,9.995850113407255e-1,9.995850113407255e-1,1.4588003563256802e0,1.4588003563256802e0,139,1.0003980301109325e-7
+radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_width,sigmoid_scalar_0,sigmoid_scalar_1,rho,coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,collision_steps,real_impact_vel
+1e-7,1e-7,1e-7,4th Order,4.607669225265028e-18,4.066463459285011e-20,6.283185307179586e-4,1e-1,4e8,4e8,8.8e-1,5.812336274204082e-1,1.0125368798597967e0,1.0125368798597967e0,126,9.933765730919246e-8
