@@ -88,8 +88,9 @@ pub mod lewis {
 pub mod schwartz {
     use std::f64::consts::PI;
 
-    const CONST_OF_PROP: f64 = 1.;
-    const MAX_PEN_RATIO: f64 = 0.1;
+    const CONST_OF_PROP: f64 = 1.; // TODO: what is this?
+    // I think its about 1 as it works for the example given
+    const MAX_PEN_RATIO: f64 = 0.02;
 
     pub fn k(m: f64, v_max: f64, x_max: f64) -> f64 {
         let tmp = v_max / x_max;

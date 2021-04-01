@@ -39,6 +39,7 @@ pub fn computeMass(r: f64, rho: f64) -> f64 {
 //     (v_impact * v_impact - 2. * G * m1 * delta / ((r0 + r1 + delta) * (r0 + r1))).sqrt()
 // }
 
+#[derive(Clone, Copy)]
 pub struct TestSetup {
     pub r0: f64,
     pub r1: f64,
@@ -115,6 +116,28 @@ impl TestSetup {
             k_b_calc: k_b_calc
         }
     }
+
+    pub fn print(&self) {
+        println!("TestSetup");
+        println!("  r0: {}, r1: {}", self.r0, self.r1);
+        println!("  v_impact: {}", self.v_impact);
+        match self.integrator {
+            Integrator::Jerk => println!("  integrator: 4th Order"),
+            Integrator::KickStepKick => println!("  integrator: 2nd Order")
+        };
+        println!("  k: {}", self.k);
+        println!("  b: {}", self.b);
+        println!("  dt: {}", self.dt);
+        println!("  w: {}", self.w);
+        println!("  rho: {}", self.rho);
+
+        println!("  k & b calc: {}", match self.k_b_calc {
+            KBCalculator::LEWIS => "Lewis",
+            KBCalculator::ROTTER => "Rotter",
+            KBCalculator::SCHWARTZ => "SCHWARTZ"
+        });
+        
+    }
 }
 
 
@@ -129,7 +152,8 @@ pub struct TestData {
     pub max_pen_depth: f64,
     pub colliding_steps: i32,
     pub rel_impact_vel: f64,
-    pub rel_exit_vel: f64
+    pub rel_exit_vel: f64,
+    pub setup: TestSetup
 }
 
 
@@ -168,7 +192,8 @@ impl TestData {
             max_pen_depth: f64::NAN,
             colliding_steps: 0,
             rel_impact_vel: f64::NAN,
-            rel_exit_vel: f64::NAN
+            rel_exit_vel: f64::NAN,
+            setup: *test
         }
     }
 
@@ -243,6 +268,7 @@ impl TestData {
         for p in &self.pos {
             if !p.is_finite() {
                 p.print();
+                self.setup.print();
                 panic!("test failed - got non-finite position");
             }
         }

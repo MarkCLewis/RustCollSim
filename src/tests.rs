@@ -4,6 +4,8 @@ use crate::test_automation::*;
 /*
  * 0.03 does not converse energy when drag is 0
  */
+const DUMMY: [f64; 1] = [f64::NAN];
+
 
 const TIME_STEPS: [f64; 5] = [0.01, 0.006, 0.003, 0.001, 0.0003]; 
 const SIGMOID_WIDTH_MODIFIER: [f64; 3] = [0.1, 0.03, 0.01];
@@ -27,6 +29,11 @@ pub fn test_suite_full() {
         for k_b_deriv in K_B_DERIVATIONS.iter() {
             for (r0, r1) in RADII.iter() {
                 for dt in TIME_STEPS.iter() {
+                    
+                    /* match int {
+                        Integrator::Jerk => SIGMOID_WIDTH_MODIFIER.iter(),
+                        Integrator::KickStepKick => DUMMY.iter() // only jerk uses sigmoids
+                    } */
                     for w in SIGMOID_WIDTH_MODIFIER.iter() {
                         for v_impact in VELOCITIES.iter() {
                             let test = TestSetup::new(*v_impact, *dt, *r0, *r1, *w, false, *k_b_deriv, *int);
