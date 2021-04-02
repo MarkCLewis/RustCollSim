@@ -441,7 +441,9 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
                 evolveStepKickStepKick(&mut testData, &test);
             }
         }
-        testData.verifyForces();
+        if let Err(msg) = testData.verifyForces() {
+            return Err((msg, testData));
+        }
 
         //state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho, &testData.acc);
         

@@ -218,14 +218,16 @@ impl TestData {
         }
     }
 
-    pub fn verifyForces(&self) {
+    pub fn verifyForces(&self) -> Result<(), String> {
         let f0 = self.acc[0] * computeMass(self.rad[0], self.setup.rho);
         let f1 = self.acc[1] * computeMass(self.rad[1], self.setup.rho);
         let diff = (f0 + f1).mag();
         let ratio0 = diff / f0.mag();
         let ratio1 = diff / f1.mag();
-        if ratio0 > 0.01 || ratio1 > 0.01 {
-            panic!("Got forces: {:e}, {:e}. Ratios are: {:e}, {:e}", f0.mag(), f1.mag(), ratio0, ratio1);
+        const RATIO: f64 = 0.01;
+        if ratio0 > RATIO || ratio1 > RATIO {
+            //eprintln!("{};", self.setup.repr());
+            return Err(format!("test failed - forces unbalanced: {:.2e}, {:.2e}. Ratio is: {:.2e}", f0.mag(), f1.mag(), ratio0.max(ratio1)));
         }
 
         let j0 = self.acc[0] * computeMass(self.rad[0], self.setup.rho);
@@ -233,9 +235,11 @@ impl TestData {
         let jdiff = (j0 + j1).mag();
         let jratio0 = jdiff / j0.mag();
         let jratio1 = jdiff / j1.mag();
-        if jratio0 > 0.01 || jratio1 > 0.01 {
-            panic!("Got yanks: {:e}, {:e}. Ratios are: {:e}, {:e}", j0.mag(), j1.mag(), jratio0, jratio1);
+        if jratio0 > RATIO || jratio1 > RATIO {
+            //eprintln!("{};", self.setup.repr());
+            return Err(format!("test failed - yanks unbalanced: {:.2e}, {:.2e}. Ratio is: {:.2e}", j0.mag(), j1.mag(), jratio0.max(jratio1)));
         }
+        return Ok(());
     }
 
     pub fn collisionUpdate(&mut self) -> Result<(), String> {
@@ -251,7 +255,9 @@ impl TestData {
             // if particle 0 is to the right of particle 1
             if let CollisionPhase::PreCollision = self.phase {
                 // particles too fast and time step too big
-                self.requireValidPassThrough();
+                if let Err(msg) = self.requireValidPassThrough() {
+                    return Err(msg);
+                }
                 return Err(String::from("test failed - particles passed through each other without colliding"));
             }
             return Err(format!("test failed - particles passed through each other in {} steps", self.colliding_steps));
@@ -302,28 +308,29 @@ impl TestData {
         if let CollisionPhase::Colliding = self.phase { true } else { false }
     }
 
-    pub fn requireValidPassThrough(&self) {
+    pub fn requireValidPassThrough(&self) -> Result<(), String> {
         // check if a passthrough is valid
         let v = self.setup.v_impact;
         if v * (self.setup.dt) > (self.rad[0] + self.rad[1]) {
             // ok
+            Ok(())
         }
         else {
-            self.setup.print();
+            // self.setup.print();
 
-            println!("Position");
-            self.pos[0].print();
-            self.pos[1].print();
-            println!("Velocities");
-            self.vel[0].print();
-            self.vel[1].print();
-            println!("Radii");
-            println!("{:e}", self.rad[0]);
-            println!("{:e}", self.rad[1]);
+            // println!("Position");
+            // self.pos[0].print();
+            // self.pos[1].print();
+            // println!("Velocities");
+            // self.vel[0].print();
+            // self.vel[1].print();
+            // println!("Radii");
+            // println!("{:e}", self.rad[0]);
+            // println!("{:e}", self.rad[1]);
 
-            println!("{}", self.setup.repr());
+            // println!("{}", self.setup.repr());
 
-            panic!(format!("Bug! -> this should not happen: v={:e}, dt={:e}, r1+r2={:e}", v, self.setup.dt, self.rad[0] + self.rad[1]));
+            Err(format!("Bug! -> this should not happen: v={:e}, dt={:e}, r1+r2={:e}", v, self.setup.dt, self.rad[0] + self.rad[1]))
         }
 
     }
