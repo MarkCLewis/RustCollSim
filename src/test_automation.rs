@@ -110,7 +110,7 @@ impl TestSetup {
             //sig_c: (4.0 / (w * r0), 4.0 / (w * r1)),
             w: w,
             rho: RHO,
-            max_time: PI,
+            max_time: PI * 10.,
             do_graphics: false,
             do_state_dump: do_state_dump,
             k_b_calc: k_b_calc
@@ -383,7 +383,7 @@ impl CSVOutput {
         let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e},{:e}", 
             test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c[0], data.sig_c[1], test.rho);
         
-        s = format!("{},,,,,,\n", s);
+        s = format!("{},,,,,\n", s);
 
         self.write(s);
     }

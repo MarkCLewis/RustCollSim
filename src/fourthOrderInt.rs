@@ -440,7 +440,13 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
             return Err((String::from("test failed - collision still ongoing"), testData));
         }
         else {
-            return Err((format!("test failed - collision never started"), testData));
+            let delta_x = testData.pos[1] - testData.pos[0];
+            let mut tmp0 = testData.vel[0].dot(&delta_x);
+            let mut tmp1 = testData.vel[1].dot(&(delta_x * -1.));
+            tmp0 = tmp0 / tmp0.abs();
+            tmp1 = tmp1 / tmp1.abs();
+            
+            return Err((format!("test failed - collision never started: x,v align=({}, {})", tmp0, tmp1), testData));
         }
         
     }
