@@ -87,9 +87,16 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             // gravity
             data.acc[i] += ai_g * sig_pos_i;
             data.acc[j] -= aj_g * sig_pos_j;
+            //println!("=============================================================");
+            //println!("first is {}, second is {}", i, j);
+            //data.acc[i].print();
+            //data.acc[j].print();
 
             data.jerk[i] += ji_g * sig_dot_pos_i + ai_g * sig_pos_i; // TODO: ????
-            data.jerk[j] -= jj_g * sig_dot_pos_j + ai_g * sig_pos_j;
+            data.jerk[j] -= jj_g * sig_dot_pos_j + aj_g * sig_pos_j;
+            //println!("grav jerk");
+            //data.jerk[i].print();
+            //data.jerk[j].print();
             // mj = sig dot * force + sig * jerk
 
             //}
@@ -112,7 +119,11 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             let yank_spring = (x_hat * delta_dot + x_hat_dot * delta) * -test.k;
             let yank_damp = aji * -test.b;
 
+            //println!("yank: spring={}, damp={}", yank_spring.toStr(), yank_damp.toStr());
             let yank_total = yank_spring + yank_damp;
+            //println!("massj = {:e}", massj);
+
+            //println!("delta = {:e}", delta);
 
             // F = m_i * a_i
             // d/dt F = m_i * jerk_i
@@ -123,12 +134,20 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
 
             data.acc[i] -= ai * sig_neg_i;
             data.acc[j] += aj * sig_neg_j;
+            //println!("");
+            //data.acc[i].print();
+            //data.acc[j].print();
 
             // jerk[i] -= ji; // TODO: ???
             // jerk[j] += jj;
             // mj = sig dot * force + sig * jerk
             data.jerk[i] -= ai * sig_dot_neg_i + ji * sig_neg_i;
             data.jerk[j] += aj * sig_dot_neg_j + jj * sig_neg_j;
+            //println!("k jerk j = {}, {}, {}, {}", aj.toStr(), sig_dot_neg_j, jj.toStr(), sig_neg_j);
+
+            //println!("jerk (both)");
+            //data.jerk[i].print();
+            //data.jerk[j].print();
             // }
         }
     }
@@ -311,6 +330,9 @@ fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &V
     let PEs = potential_energy2(pos, rad, rho);
     eprintln!("\t{{");
     eprintln!("\t\t\"time\": {:e},", t);
+    let m0 = 4. * PI * rho / 3. * rad[0] * rad[0] * rad[0];
+    let m1 = 4. * PI * rho / 3. * rad[1] * rad[1] * rad[1];
+    eprintln!("\t\t\"p\": {:e},", (vel[0] * m0 + vel[1] * m1).mag());
     eprintln!("\t\t\"states\": [");
     for i in 0..pos.len() {
         eprintln!("\t\t\t{{");
@@ -337,7 +359,7 @@ pub fn main_collisions() {
     //let tmp_dt = 0.0001 * 2. * PI;
 
     //let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
-    let test = TestSetup::new(3e-8, 1e-2, 1e-7, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::Jerk);
+    let test = TestSetup::new(3e-8, 1e-2, 1e-7, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::KickStepKick);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)
@@ -382,6 +404,7 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
         eprintln!("{{");
         eprintln!("\t\"dt\": {:e},", test.dt);
         eprintln!("\t\"rho\": {:e},", test.rho);
+        eprintln!("\t\"radii\": [{:e}, {:e}],", test.r0, test.r1);
         eprintln!("\t\"data\": [");
         state_dump(&testData.pos, &testData.vel, 0., true, &testData.rad, test.rho, &testData.acc);
     }
@@ -408,6 +431,8 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
                 evolveStepKickStepKick(&mut testData, &test);
             }
         }
+
+        //state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho, &testData.acc);
         
         testData.requireFinite();
         // test analysis
@@ -454,8 +479,14 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
                 (-1, 1) => "Moving same dir",
                 _ => panic!("this shouldn't happen")
             };
+
+            let collide_msg = match testData.phase {
+                CollisionPhase::Colliding => "Colliding",
+                CollisionPhase::PostCollision => "Done colliding",
+                CollisionPhase::PreCollision => "Collision never started"
+            };
             
-            return Err((format!("test failed - collision never started: {}", debug_msg), testData));
+            return Err((format!("test failed - {}: {}", collide_msg, debug_msg), testData));
         }
         
     }
