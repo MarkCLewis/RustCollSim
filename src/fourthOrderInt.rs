@@ -445,8 +445,16 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
             let mut tmp1 = testData.vel[1].dot(&(delta_x * -1.));
             tmp0 = tmp0 / tmp0.abs();
             tmp1 = tmp1 / tmp1.abs();
+
+            let debug_msg = match (tmp0 as i32, tmp1 as i32) {
+                (1, 1) => "Moving closer",
+                (-1, -1) => "Moving apart",
+                (1, -1) => "Moving same dir",
+                (-1, 1) => "Moving same dir",
+                _ => panic!("this shouldn't happen")
+            };
             
-            return Err((format!("test failed - collision never started: x,v align=({}, {})", tmp0, tmp1), testData));
+            return Err((format!("test failed - collision never started: {}", debug_msg), testData));
         }
         
     }
