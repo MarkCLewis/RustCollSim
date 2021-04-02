@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Tuple
 import matplotlib.pyplot as plt
 import sys
 import json
-
+import math
 
 if len(sys.argv) < 2:
     print('Usage: graph4thOrder.py file')
@@ -21,6 +21,10 @@ run: Dict[str, Any] = json.loads(text)
 
 dt: float = run['dt']
 rho: float = run['rho']
+r0: float
+r1: float
+r0, r1 = run['radii']
+mass0, mass1 = [4/3 * math.pi * r * r * r * rho for r in (r0, r1)]
 
 def mag(vec: Tuple[float, float, float]) -> float:
     x, y, z = vec
@@ -78,9 +82,10 @@ for e in data[i:]:
         exit_E = [a + b for a, b in zip(e.KE, e.PE)]
         break
 
-minVal = min(map(lambda x: x.delta() - 2*1e-7, data))
+minVal = min(map(lambda x: x.delta() - (r0+r1), data))
 
-print(f'Max pen depth = {abs(minVal/1e-7)}')
+print(f'enter_time = {enter}, exit_time = {exit_time}')
+print(f'Max pen depth = {minVal/1e-7}')
 
 # assert enter and exit_time, 'did not find collision'
 print(enter, exit_time)

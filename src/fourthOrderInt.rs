@@ -333,6 +333,16 @@ fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &V
     let m0 = 4. * PI * rho / 3. * rad[0] * rad[0] * rad[0];
     let m1 = 4. * PI * rho / 3. * rad[1] * rad[1] * rad[1];
     eprintln!("\t\t\"p\": {:e},", (vel[0] * m0 + vel[1] * m1).mag());
+
+    let where1from0 = pos[1] - pos[0];
+    let where0from1 = pos[0] - pos[1];
+
+    let mut accAlignment0 = where1from0.dot(&acc[0]);
+    accAlignment0 = (accAlignment0 / accAlignment0.abs());//.acos().to_degrees();
+    let mut accAlignment1 = where0from1.dot(&acc[1]);
+    accAlignment1 = (accAlignment1 / accAlignment1.abs());//.acos().to_degrees();
+    eprintln!("\t\t\"acc_alignment\": [{:.2}, {:.2}],", accAlignment0, accAlignment1);
+
     eprintln!("\t\t\"states\": [");
     for i in 0..pos.len() {
         eprintln!("\t\t\t{{");
@@ -431,6 +441,7 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
                 evolveStepKickStepKick(&mut testData, &test);
             }
         }
+        testData.verifyForces();
 
         //state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho, &testData.acc);
         

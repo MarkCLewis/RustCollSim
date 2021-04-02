@@ -218,12 +218,34 @@ impl TestData {
         }
     }
 
+    pub fn verifyForces(&self) {
+        let f0 = self.acc[0] * computeMass(self.rad[0], self.setup.rho);
+        let f1 = self.acc[1] * computeMass(self.rad[1], self.setup.rho);
+        let diff = (f0 + f1).mag();
+        let ratio0 = diff / f0.mag();
+        let ratio1 = diff / f1.mag();
+        if ratio0 > 0.01 || ratio1 > 0.01 {
+            panic!("Got forces: {:e}, {:e}. Ratios are: {:e}, {:e}", f0.mag(), f1.mag(), ratio0, ratio1);
+        }
+
+        let j0 = self.acc[0] * computeMass(self.rad[0], self.setup.rho);
+        let j1 = self.acc[1] * computeMass(self.rad[1], self.setup.rho);
+        let jdiff = (j0 + j1).mag();
+        let jratio0 = jdiff / j0.mag();
+        let jratio1 = jdiff / j1.mag();
+        if jratio0 > 0.01 || jratio1 > 0.01 {
+            panic!("Got yanks: {:e}, {:e}. Ratios are: {:e}, {:e}", j0.mag(), j1.mag(), jratio0, jratio1);
+        }
+    }
+
     pub fn collisionUpdate(&mut self) -> Result<(), String> {
         assert_eq!(self.pos.len(), 2);
         
         let r = (self.pos[0] - self.pos[1]).mag();
         let delta = r - (self.rad[0] + self.rad[1]);
         let pen_depth = delta / 2.;
+
+        // let p = self.vel[0] * mass
 
         if self.pos[0].0 >= self.pos[1].0 {
             // if particle 0 is to the right of particle 1
