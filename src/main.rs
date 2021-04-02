@@ -202,8 +202,8 @@ fn main() {
         println!("b = {:e}, k = {:e}", b, k);
     }
     else if arg == "test" {
-        tests::test_suite_varying_time_steps();
-        tests::test_suite_1();
+        //tests::test_suite_varying_time_steps();
+        //tests::test_suite_1();
         tests::test_suite_full();
     }
     else {

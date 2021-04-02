@@ -334,9 +334,10 @@ fn state_dump(pos: &Vec<Vector>, vel: &Vec<Vector>, t: f64, first: bool, rad: &V
 
 pub fn main_collisions() {
     // collision test
-    let tmp_dt = 0.0001 * 2. * PI;
+    //let tmp_dt = 0.0001 * 2. * PI;
 
-    let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
+    //let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
+    let test = TestSetup::new(3e-8, 1e-2, 1e-7, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::Jerk);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)
@@ -392,7 +393,7 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
     let mut t_spacer = 0.;
     while t < test.max_time && !testData.isDone() { // 2e5
 
-        if t_spacer > spacing || true {
+        if (t_spacer > spacing || true ) && t > 0. {
             if test.do_state_dump {
                 state_dump(&testData.pos, &testData.vel, t, false, &testData.rad, test.rho, &testData.acc);
             }

@@ -7,6 +7,13 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
+/*
+ * 
+ * v * dt > 2r <- ok passthrough (i.e. expected)
+ * if v*dt > 0.1*(r1+r2) skip
+ * 
+ */
+
 const RHO: f64 = 0.88;
 const DELTA_INIT_FRACTION_OF_RADII: f64 = 1e-6;
 
@@ -119,14 +126,14 @@ impl TestSetup {
 
     pub fn print(&self) {
         println!("TestSetup");
-        println!("  r0: {}, r1: {}", self.r0, self.r1);
-        println!("  v_impact: {}", self.v_impact);
+        println!("  r0: {:e}, r1: {:e}", self.r0, self.r1);
+        println!("  v_impact: {:e}", self.v_impact);
         match self.integrator {
             Integrator::Jerk => println!("  integrator: 4th Order"),
             Integrator::KickStepKick => println!("  integrator: 2nd Order")
         };
-        println!("  k: {}", self.k);
-        println!("  b: {}", self.b);
+        println!("  k: {:e}", self.k);
+        println!("  b: {:e}", self.b);
         println!("  dt: {}", self.dt);
         println!("  w: {}", self.w);
         println!("  rho: {}", self.rho);
@@ -137,6 +144,20 @@ impl TestSetup {
             KBCalculator::SCHWARTZ => "SCHWARTZ"
         });
         
+    }
+
+    pub fn repr(&self) -> String {
+        //new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool, k_b_calc: KBCalculator, integrator: Integrator)
+        let calc = match self.k_b_calc {
+            KBCalculator::LEWIS => "KBCalculator::LEWIS",
+            KBCalculator::ROTTER => "KBCalculator::ROTTER",
+            KBCalculator::SCHWARTZ => "KBCalculator::SCHWARTZ"
+        };
+        let int = match self.integrator {
+            Integrator::Jerk => "Integrator::Jerk",
+            Integrator::KickStepKick => "Integrator::KickStepKick"
+        };
+        format!("TestSetup::new({:e}, {:e}, {:e}, {:e}, {:e}, {}, {}, {})", self.v_impact, self.dt, self.r0, self.r1, self.w, self.do_state_dump, calc, int)
     }
 }
 
@@ -208,6 +229,7 @@ impl TestData {
             // if particle 0 is to the right of particle 1
             if let CollisionPhase::PreCollision = self.phase {
                 // particles too fast and time step too big
+                self.requireValidPassThrough();
                 return Err(String::from("test failed - particles passed through each other without colliding"));
             }
             return Err(format!("test failed - particles passed through each other in {} steps", self.colliding_steps));
@@ -256,6 +278,32 @@ impl TestData {
 
     pub fn isColliding(&self) -> bool {
         if let CollisionPhase::Colliding = self.phase { true } else { false }
+    }
+
+    pub fn requireValidPassThrough(&self) {
+        // check if a passthrough is valid
+        let v = self.setup.v_impact;
+        if v * (self.setup.dt) > (self.rad[0] + self.rad[1]) {
+            // ok
+        }
+        else {
+            self.setup.print();
+
+            println!("Position");
+            self.pos[0].print();
+            self.pos[1].print();
+            println!("Velocities");
+            self.vel[0].print();
+            self.vel[1].print();
+            println!("Radii");
+            println!("{:e}", self.rad[0]);
+            println!("{:e}", self.rad[1]);
+
+            println!("{}", self.setup.repr());
+
+            panic!(format!("Bug! -> this should not happen: v={:e}, dt={:e}, r1+r2={:e}", v, self.setup.dt, self.rad[0] + self.rad[1]));
+        }
+
     }
 
     pub fn requireDone(&self) {

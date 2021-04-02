@@ -11,6 +11,7 @@ with open(sys.argv[1]) as f:
     text: str = f.read()
 
 text = text.split('INIT\n')[1]
+text = text.split('thread \'main\' panicked')[0]
 
 if not text.endswith('}\n'):
     text += "]}"
@@ -81,17 +82,19 @@ minVal = min(map(lambda x: x.delta() - 2*1e-7, data))
 
 print(f'Max pen depth = {abs(minVal/1e-7)}')
 
-assert enter and exit_time, 'did not find collision'
+# assert enter and exit_time, 'did not find collision'
 print(enter, exit_time)
 
-enter_velocities, exit_velocities = list(enter_velocities), list(exit_velocities)
-print(enter_velocities, exit_velocities)
+if enter_velocities and exit_velocities:
+    enter_velocities, exit_velocities = list(enter_velocities), list(exit_velocities)
+    print(enter_velocities, exit_velocities)
 
 # KE = 1/2 m v^2
 # 
 # KE/KE = v^2 / v^2 (rest cancels)
 # 
-print('Coeff of Res. =', [a / b for a, b in zip(exit_velocities, enter_velocities)])
+if enter_velocities and exit_velocities:
+    print('Coeff of Res. =', [a / b for a, b in zip(exit_velocities, enter_velocities)])
 # print('Coeff of Res. Try 2 =', [a / b for a, b in zip(exit_E, enter_E)])
 
 
@@ -100,8 +103,10 @@ d = [e.particles_x[0][0] for e in data]
 plt.plot(t, d)
 d = [e.particles_x[1][0] for e in data]
 plt.plot(t, d)
-plt.axvline(enter, linestyle='dotted')
-plt.axvline(exit_time, linestyle='dotted')
+if enter:
+    plt.axvline(enter, linestyle='dotted')
+if exit_time:
+    plt.axvline(exit_time, linestyle='dotted')
 plt.title('Position vs time')
 plt.show()
 
@@ -109,8 +114,10 @@ d = [e.particles_v[0][0] for e in data]
 plt.plot(t, d)
 d = [e.particles_v[1][0] for e in data]
 plt.plot(t, d)
-plt.axvline(enter, linestyle='dotted')
-plt.axvline(exit_time, linestyle='dotted')
+if enter:
+    plt.axvline(enter, linestyle='dotted')
+if exit_time:
+    plt.axvline(exit_time, linestyle='dotted')
 plt.title('Velocity vs time')
 plt.show()
 
@@ -120,8 +127,10 @@ d = [e.acceleration[0][0] for e in data][1:]
 plt.plot(t, d)
 d = [e.acceleration[1][0] for e in data][1:]
 plt.plot(t, d)
-plt.axvline(enter, linestyle='dotted')
-plt.axvline(exit_time, linestyle='dotted')
+if enter:
+    plt.axvline(enter, linestyle='dotted')
+if exit_time:
+    plt.axvline(exit_time, linestyle='dotted')
 plt.title('Acceleration vs time')
 plt.show()
 

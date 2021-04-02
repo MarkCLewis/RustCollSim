@@ -12,6 +12,7 @@ const SIGMOID_WIDTH_MODIFIER: [f64; 3] = [0.1, 0.03, 0.01];
 const VELOCITIES: [f64; 5] = [3e-8, 1e-7, 3e-7, 1e-6, 3e-6];
 const RADII: [(f64, f64); 6] = [(1e-7, 1e-7), (3e-8, 3e-8), (1e-8, 1e-8), (1e-7, 1e-7), (1e-7, 3e-8), (1e-7, 1e-8)];
 
+
 const K_B_DERIVATIONS: [KBCalculator; 3] = [KBCalculator::ROTTER, KBCalculator::LEWIS, KBCalculator::SCHWARTZ];
 const INTEGRATORS: [Integrator; 2] = [Integrator::Jerk, Integrator::KickStepKick];
 
@@ -36,6 +37,9 @@ pub fn test_suite_full() {
                     } */
                     for w in SIGMOID_WIDTH_MODIFIER.iter() {
                         for v_impact in VELOCITIES.iter() {
+                            if v_impact * dt > 0.1 * (r0 + r1) {
+                                continue;
+                            }
                             let test = TestSetup::new(*v_impact, *dt, *r0, *r1, *w, false, *k_b_deriv, *int);
                             let result = run_test(&test, false);
                             //result.print();
@@ -68,6 +72,10 @@ pub fn test_suite_varying_time_steps() {
     let mut fails = 0;
 
     for dt in TIME_STEPS.iter() {
+        if 1e-7 * dt > 0.1 * (2e-7) {
+            continue;
+        }
+
         let test = TestSetup::new(1e-7, *dt, 1e-7, 1e-7, 0.1, false, KBCalculator::ROTTER, Integrator::Jerk);
         let result = run_test(&test, false);
         //result.print();
@@ -95,6 +103,9 @@ pub fn test_suite_1() {
     for dt in TIME_STEPS.iter() {
         for w in SIGMOID_WIDTH_MODIFIER.iter() {
             for v_impact in VELOCITIES.iter() {
+                if v_impact * dt > 0.1 * (2e-7) {
+                    continue;
+                }
                 let test = TestSetup::new(*v_impact, *dt, 1e-7, 1e-7, *w, false, KBCalculator::ROTTER, Integrator::Jerk);
                 let result = run_test(&test, false);
                 //result.print();
