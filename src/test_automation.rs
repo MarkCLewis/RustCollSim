@@ -36,6 +36,12 @@ pub enum KBCalculator {
     SCHWARTZ
 }
 
+#[derive(Clone, Copy)]
+pub enum BlendFunc {
+    SIGMOID,
+    STEP
+}
+
 pub fn computeMass(r: f64, rho: f64) -> f64 {
     4./3. * r * r * r * PI * rho
 }
@@ -61,7 +67,10 @@ pub struct TestSetup {
     pub rho: f64,
     pub max_time: f64,
     pub do_graphics: bool,
-    pub do_state_dump: bool
+    pub do_state_dump: bool,
+    pub blend_func: BlendFunc,
+    pub sig: fn(f64) -> f64,
+    pub sig_dot: fn(f64, f64) -> f64
 }
 
 
@@ -88,7 +97,7 @@ impl TestSetup {
     //     }
     // }
 
-    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool, k_b_calc: KBCalculator, integrator: Integrator) -> TestSetup {
+    pub fn new(v_impact: f64, dt: f64, r0: f64, r1: f64, w: f64, do_state_dump: bool, k_b_calc: KBCalculator, integrator: Integrator, blend_func: BlendFunc) -> TestSetup {
         let v_estimate = r0.max(r1);
         let m0 = computeMass(r0, RHO);
         let m1 = computeMass(r0, RHO);
@@ -111,8 +120,8 @@ impl TestSetup {
             r1: r1,
             v_impact: v_impact,
             integrator: integrator,
-            k: k,
-            b: b,
+            k: k.abs(),
+            b: b.abs(),
             dt: dt,
             //sig_c: (4.0 / (w * r0), 4.0 / (w * r1)),
             w: w,
@@ -120,7 +129,16 @@ impl TestSetup {
             max_time: PI * 10.,
             do_graphics: false,
             do_state_dump: do_state_dump,
-            k_b_calc: k_b_calc
+            k_b_calc: k_b_calc,
+            blend_func: blend_func,
+            sig: match blend_func {
+                BlendFunc::SIGMOID => crate::fourthOrderInt::sigmoid,
+                BlendFunc::STEP => crate::fourthOrderInt::step
+            },
+            sig_dot: match blend_func {
+                BlendFunc::SIGMOID => crate::fourthOrderInt::sigmoidDot,
+                BlendFunc::STEP => crate::fourthOrderInt::step_dot
+            }
         }
     }
 
@@ -311,8 +329,9 @@ impl TestData {
     pub fn requireValidPassThrough(&self) -> Result<(), String> {
         // check if a passthrough is valid
         let v = self.setup.v_impact;
-        if v * (self.setup.dt) > (self.rad[0] + self.rad[1]) {
+        if v * self.setup.dt > (self.rad[0] + self.rad[1]) {
             // ok
+            // this is never the case!
             Ok(())
         }
         else {
@@ -328,8 +347,8 @@ impl TestData {
             // println!("{:e}", self.rad[0]);
             // println!("{:e}", self.rad[1]);
 
-            // println!("{}", self.setup.repr());
-
+            println!("{}", self.setup.repr());
+            //panic!("oi");
             Err(format!("Bug! -> this should not happen: v={:e}, dt={:e}, r1+r2={:e}", v, self.setup.dt, self.rad[0] + self.rad[1]))
         }
 

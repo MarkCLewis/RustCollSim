@@ -40,7 +40,8 @@ pub fn test_suite_full() {
                             if v_impact * dt > 0.1 * (r0 + r1) {
                                 continue;
                             }
-                            let test = TestSetup::new(*v_impact, *dt, *r0, *r1, *w, false, *k_b_deriv, *int);
+                            //assert_eq!(v_impact * dt > (r0 + r1), false);
+                            let test = TestSetup::new(*v_impact, *dt, *r0, *r1, *w, false, *k_b_deriv, *int, BlendFunc::SIGMOID);
                             let result = run_test(&test, false);
                             //result.print();
                             
@@ -76,7 +77,7 @@ pub fn test_suite_varying_time_steps() {
             continue;
         }
 
-        let test = TestSetup::new(1e-7, *dt, 1e-7, 1e-7, 0.1, false, KBCalculator::ROTTER, Integrator::Jerk);
+        let test = TestSetup::new(1e-7, *dt, 1e-7, 1e-7, 0.1, false, KBCalculator::ROTTER, Integrator::Jerk, BlendFunc::SIGMOID);
         let result = run_test(&test, false);
         //result.print();
 
@@ -106,7 +107,7 @@ pub fn test_suite_1() {
                 if v_impact * dt > 0.1 * (2e-7) {
                     continue;
                 }
-                let test = TestSetup::new(*v_impact, *dt, 1e-7, 1e-7, *w, false, KBCalculator::ROTTER, Integrator::Jerk);
+                let test = TestSetup::new(*v_impact, *dt, 1e-7, 1e-7, *w, false, KBCalculator::ROTTER, Integrator::Jerk, BlendFunc::SIGMOID);
                 let result = run_test(&test, false);
                 //result.print();
                 
