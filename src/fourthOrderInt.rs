@@ -400,7 +400,7 @@ pub fn main_collisions() {
     let tmp_dt = 0.0001 * 2. * PI;
 
     //let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
-    let test = TestSetup::new(3e-8, 1e-2, 1e-7, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::Jerk, BlendFunc::SIGMOID);
+    let test = TestSetup::new(3e-8, 1e-2, 3e-8, 1e-8, 1e-1, false, KBCalculator::ROTTER, Integrator::Jerk, BlendFunc::SIGMOID);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)

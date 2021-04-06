@@ -121,7 +121,7 @@ impl TestSetup {
             v_impact: v_impact,
             integrator: integrator,
             k: k.abs(),
-            b: b.abs(),
+            b: 0.,//b.abs(),
             dt: dt,
             //sig_c: (4.0 / (w * r0), 4.0 / (w * r1)),
             w: w,
@@ -244,7 +244,8 @@ impl TestData {
         let ratio1 = diff / f1.mag();
         const RATIO: f64 = 0.01;
         if ratio0 > RATIO || ratio1 > RATIO {
-            //eprintln!("{};", self.setup.repr());
+            eprintln!("{};", self.setup.repr());
+            //panic!("idk");
             return Err(format!("test failed - forces unbalanced: {:.2e}, {:.2e}. Ratio is: {:.2e}", f0.mag(), f1.mag(), ratio0.max(ratio1)));
         }
 
