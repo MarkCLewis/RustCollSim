@@ -283,10 +283,11 @@ impl TestData {
         }
 
         if delta < 0. {
+            let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
+
             // colliding
             match self.phase {
                 CollisionPhase::PreCollision => {
-                    let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
                     //self.entry_vel = (self.vel[0].mag(), self.vel[1].mag());
                     self.rel_impact_vel = rel_v;
 
@@ -299,6 +300,14 @@ impl TestData {
                         self.max_pen_depth = pen_depth;
                     }
                     self.colliding_steps += 1;
+
+                    let rel_acc = (self.acc[1] - self.acc[0]).mag();
+
+                    if rel_v < 1e-12 && rel_acc < 1e-18 {
+                        // stuck together
+                        self.rel_exit_vel = rel_v;
+                        self.phase = CollisionPhase::PostCollision;
+                    }
                 },
                 CollisionPhase::PostCollision => {
                     // whatever

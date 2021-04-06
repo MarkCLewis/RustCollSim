@@ -13,8 +13,8 @@ with open(sys.argv[1]) as f:
 text = text.split('INIT\n')[1]
 text = text.split('thread \'main\' panicked')[0]
 
-if not text.endswith('}\n'):
-    text += "]}"
+# if not text.endswith('}\n'):
+#     text += "]}"
 
 run: Dict[str, Any] = json.loads(text)
 
@@ -104,10 +104,10 @@ if enter_velocities and exit_velocities:
 
 
 t = [e.time for e in data]
-d = [e.particles_x[0][0] for e in data]
+d = [e.particles_x[0][0] - e.particles_x[1][0] for e in data]
 plt.plot(t, d)
-d = [e.particles_x[1][0] for e in data]
-plt.plot(t, d)
+# d = [e.particles_x[1][0] for e in data]
+# plt.plot(t, d)
 if enter:
     plt.axvline(enter, linestyle='dotted')
 if exit_time:

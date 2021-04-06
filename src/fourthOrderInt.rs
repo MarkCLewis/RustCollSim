@@ -104,7 +104,7 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             data.acc[j] -= aj_g * sig_pos;
 
             let debug = false;
-            
+
             data.jerk[i] += ji_g * sig_pos + ai_g * sig_dot_pos; // TODO: ????
             data.jerk[j] -= jj_g * sig_pos + aj_g * sig_dot_pos;
 
@@ -145,7 +145,7 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
 
             // F = m_i * a_i
             // a_i = F / m_i
-            let ai = f_total / massi;
+            let ai = f_total / massi * -1.;
             let aj = f_total / massj;
             let aji = aj - ai; // multiply by -1?
 
@@ -168,18 +168,18 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             // d/dt F = m_i * jerk_i
             // jerk_i = d/dt F / m_i
 
-            let ji = yank_total / massi;
+            let ji = yank_total / massi * -1.;
             let jj = yank_total / massj;
             
 
-            data.acc[i] -= ai * sig_neg;
+            data.acc[i] += ai * sig_neg;
             data.acc[j] += aj * sig_neg;
             
 
             // jerk[i] -= ji; // TODO: ???
             // jerk[j] += jj;
             // mj = sig dot * force + sig * jerk
-            data.jerk[i] -= ai * sig_dot_neg + ji * sig_neg;
+            data.jerk[i] += ai * sig_dot_neg + ji * sig_neg;
             data.jerk[j] += aj * sig_dot_neg + jj * sig_neg;
             
 
@@ -416,7 +416,7 @@ pub fn main_collisions() {
     let tmp_dt = 0.0001 * 2. * PI;
 
     //let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
-    let test = TestSetup::new(3e-8, 1e-2, 3e-8, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::Jerk, BlendFunc::STEP);
+    let test = TestSetup::new(3e-8, 3e-3, 3e-8, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::KickStepKick, BlendFunc::SIGMOID);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)
