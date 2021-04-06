@@ -7,7 +7,7 @@ use crate::test_automation::*;
 const DUMMY: [f64; 1] = [f64::NAN];
 
 
-const TIME_STEPS: [f64; 5] = [0.01, 0.006, 0.003, 0.001, 0.0003]; 
+const TIME_STEPS: [f64; 5] = [0.006, 0.003, 0.001, 0.0003, 0.0001]; 
 const SIGMOID_WIDTH_MODIFIER: [f64; 3] = [0.1, 0.03, 0.01];
 const VELOCITIES: [f64; 5] = [3e-8, 1e-7, 3e-7, 1e-6, 3e-6];
 const RADII: [(f64, f64); 6] = [(1e-7, 1e-7), (3e-8, 3e-8), (1e-8, 1e-8), (3e-8, 1e-8), (1e-7, 3e-8), (1e-7, 1e-8)];

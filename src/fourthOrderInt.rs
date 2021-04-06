@@ -82,17 +82,13 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             let massi = 4. * PI * test.rho / 3. * data.rad[i] * data.rad[i] * data.rad[i];
             let massj = 4. * PI * test.rho / 3. * data.rad[j] * data.rad[j] * data.rad[j];
 
-            let sig_pos_i = (test.sig)(delta * data.sig_c[i]);
-            let sig_pos_j = (test.sig)(delta * data.sig_c[j]);
+            let sig_pos = (test.sig)(delta * data.sig_c);
 
-            let sig_neg_i = (test.sig)(-delta * data.sig_c[i]);
-            let sig_neg_j = (test.sig)(-delta * data.sig_c[j]);
+            let sig_neg = (test.sig)(-delta * data.sig_c);
 
-            let sig_dot_pos_i = (test.sig_dot)(delta_dot * data.sig_c[i], delta * data.sig_c[i]);
-            let sig_dot_pos_j = (test.sig_dot)(delta_dot * data.sig_c[j], delta * data.sig_c[j]);
+            let sig_dot_pos = (test.sig_dot)(delta_dot * data.sig_c, delta * data.sig_c);
 
-            let sig_dot_neg_i = (test.sig_dot)(-delta_dot * data.sig_c[i], -delta * data.sig_c[i]);
-            let sig_dot_neg_j = (test.sig_dot)(-delta_dot * data.sig_c[j], -delta * data.sig_c[j]);
+            let sig_dot_neg = (test.sig_dot)(-delta_dot * data.sig_c, -delta * data.sig_c);
 
             //if delta > 0. {
                 // no collision
@@ -104,23 +100,30 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             let jj_g = dj * massi;
 
             // gravity
-            data.acc[i] += ai_g * sig_pos_i;
-            data.acc[j] -= aj_g * sig_pos_j;
-            // println!("=============================================================");
-            // println!("first is {}, second is {}", i, j);
-            // data.pos[i].print();
-            // data.pos[j].print();
+            data.acc[i] += ai_g * sig_pos;
+            data.acc[j] -= aj_g * sig_pos;
 
-            // println!("grav acc");
-            // data.acc[i].print();
-            // data.acc[j].print();
+            let debug = false;
+            
+            data.jerk[i] += ji_g * sig_pos + ai_g * sig_dot_pos; // TODO: ????
+            data.jerk[j] -= jj_g * sig_pos + aj_g * sig_dot_pos;
 
-            data.jerk[i] += ji_g * sig_dot_pos_i + ai_g * sig_pos_i; // TODO: ????
-            data.jerk[j] -= jj_g * sig_dot_pos_j + aj_g * sig_pos_j;
-            // println!("grav jerk");
-            // data.jerk[i].print();
-            // data.jerk[j].print();
-            // println!(">>>>");
+            if debug {
+                println!("=============================================================");
+                println!("sig+: {:e}, sig_dot+, {:e}", sig_pos, sig_dot_pos);
+                println!("first is {}, second is {}", i, j);
+                data.pos[i].print();
+                data.pos[j].print();
+
+                println!("grav acc");
+                data.acc[i].print();
+                data.acc[j].print();
+
+                println!("grav jerk");
+                data.jerk[i].print();
+                data.jerk[j].print();
+                println!(">>>>");
+            }
 
             // mj = sig dot * force + sig * jerk
 
@@ -132,9 +135,11 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             let f_spring = x_hat * -test.k * delta;
             let f_damp = vji * -test.b;
 
-            // println!("forces");
-            // f_spring.print();
-            // f_damp.print();
+            if debug {
+                println!("forces");
+                f_spring.print();
+                f_damp.print();
+            }
 
             let f_total = f_spring + f_damp;
 
@@ -148,11 +153,16 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             let yank_spring = (x_hat * delta_dot + x_hat_dot * delta) * -test.k;
             let yank_damp = aji * -test.b;
 
-            // println!("yank: spring={}, damp={}", yank_spring.toStr(), yank_damp.toStr());
+            
             let yank_total = yank_spring + yank_damp;
-            // println!("massj = {:e}", massj);
 
-            // println!("delta = {:e}", delta);
+            if debug {
+                println!("yank: spring={}, damp={}", yank_spring.toStr(), yank_damp.toStr());
+                println!("massj = {:e}", massj);
+
+                println!("delta = {:e}", delta);
+            }
+            
 
             // F = m_i * a_i
             // d/dt F = m_i * jerk_i
@@ -160,25 +170,31 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
 
             let ji = yank_total / massi;
             let jj = yank_total / massj;
-            // print!("sig_neg_i = {}  ", sig_neg_i); ai.print();
-            // print!("sig_neg_j = {}  ", sig_neg_j); aj.print();
+            
 
-            data.acc[i] -= ai * sig_neg_i;
-            data.acc[j] += aj * sig_neg_j;
-            // println!("acc (both)");
-            // data.acc[i].print();
-            // data.acc[j].print();
+            data.acc[i] -= ai * sig_neg;
+            data.acc[j] += aj * sig_neg;
+            
 
             // jerk[i] -= ji; // TODO: ???
             // jerk[j] += jj;
             // mj = sig dot * force + sig * jerk
-            data.jerk[i] -= ai * sig_dot_neg_i + ji * sig_neg_i;
-            data.jerk[j] += aj * sig_dot_neg_j + jj * sig_neg_j;
-            // println!("k jerk j = {}, {}, {}, {}", aj.toStr(), sig_dot_neg_j, jj.toStr(), sig_neg_j);
+            data.jerk[i] -= ai * sig_dot_neg + ji * sig_neg;
+            data.jerk[j] += aj * sig_dot_neg + jj * sig_neg;
+            
 
-            // println!("jerk (both)");
-            // data.jerk[i].print();
-            // data.jerk[j].print();
+            if debug {
+                print!("sig_neg_i = {}  ", sig_neg); ai.print();
+                print!("sig_neg_j = {}  ", sig_neg); aj.print();
+                println!("acc (both)");
+                data.acc[i].print();
+                data.acc[j].print();
+                println!("k jerk j = {}, {}, {}, {}", aj.toStr(), sig_dot_neg, jj.toStr(), sig_neg);
+
+                println!("jerk (both)");
+                data.jerk[i].print();
+                data.jerk[j].print();
+            }
             // }
         }
     }
@@ -400,7 +416,7 @@ pub fn main_collisions() {
     let tmp_dt = 0.0001 * 2. * PI;
 
     //let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
-    let test = TestSetup::new(3e-8, 1e-2, 3e-8, 1e-8, 1e-1, false, KBCalculator::ROTTER, Integrator::Jerk, BlendFunc::SIGMOID);
+    let test = TestSetup::new(3e-8, 1e-2, 3e-8, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::Jerk, BlendFunc::STEP);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)
@@ -440,6 +456,10 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
         return Err((why, testData));
     }
 
+    let mut firstTime = true;
+
+    calcAccJerk(&mut testData, &test);
+
     if test.do_state_dump {
         eprintln!("INIT");
         eprintln!("{{");
@@ -450,9 +470,6 @@ pub fn run_test(test: &TestSetup, print_debug: bool) -> Result<(TestData, TestRe
         state_dump(&testData.pos, &testData.vel, 0., true, &testData.rad, test.rho, &testData.acc);
     }
 
-    let mut firstTime = true;
-
-    calcAccJerk(&mut testData, &test);
     let mut t = 0.;
     let mut t_spacer = 0.;
     while t < test.max_time && !testData.isDone() { // 2e5

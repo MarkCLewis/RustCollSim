@@ -121,7 +121,7 @@ impl TestSetup {
             v_impact: v_impact,
             integrator: integrator,
             k: k.abs(),
-            b: 0.,//b.abs(),
+            b: b.abs(),
             dt: dt,
             //sig_c: (4.0 / (w * r0), 4.0 / (w * r1)),
             w: w,
@@ -184,7 +184,7 @@ pub struct TestData {
     pub pos: Vec<Vector>, // particle 0 should be to the left of particle 1, i.e. have a lower x value
     pub vel: Vec<Vector>,
     pub rad: Vec<f64>,
-    pub sig_c: Vec<f64>,
+    pub sig_c: f64,
     pub acc: Vec<Vector>,
     pub jerk: Vec<Vector>,
     pub phase: CollisionPhase,
@@ -224,7 +224,7 @@ impl TestData {
             pos: vec!(Vector(-test.r0 * multiplier, 0.0, 0.0), Vector(test.r1 * multiplier, 0.0, 0.0)),
             vel: vec!(Vector(v0/2., 0.0, 0.0), Vector(-v0/2., 0.0, 0.0)),
             rad: vec!(test.r0, test.r1),
-            sig_c: vec!(4. / (test.w * test.r0), 4. / (test.w * test.r1)),
+            sig_c: 4. / (test.w * test.r0.min(test.r1)),
             acc: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             jerk: vec!(Vector(0., 0., 0.), Vector(0., 0., 0.)),
             phase: CollisionPhase::PreCollision,
@@ -245,7 +245,7 @@ impl TestData {
         const RATIO: f64 = 0.01;
         if ratio0 > RATIO || ratio1 > RATIO {
             eprintln!("{};", self.setup.repr());
-            //panic!("idk");
+            panic!(format!("test failed - forces unbalanced: {:.2e}, {:.2e}. Ratio is: {:.2e}", f0.mag(), f1.mag(), ratio0.max(ratio1)));
             return Err(format!("test failed - forces unbalanced: {:.2e}, {:.2e}. Ratio is: {:.2e}", f0.mag(), f1.mag(), ratio0.max(ratio1)));
         }
 
@@ -451,7 +451,7 @@ impl CSVOutput {
 
     pub fn writeHeader(&mut self) {
         let s = String::from(
-            "radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_width,sigmoid_scalar_0,sigmoid_scalar_1,rho,\
+            "radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_width,sigmoid_scalar,rho,\
             coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,\
             collision_steps,real_impact_vel\n");
         self.write(s);
@@ -462,8 +462,8 @@ impl CSVOutput {
             Integrator::Jerk => "4th Order",
             Integrator::KickStepKick => "2nd Order"
         };
-        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e},{:e}", 
-            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c[0], data.sig_c[1], test.rho);
+        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c, test.rho);
         
         s = format!("{},{:e},{:e},{:e},{},{:e}\n", s, 
             result.coeff_of_res, result.max_pen_depth_percentage.0, 
@@ -477,8 +477,8 @@ impl CSVOutput {
             Integrator::Jerk => "4th Order",
             Integrator::KickStepKick => "2nd Order"
         };
-        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e},{:e}", 
-            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c[0], data.sig_c[1], test.rho);
+        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c, test.rho);
         
         s = format!("{},,,,,\n", s);
 
