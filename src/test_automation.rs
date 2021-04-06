@@ -261,6 +261,26 @@ impl TestData {
         return Ok(());
     }
 
+    pub fn interStepCollisionUpdate(&mut self) {
+        assert_eq!(self.pos.len(), 2);
+        
+        let r = (self.pos[0] - self.pos[1]).mag();
+        let delta = r - (self.rad[0] + self.rad[1]);
+        let pen_depth = delta / 2.;
+
+        if delta < 0. {
+            let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
+
+            // colliding
+            if let CollisionPhase::PreCollision = self.phase {
+                self.rel_impact_vel = rel_v;
+
+                self.max_pen_depth = pen_depth;
+                self.phase = CollisionPhase::Colliding;
+            }
+        }
+    }
+
     pub fn collisionUpdate(&mut self) -> Result<(), String> {
         assert_eq!(self.pos.len(), 2);
         

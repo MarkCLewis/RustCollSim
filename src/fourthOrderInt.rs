@@ -274,6 +274,9 @@ pub fn evolveStep(data: &mut TestData, test: &TestSetup) {
     predictStep(&mut data.pos, &mut data.vel, &data.acc, &data.jerk, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
     calcAccJerk(data, test);
+
+    data.interStepCollisionUpdate();
+
     //assert_eq!(pos[0].is_finite(), true);
     correctStep(&mut data.pos, &mut data.vel, &data.acc, &data.jerk, &oldPos, &oldVel, &oldAcc, &oldJerk, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
@@ -306,6 +309,7 @@ pub fn evolveStepKickStepKick(data: &mut TestData, test: &TestSetup) {
     integrate_kick_step_kick_1(&mut data.pos, &mut data.vel, &data.acc, test.dt);
 
     calcAccJerk(data, test);
+    data.interStepCollisionUpdate();
 
     integrate_kick_step_kick_2(&mut data.vel, &data.acc, test.dt);
     //assert_eq!(pos[0].is_finite(), true);
