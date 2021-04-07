@@ -175,7 +175,11 @@ impl TestSetup {
             Integrator::Jerk => "Integrator::Jerk",
             Integrator::KickStepKick => "Integrator::KickStepKick"
         };
-        format!("TestSetup::new({:e}, {:e}, {:e}, {:e}, {:e}, {}, {}, {})", self.v_impact, self.dt, self.r0, self.r1, self.w, self.do_state_dump, calc, int)
+        let blend = match self.blend_func {
+            BlendFunc::SIGMOID => "BlendFunc::SIGMOID",
+            BlendFunc::STEP => "BlendFunc::STEP"
+        };
+        format!("TestSetup::new({:e}, {:e}, {:e}, {:e}, {:e}, {}, {}, {}, {})", self.v_impact, self.dt, self.r0, self.r1, self.w, self.do_state_dump, calc, int, blend)
     }
 }
 
@@ -336,12 +340,22 @@ impl TestData {
         }
         else {
             // no collision
-            if let CollisionPhase::Colliding = self.phase {
-                // end of collision
-                let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
-                //self.exit_vel = (self.vel[0].mag(), self.vel[1].mag());
-                self.rel_exit_vel = rel_v;
-                self.phase = CollisionPhase::PostCollision;
+            match self.phase {
+                CollisionPhase::PreCollision => {
+                    let rel_pos = (self.pos[1] - self.pos[0]).mag() - (self.rad[1] + self.rad[0]);
+                    if rel_pos / (self.rad[1] + self.rad[0]) > 1000. {
+                        // the are really far apart, something went wrong
+                        return Err(format!("test failed - particles moved far away from each other before colliding, delta: {:e}", rel_pos));
+                    }
+                }
+                CollisionPhase::Colliding => {
+                    // end of collision
+                    let rel_v = (self.vel[1] - self.vel[0]).mag(); // relative vel
+                    //self.exit_vel = (self.vel[0].mag(), self.vel[1].mag());
+                    self.rel_exit_vel = rel_v;
+                    self.phase = CollisionPhase::PostCollision;
+                },
+                CollisionPhase::PostCollision => {}
             }
         }
 

@@ -112,15 +112,26 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
                 println!("=============================================================");
                 println!("sig+: {:e}, sig_dot+, {:e}", sig_pos, sig_dot_pos);
                 println!("first is {}, second is {}", i, j);
+                print!("Position:\n  ");
                 data.pos[i].print();
+                print!("  ");
                 data.pos[j].print();
 
+                print!("Velocity:\n  ");
+                data.vel[i].print();
+                print!("  ");
+                data.vel[j].print();
+
                 println!("grav acc");
+                print!("  ");
                 data.acc[i].print();
+                print!("  ");
                 data.acc[j].print();
 
                 println!("grav jerk");
+                print!("  ");
                 data.jerk[i].print();
+                print!("  ");
                 data.jerk[j].print();
                 println!(">>>>");
             }
@@ -137,7 +148,9 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
 
             if debug {
                 println!("forces");
+                print!("  ");
                 f_spring.print();
+                print!("  ");
                 f_damp.print();
             }
 
@@ -184,15 +197,19 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             
 
             if debug {
-                print!("sig_neg_i = {}  ", sig_neg); ai.print();
-                print!("sig_neg_j = {}  ", sig_neg); aj.print();
+                print!("sig_neg & ai = {}  ", sig_neg); ai.print();
+                print!("sig_neg & aj = {}  ", sig_neg); aj.print();
                 println!("acc (both)");
+                print!("  ");
                 data.acc[i].print();
+                print!("  ");
                 data.acc[j].print();
                 println!("k jerk j = {}, {}, {}, {}", aj.toStr(), sig_dot_neg, jj.toStr(), sig_neg);
 
                 println!("jerk (both)");
+                print!("  ");
                 data.jerk[i].print();
+                print!("  ");
                 data.jerk[j].print();
             }
             // }
@@ -420,7 +437,7 @@ pub fn main_collisions() {
     let tmp_dt = 0.0001 * 2. * PI;
 
     //let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
-    let test = TestSetup::new(3e-8, 3e-3, 3e-8, 1e-8, 1e-1, true, KBCalculator::ROTTER, Integrator::KickStepKick, BlendFunc::SIGMOID);
+    let test = TestSetup::new(3e-7, 1e-3, 1e-7, 1e-8, 1e-2, false, KBCalculator::SCHWARTZ, Integrator::Jerk, BlendFunc::SIGMOID);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)
