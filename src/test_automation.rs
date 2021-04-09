@@ -494,7 +494,7 @@ impl CSVOutput {
 
     pub fn writeHeader(&mut self) {
         let s = String::from(
-            "radius_0,radius_1,desired_impact_vel,integrator,k,c,time_step,sigmoid_width,sigmoid_scalar,rho,\
+            "radius_0,radius_1,desired_impact_vel,integrator,k_c_method,blend_method,k,c,time_step,sigmoid_width,sigmoid_scalar,rho,\
             coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,\
             collision_steps,real_impact_vel\n");
         self.write(s);
@@ -505,8 +505,17 @@ impl CSVOutput {
             Integrator::Jerk => "4th Order",
             Integrator::KickStepKick => "2nd Order"
         };
-        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e}", 
-            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c, test.rho);
+        let kb = match test.k_b_calc {
+            KBCalculator::LEWIS => "Lewis",
+            KBCalculator::ROTTER => "Rotter",
+            KBCalculator::SCHWARTZ => "SCHWARTZ"
+        };
+        let blend = match test.blend_func {
+            BlendFunc::SIGMOID => "Sigmoid",
+            BlendFunc::STEP => "Step"
+        };
+        let mut s = format!("{:e},{:e},{:e},{},{},{},{:e},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, kb, blend, test.k, test.b, test.dt, test.w, data.sig_c, test.rho);
         
         s = format!("{},{:e},{:e},{:e},{},{:e}\n", s, 
             result.coeff_of_res, result.max_pen_depth_percentage.0, 
@@ -520,8 +529,17 @@ impl CSVOutput {
             Integrator::Jerk => "4th Order",
             Integrator::KickStepKick => "2nd Order"
         };
-        let mut s = format!("{:e},{:e},{:e},{},{:e},{:e},{:e},{:e},{:e},{:e}", 
-            test.r0, test.r1, test.v_impact, integrator, test.k, test.b, test.dt, test.w, data.sig_c, test.rho);
+        let kb = match test.k_b_calc {
+            KBCalculator::LEWIS => "Lewis",
+            KBCalculator::ROTTER => "Rotter",
+            KBCalculator::SCHWARTZ => "SCHWARTZ"
+        };
+        let blend = match test.blend_func {
+            BlendFunc::SIGMOID => "Sigmoid",
+            BlendFunc::STEP => "Step"
+        };
+        let mut s = format!("{:e},{:e},{:e},{},{},{},{:e},{:e},{:e},{:e},{:e},{:e}", 
+            test.r0, test.r1, test.v_impact, integrator, kb, blend, test.k, test.b, test.dt, test.w, data.sig_c, test.rho);
         
         s = format!("{},,,,,\n", s);
 
