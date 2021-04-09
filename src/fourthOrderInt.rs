@@ -103,14 +103,17 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             data.acc[i] += ai_g * sig_pos;
             data.acc[j] -= aj_g * sig_pos;
 
-            let debug = false;
+            let debug = test.do_state_dump;
 
             data.jerk[i] += ji_g * sig_pos + ai_g * sig_dot_pos; // TODO: ????
             data.jerk[j] -= jj_g * sig_pos + aj_g * sig_dot_pos;
 
             if debug {
                 println!("=============================================================");
+                println!("sig c: {:e}", data.sig_c);
                 println!("sig+: {:e}, sig_dot+, {:e}", sig_pos, sig_dot_pos);
+
+                println!("sig-: {:e}, sig_dot-, {:e}", sig_neg, sig_dot_neg);
                 println!("first is {}, second is {}", i, j);
                 print!("Position:\n  ");
                 data.pos[i].print();
@@ -121,6 +124,8 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
                 data.vel[i].print();
                 print!("  ");
                 data.vel[j].print();
+                print!("vji:  ");
+                vji.print();
 
                 println!("grav acc");
                 print!("  ");
@@ -148,9 +153,9 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
 
             if debug {
                 println!("forces");
-                print!("  ");
+                print!("spring: ");
                 f_spring.print();
-                print!("  ");
+                print!("damp:   ");
                 f_damp.print();
             }
 
@@ -160,7 +165,7 @@ pub fn calcAccJerk(data: &mut TestData, test: &TestSetup) {
             // a_i = F / m_i
             let ai = f_total / massi * -1.;
             let aj = f_total / massj;
-            let aji = aj - ai; // multiply by -1?
+            let aji = aj - ai; 
 
             // someone somewhere suggested this as d/dt F
             let yank_spring = (x_hat * delta_dot + x_hat_dot * delta) * -test.k;
@@ -437,7 +442,7 @@ pub fn main_collisions() {
     let tmp_dt = 0.0001 * 2. * PI;
 
     //let test = TestSetup::new(1e-7, tmp_dt, 1e-7, 1e-7, 0.1, false, KBCalculator::LEWIS, Integrator::Jerk);
-    let test = TestSetup::new(3e-7, 1e-3, 1e-7, 1e-8, 1e-2, false, KBCalculator::SCHWARTZ, Integrator::Jerk, BlendFunc::SIGMOID);
+    let test = TestSetup::new(1e-6, 3e-3, 1e-7, 1e-8, 1e-2, true, KBCalculator::SCHWARTZ, Integrator::KickStepKick, BlendFunc::SIGMOID);
     let result = match run_test(&test, true) {
         Ok(result) => result,
         Err((why, _)) => panic!(why)
