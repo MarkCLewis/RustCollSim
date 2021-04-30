@@ -15,7 +15,7 @@
 //pub const K: f64 = 6.595530918688126e-18;
 
 pub const PEN_RATIO_DEFAULT: f64 = 0.02;
-const COEFF_RES: f64 = 0.5;
+const COEFF_RES: f64 = 0.3;
 
 pub mod compute {
     use std::f64::consts::PI;
