@@ -28,6 +28,9 @@ pub fn test_suite_full() {
     let mut total = 0;
     let mut fails = 0;
 
+    let mut sigmoid_fails = 0;
+    let mut step_fails = 0;
+
     for blend in BLEND_FUNC.iter() {
         for int in INTEGRATORS.iter() {
             for k_b_deriv in K_B_DERIVATIONS.iter() {
@@ -55,6 +58,14 @@ pub fn test_suite_full() {
                                         println!("{} for dt={:e}, w={:e}, v_impact={:e}", why, dt, w, v_impact);
                                         out.writeEntryFailed(&test, &data);
                                         fails += 1;
+                                        match blend {
+                                            BlendFunc::SIGMOID => {
+                                                sigmoid_fails += 1
+                                            },
+                                            BlendFunc::STEP => {
+                                                step_fails += 1
+                                            }
+                                        };
                                     }
                                 }
                                 total += 1;
@@ -68,6 +79,9 @@ pub fn test_suite_full() {
 
 
     println!("Completed {}/{} tests successfully", total - fails, total);
+
+    println!("Sigmoid completed {}/{} tests successfully", total/2 - sigmoid_fails, total/2);
+    println!("Step completed {}/{} tests successfully", total/2 - step_fails, total/2);
 }
 
 pub fn test_suite_varying_time_steps() {
