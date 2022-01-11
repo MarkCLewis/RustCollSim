@@ -1,64 +1,54 @@
+mod particle;
+// mod kd_tree1;
 
-const RHO: f64 = 1.0;
-
-struct Vec3 { x: f64, y: f64, z: f64 }
-
-struct Particle { p: Vec3, v: Vec3, r: f64 }
-
-impl Particle {
-    fn m(&self) -> f64 {
-        return RHO * self.r * self.r * self.r;
-    }
-}
-
+use particle::Particle;
+// use kd_tree1::KDTree;
 
 fn main() {
     println!("Hello, collisional simulations!");
 
     let mut bodies = Vec::new();
-    bodies.push(Particle { p: Vec3 { x: 0.0, y: 0.0, z: 0.0 }, 
-                           v: Vec3 { x: 0.0, y: 0.0, z: 0.0 }, r: 1.0 });
-    bodies.push(Particle { p: Vec3 { x: 1.0, y: 0.0, z: 0.0 }, 
-                           v: Vec3 { x: 0.0, y: 1.0, z: 0.0 }, r: 1e-4 });
+    bodies.push(Particle { p: [0.0, 0.0, 0.0], 
+                           v: [0.0, 0.0, 0.0], r: 1.0, m: 1.0 });
+    bodies.push(Particle { p: [1.0, 0.0, 0.0], 
+                           v: [0.0, 1.0, 0.0], r: 1e-4, m: 1e-20 });
     let dt = 1e-3 * 2.0 * std::f64::consts::PI;
     let mut acc = Vec::new();
     for _ in 0..bodies.len() { 
-        acc.push(Vec3 { x: 0.0, y: 0.0, z: 0.0})
+        acc.push([0.0, 0.0, 0.0])
     };
     for step in 1..1000001 {
         for i in 0..bodies.len()-1 {
             for j in i+1..bodies.len() {
-                acc = calc_accel(i, j, &bodies[i], &bodies[j], acc);
+                calc_accel(i, j, &bodies[i], &bodies[j], &mut acc);
             }
         }
         for i in 0..bodies.len() { 
-            bodies[i].v.x += dt * acc[i].x;
-            bodies[i].v.y += dt * acc[i].y;
-            bodies[i].v.z += dt * acc[i].z;
-            bodies[i].p.x += dt * bodies[i].v.x;
-            bodies[i].p.y += dt * bodies[i].v.y;
-            bodies[i].p.z += dt * bodies[i].v.z;
-            acc[i] = Vec3 { x: 0.0, y: 0.0, z: 0.0} 
-        };
+            bodies[i].v[0] += dt * acc[i][0];
+            bodies[i].v[1] += dt * acc[i][1];
+            bodies[i].v[2] += dt * acc[i][2];
+            bodies[i].p[0] += dt * bodies[i].v[0];
+            bodies[i].p[1] += dt * bodies[i].v[1];
+            bodies[i].p[2] += dt * bodies[i].v[2];
+            acc[i] = [0.0, 0.0, 0.0];
+        }
         if step % 10000 == 0 {
-            println!("{} {} {} {} {}", step, bodies[1].p.x, bodies[1].p.y, bodies[1].v.x, bodies[1].v.y);
+            println!("{} {} {} {} {}", step, bodies[1].p[0], bodies[1].p[1], bodies[1].v[0], bodies[1].v[1]);
         }
     }
 }
 
-fn calc_accel(i: usize, j: usize, pi: &Particle, pj: &Particle, mut acc: Vec<Vec3>) -> Vec<Vec3> {
-    let dx = pi.p.x - pj.p.x;
-    let dy = pi.p.y - pj.p.y;
-    let dz = pi.p.z - pj.p.z;
+fn calc_accel(i: usize, j: usize, pi: &Particle, pj: &Particle, acc: &mut Vec<[f64; 3]>) {
+    let dx = pi.p[0] - pj.p[0];
+    let dy = pi.p[1] - pj.p[1];
+    let dz = pi.p[2] - pj.p[2];
     let dist = f64::sqrt(dx*dx + dy*dy + dz*dz);
-    let magi = -pj.m() / (dist*dist*dist);
-    acc[i].x += dx * magi;
-    acc[i].y += dy * magi;
-    acc[i].z += dz * magi;
-    let magj = pi.m() / (dist*dist*dist);
-    acc[j].x += dx * magj;
-    acc[j].y += dy * magj;
-    acc[j].z += dz * magj;
-
-    return acc;
+    let magi = -pj.m / (dist*dist*dist);
+    acc[i][0] += dx * magi;
+    acc[i][1] += dy * magi;
+    acc[i][2] += dz * magi;
+    let magj = pi.m / (dist*dist*dist);
+    acc[j][0] += dx * magj;
+    acc[j][1] += dy * magj;
+    acc[j][2] += dz * magj;
 }
