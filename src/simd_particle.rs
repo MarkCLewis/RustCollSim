@@ -1,23 +1,19 @@
 
+use core_simd::*;
+
 pub struct Particle {
-  pub p: [f64; 3],
-  pub v: [f64; 3],
+  pub p: f64x4,
+  pub v: f64x4,
   pub r: f64,
   pub m: f64
 }
 
-impl Particle {
-  // fn m(&self) -> f64 {
-  //     return RHO * self.r * self.r * self.r;
-  // }
-}
-
 pub fn simple_sim() {
   let mut bodies = Vec::new();
-  bodies.push(Particle { p: [0.0, 0.0, 0.0], 
-                         v: [0.0, 0.0, 0.0], r: 1.0, m: 1.0 });
-  bodies.push(Particle { p: [1.0, 0.0, 0.0], 
-                         v: [0.0, 1.0, 0.0], r: 1e-4, m: 1e-20 });
+  bodies.push(Particle { p: f64x4::splat(0.0), 
+                         v: f64x4::splat(0.0), r: 1.0, m: 1.0 });
+  bodies.push(Particle { p: f64x4::from_array([1.0, 0.0, 0.0, 0.0]), 
+                         v: f64x4::from_array([0.0, 1.0, 0.0, 0.0]), r: 1e-4, m: 1e-20 });
   let dt = 1e-3 * 2.0 * std::f64::consts::PI;
   let mut acc = Vec::new();
   for _ in 0..bodies.len() { 
