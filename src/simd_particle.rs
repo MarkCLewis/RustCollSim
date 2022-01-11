@@ -15,9 +15,10 @@ pub fn simple_sim() {
   bodies.push(Particle { p: f64x4::from_array([1.0, 0.0, 0.0, 0.0]), 
                          v: f64x4::from_array([0.0, 1.0, 0.0, 0.0]), r: 1e-4, m: 1e-20 });
   let dt = 1e-3 * 2.0 * std::f64::consts::PI;
+  let dt_vec = f64x4::splat(dt);
   let mut acc = Vec::new();
   for _ in 0..bodies.len() { 
-      acc.push([0.0, 0.0, 0.0])
+      acc.push(f64x4::splat(0.0))
   };
   for step in 1..1000001 {
       for i in 0..bodies.len()-1 {
@@ -26,13 +27,10 @@ pub fn simple_sim() {
           }
       }
       for i in 0..bodies.len() { 
-          bodies[i].v[0] += dt * acc[i][0];
-          bodies[i].v[1] += dt * acc[i][1];
-          bodies[i].v[2] += dt * acc[i][2];
-          bodies[i].p[0] += dt * bodies[i].v[0];
-          bodies[i].p[1] += dt * bodies[i].v[1];
-          bodies[i].p[2] += dt * bodies[i].v[2];
-          acc[i] = [0.0, 0.0, 0.0];
+          bodies[i].v += dt_vec * acc[i];
+          let dp = dt_vec * bodies[i].v;
+          bodies[i].p += dp;
+          acc[i] = f64x4::splat(0.0);
       }
       if step % 10000 == 0 {
           println!("{} {} {} {} {}", step, bodies[1].p[0], bodies[1].p[1], bodies[1].v[0], bodies[1].v[1]);
@@ -40,17 +38,12 @@ pub fn simple_sim() {
   }
 }
 
-fn calc_accel(i: usize, j: usize, pi: &Particle, pj: &Particle, acc: &mut Vec<[f64; 3]>) {
-  let dx = pi.p[0] - pj.p[0];
-  let dy = pi.p[1] - pj.p[1];
-  let dz = pi.p[2] - pj.p[2];
-  let dist = f64::sqrt(dx*dx + dy*dy + dz*dz);
-  let magi = -pj.m / (dist*dist*dist);
-  acc[i][0] += dx * magi;
-  acc[i][1] += dy * magi;
-  acc[i][2] += dz * magi;
-  let magj = pi.m / (dist*dist*dist);
-  acc[j][0] += dx * magj;
-  acc[j][1] += dy * magj;
-  acc[j][2] += dz * magj;
+fn calc_accel(i: usize, j: usize, pi: &Particle, pj: &Particle, acc: &mut Vec<f64x4>) {
+  let dp = pi.p - pj.p;
+  let dp2 = dp * dp;
+  let dist = f64::sqrt(dp2[0] + dp2[1] + dp2[2]);
+  let magi = f64x4::splat(-pj.m / (dist*dist*dist));
+  acc[i] += dp * magi;
+  let magj = f64x4::splat(pi.m / (dist*dist*dist));
+  acc[j] += dp * magj;
 }
