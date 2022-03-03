@@ -8,13 +8,16 @@ pub struct Particle {
   pub m: f64
 }
 
-pub fn simple_sim() {
+pub fn two_bodies() -> Vec<Particle> {
   let mut bodies = Vec::new();
   bodies.push(Particle { p: f64x4::splat(0.0), 
                          v: f64x4::splat(0.0), r: 1.0, m: 1.0 });
   bodies.push(Particle { p: f64x4::from_array([1.0, 0.0, 0.0, 0.0]), 
                          v: f64x4::from_array([0.0, 1.0, 0.0, 0.0]), r: 1e-4, m: 1e-20 });
-  let dt = 1e-3 * 2.0 * std::f64::consts::PI;
+  bodies
+}
+
+pub fn simple_sim(mut bodies: Vec<Particle>, dt: f64) {
   let dt_vec = f64x4::splat(dt);
   let mut acc = Vec::new();
   for _ in 0..bodies.len() { 

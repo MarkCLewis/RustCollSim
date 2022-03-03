@@ -2,14 +2,26 @@
 
 mod particle;
 mod simd_particle;
-// mod kd_tree1;
+mod kd_tree1;
 
-// use kd_tree1::KDTree;
+use kd_tree1::KDTree;
+
+use std::time::Instant ;
 
 fn main() {
     println!("Hello, collisional simulations!");
 
-    particle::simple_sim();
+    let dt = 1e-3 * 2.0 * std::f64::consts::PI;
 
-    simd_particle::simple_sim();
+    {
+        let start = Instant::now();
+        particle::simple_sim(particle::two_bodies(), dt);
+        println!("{}", start.elapsed().as_nanos());
+    }
+
+    {
+        let start = Instant::now();
+        simd_particle::simple_sim(simd_particle::two_bodies(), dt);
+        println!("{}", start.elapsed().as_nanos());
+    }
 }
