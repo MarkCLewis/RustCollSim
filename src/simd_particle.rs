@@ -41,12 +41,34 @@ pub fn simple_sim(mut bodies: Vec<Particle>, dt: f64) {
   }
 }
 
+pub fn distance(x1: f64x4, x2: f64x4) -> f64 {
+  let dp = x1 - x2;
+  let dp2 = dp * dp;
+  f64::sqrt(dp2.horizontal_sum())
+}
+
 fn calc_accel(i: usize, j: usize, pi: &Particle, pj: &Particle, acc: &mut Vec<f64x4>) {
   let dp = pi.p - pj.p;
   let dp2 = dp * dp;
-  let dist = f64::sqrt(dp2[0] + dp2[1] + dp2[2]);
+  let dist = f64::sqrt(dp2.horizontal_sum());
   let magi = f64x4::splat(-pj.m / (dist*dist*dist));
   acc[i] += dp * magi;
   let magj = f64x4::splat(pi.m / (dist*dist*dist));
   acc[j] += dp * magj;
+}
+
+pub fn calc_pp_accel(pi: &Particle, pj: &Particle) -> f64x4 {
+  let dp = pi.p - pj.p;
+  let dp2 = dp * dp;
+  let dist = f64::sqrt(dp2.horizontal_sum());
+  let magi = f64x4::splat(-pj.m / (dist*dist*dist));
+  dp * magi
+}
+
+pub fn calc_cm_accel(pi: &Particle, m: f64, cm: f64x4) -> f64x4 {
+  let dp = pi.p - cm;
+  let dp2 = dp * dp;
+  let dist = f64::sqrt(dp2.horizontal_sum());
+  let magi = f64x4::splat(-m / (dist*dist*dist));
+  dp * magi
 }

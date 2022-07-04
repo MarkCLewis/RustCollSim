@@ -1,7 +1,7 @@
 use super::particle::Particle;
 
-static MAX_PARTS: usize = 7;
-static THETA: f64 = 0.5;
+const MAX_PARTS: usize = 7;
+const THETA: f64 = 0.5;
 
 pub enum KDTree<'a> {
   InternalNode {
@@ -51,7 +51,7 @@ pub fn build_tree<'a>(particles: &'a mut [Particle]) -> Box<KDTree<'a>> {
     }
     let size = max[split_dim] - min[split_dim];
 
-    // TODO: partition particles on that dim
+    // Partition particles on split_dim
     let mid = np / 2;
     let mut start = 0;
     let mut end = np;
@@ -77,6 +77,7 @@ pub fn build_tree<'a>(particles: &'a mut [Particle]) -> Box<KDTree<'a>> {
     }
     let split_val = particles[mid].p[split_dim];
 
+    // Recurse on children and build this node.
     let (left_parts, right_parts) = particles.split_at_mut(mid);
     let left = build_tree(left_parts);
     let right = build_tree(right_parts);
@@ -94,6 +95,6 @@ pub fn build_tree<'a>(particles: &'a mut [Particle]) -> Box<KDTree<'a>> {
 
 pub fn calc_accel(p: Particle, tree: Box<KDTree>) -> [f64; 3] {
   let mut accel = [0.0, 0.0, 0.0];
-  
+
   return accel;
 }

@@ -61,3 +61,4 @@ fn calc_accel(i: usize, j: usize, pi: &Particle, pj: &Particle, acc: &mut Vec<[f
   acc[j][1] += dy * magj;
   acc[j][2] += dz * magj;
 }
+
