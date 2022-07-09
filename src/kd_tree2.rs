@@ -82,21 +82,23 @@ pub fn build_tree<'a>(indices: &mut Vec<usize>, start: usize, end: usize, partic
         let mut s = start;
         let mut e = end;
         while s + 1 < e {
+            let pivot = fastrand::usize(s..e);
+            indices.swap(s, pivot);
             let mut low = s + 1;
             let mut high = e - 1;
-            while low < high {
-                if particles[indices[low]].p[split_dim] < particles[indices[start]].p[split_dim] {
-                low += 1;
+            while low <= high {
+                if particles[indices[low]].p[split_dim] < particles[indices[s]].p[split_dim] {
+                    low += 1;
                 } else {
-                indices.swap(low, high);
-                high -= 1;
+                    indices.swap(low, high);
+                    high -= 1;
                 }
             }
             indices.swap(s, high);
             if high < mid {
-                e = high;
-            } else if high > mid {
                 s = high + 1;
+            } else if high > mid {
+                e = high;
             } else {
                 s = e;
             }
@@ -227,12 +229,20 @@ mod tests {
 
     #[test]
     fn big_solar() {
-        let parts = simd_particle::circular_orbits(500);
+        let parts = simd_particle::circular_orbits(5000);
         let mut node_vec = kd_tree2::allocate_node_vec(parts.len());
         let mut indices: Vec<usize> = (0..parts.len()).collect();
         kd_tree2::build_tree(&mut indices, 0, parts.len(), &parts, 0, &mut node_vec);
         recur_test_tree_struct(0, &node_vec, &parts, f64x4::splat(-1e100), f64x4::splat(1e100));
     }
 
+    #[test]
+    fn big_galaxy() {
+        let parts = simd_particle::galactic_orbits(50000);
+        let mut node_vec = kd_tree2::allocate_node_vec(parts.len());
+        let mut indices: Vec<usize> = (0..parts.len()).collect();
+        kd_tree2::build_tree(&mut indices, 0, parts.len(), &parts, 0, &mut node_vec);
+        recur_test_tree_struct(0, &node_vec, &parts, f64x4::splat(-1e100), f64x4::splat(1e100));
+    }
    
 }

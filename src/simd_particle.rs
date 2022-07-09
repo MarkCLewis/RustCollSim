@@ -44,7 +44,7 @@ pub fn circular_orbits(n: usize) -> Vec<Particle> {
     });
 
     for i in 0..n {
-        let d = 0.1 + ((i * 5 / n) as f64);
+        let d = 0.1 + ((i as f64) * 5.0 / (n as f64));
         let v = f64::sqrt(1.0 / d);
         particle_buf.push(Particle {
             p: f64x4::from_array([d, 0.0, 0.0, 0.0]),
