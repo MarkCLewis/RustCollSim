@@ -4,8 +4,6 @@ mod particle;
 mod simd_particle;
 mod kd_tree2;
 
-use kd_tree2::KDTree;
-
 use std::time::Instant;
 
 fn main() {
@@ -27,7 +25,7 @@ fn main() {
 
     {
         let start = Instant::now();
-        kd_tree2::simple_sim(&mut simd_particle::two_bodies(), dt);
+        kd_tree2::simple_sim(&mut simd_particle::circular_orbits(10000), dt);
         println!("{}", start.elapsed().as_nanos());
     }
 }

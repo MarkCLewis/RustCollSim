@@ -8,6 +8,23 @@ pub struct Particle {
   pub m: f64
 }
 
+struct StandardMass {
+  rho_fact: f64,
+}
+
+impl StandardMass {
+  fn new(r0: f64, density_pcm_3: f64, central_mass: f64) -> Self {
+      let r0 = r0 * 1000.; // km to m conversion
+      Self {
+          rho_fact: 1.33333 * 3.14159 * r0 * r0 * r0 * 1e3 * density_pcm_3 / central_mass,
+      }
+  }
+
+  fn operator(&self, r: f64) -> f64 {
+      r * r * r * self.rho_fact
+  }
+}
+
 pub fn two_bodies() -> Vec<Particle> {
   let mut bodies = Vec::new();
   bodies.push(Particle { p: f64x4::splat(0.0), 
@@ -15,6 +32,61 @@ pub fn two_bodies() -> Vec<Particle> {
   bodies.push(Particle { p: f64x4::from_array([1.0, 0.0, 0.0, 0.0]), 
                          v: f64x4::from_array([0.0, 1.0, 0.0, 0.0]), r: 1e-4, m: 1e-20 });
   bodies
+}
+
+pub fn circular_orbits(n: usize) -> Vec<Particle> {
+  let mut particle_buf = vec![];
+    particle_buf.push(Particle {
+      p: f64x4::splat(0.0),
+      v: f64x4::splat(0.0),
+      r: 0.00465047,
+      m: 1.0 / 215.032,
+    });
+
+    for i in 0..n {
+        let d = 0.1 + ((i * 5 / n) as f64);
+        let v = f64::sqrt(1.0 / d);
+        particle_buf.push(Particle {
+            p: f64x4::from_array([d, 0.0, 0.0, 0.0]),
+            v: f64x4::from_array([0.0, v, 0.0, 0.0]),
+            m: 1e-14,
+            r: 1e-7,
+        });
+        particle_buf.push(Particle {
+          p: f64x4::from_array([-d, 0.0, 0.0, 0.0]),
+          v: f64x4::from_array([0.0, -v, 0.0, 0.0]),
+          m: 1e-14,
+          r: 1e-7,
+        });
+    }
+    particle_buf
+}
+
+pub fn galactic_orbits(n: usize) -> Vec<Particle> {
+  let mf: StandardMass = StandardMass::new(1.5e8, 1.41, 2e30);
+  let mut particle_buf = vec![];
+    particle_buf.push(Particle {
+      p: f64x4::splat(0.0),
+      v: f64x4::splat(0.0),
+      r: 1.0 / 2150.032,
+      m: 1.0 / 2150.032,
+    });
+    let m = mf.operator(particle_buf[0].r);
+    let annulus_width = 5. / n as f64;
+    let inner_radius = 0.1;
+
+    for i in 0..n {
+      let d = inner_radius + (i as f64) * annulus_width;
+      let theta = fastrand::f64() * 6.28;
+      let v = f64::sqrt(m / d);
+        particle_buf.push(Particle {
+            p: f64x4::from_array([d * f64::cos(theta), d * f64::sin(theta), 0.0, 0.0]),
+            v: f64x4::from_array([-v * f64::sin(theta), v * f64::cos(theta), 0.0, 0.0]),
+            m: 1e-6,
+            r: 1e-6,
+        });
+    }
+    particle_buf
 }
 
 pub fn simple_sim(mut bodies: Vec<Particle>, dt: f64) {
