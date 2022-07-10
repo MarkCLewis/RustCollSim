@@ -9,7 +9,7 @@ use std::time::Instant;
 fn main() {
     println!("Hello, collisional simulations!");
 
-    let dt = 1e-3 * 2.0 * std::f64::consts::PI;
+    let dt = 1e-3; // * 2.0 * std::f64::consts::PI;
 
     // {
     //     let start = Instant::now();
@@ -25,7 +25,8 @@ fn main() {
 
     {
         let start = Instant::now();
-        kd_tree2::simple_sim(&mut simd_particle::circular_orbits(10000), dt);
+        // kd_tree2::simple_sim(&mut simd_particle::two_bodies(), dt);
+        kd_tree2::simple_sim(&mut simd_particle::circular_orbits(20001), dt);
         println!("{}", start.elapsed().as_nanos());
     }
 }

@@ -40,10 +40,10 @@ pub fn circular_orbits(n: usize) -> Vec<Particle> {
       p: f64x4::splat(0.0),
       v: f64x4::splat(0.0),
       r: 0.00465047,
-      m: 1.0 / 215.032,
+      m: 1.0,
     });
 
-    for i in 0..n {
+    for i in 0..n/2 {
         let d = 0.1 + ((i as f64) * 5.0 / (n as f64));
         let v = f64::sqrt(1.0 / d);
         particle_buf.push(Particle {
@@ -52,12 +52,14 @@ pub fn circular_orbits(n: usize) -> Vec<Particle> {
             m: 1e-14,
             r: 1e-7,
         });
-        particle_buf.push(Particle {
-          p: f64x4::from_array([-d, 0.0, 0.0, 0.0]),
-          v: f64x4::from_array([0.0, -v, 0.0, 0.0]),
-          m: 1e-14,
-          r: 1e-7,
-        });
+        if particle_buf.len() < n {
+            particle_buf.push(Particle {
+                p: f64x4::from_array([-d, 0.0, 0.0, 0.0]),
+                v: f64x4::from_array([0.0, -v, 0.0, 0.0]),
+                m: 1e-14,
+                r: 1e-7,
+            });
+        }
     }
     particle_buf
 }
@@ -69,7 +71,7 @@ pub fn galactic_orbits(n: usize) -> Vec<Particle> {
       p: f64x4::splat(0.0),
       v: f64x4::splat(0.0),
       r: 1.0 / 2150.032,
-      m: 1.0 / 2150.032,
+      m: 0.1,
     });
     let m = mf.operator(particle_buf[0].r);
     let annulus_width = 5. / n as f64;
@@ -134,6 +136,7 @@ pub fn calc_pp_accel(pi: &Particle, pj: &Particle) -> f64x4 {
   let dp2 = dp * dp;
   let dist = f64::sqrt(dp2.horizontal_sum());
   let magi = f64x4::splat(-pj.m / (dist*dist*dist));
+//   println!("magi={}", magi[0]);
   dp * magi
 }
 
