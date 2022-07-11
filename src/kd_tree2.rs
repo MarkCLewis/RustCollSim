@@ -5,7 +5,7 @@ use crate::simd_particle::*;
 use super::simd_particle::Particle;
 
 const MAX_PARTS: usize = 7;
-const THETA: f64 = 0.5;
+const THETA: f64 = 0.3;
 const NEGS: [usize; MAX_PARTS] = [usize::MAX; MAX_PARTS];
 
 #[derive(Clone, Copy)]
@@ -149,7 +149,7 @@ fn accel_recur(cur_node: usize, p: usize, particles: &Vec<Particle>, nodes: &Vec
     } else {
         let dist = distance(particles[p].p, nodes[cur_node].cm);
         // println!("dist = {}, size = {}", dist, nodes[cur_node].size);
-        if dist / nodes[cur_node].size > THETA {
+        if nodes[cur_node].size / dist < THETA {
             calc_cm_accel(&particles[p], nodes[cur_node].m, nodes[cur_node].cm)
         } else {
             accel_recur(nodes[cur_node].left, p, particles, nodes)
@@ -171,6 +171,7 @@ pub fn simple_sim(bodies: &mut Vec<Particle>, dt: f64) {
     let mut tree = allocate_node_vec(bodies.len());
     let mut indices: Vec<usize> = (0..bodies.len()).collect();
     for step in 0..6281 {
+        println!("Step = {}", step);
         for i in 0..(bodies.len()) {
             indices[i] = i;
         }
@@ -185,7 +186,7 @@ pub fn simple_sim(bodies: &mut Vec<Particle>, dt: f64) {
             bodies[i].p += dp;
             acc[i] = f64x4::splat(0.0);
         }
-        if step % 1000 == 0 {
+        if step % 6280 == 0 {
             for i in 0..bodies.len() {
                 println!(
                     "{} {} {} {} {} {}",
