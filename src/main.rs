@@ -26,7 +26,7 @@ fn main() {
     {
         let start = Instant::now();
         // kd_tree2::simple_sim(&mut simd_particle::two_bodies(), dt);
-        kd_tree2::simple_sim(&mut simd_particle::circular_orbits(200001), dt);
+        kd_tree2::simple_sim(&mut simd_particle::circular_orbits(20001), dt);
         println!("{}", start.elapsed().as_nanos());
     }
 }

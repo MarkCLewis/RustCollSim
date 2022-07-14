@@ -147,10 +147,14 @@ fn accel_recur(cur_node: usize, p: usize, particles: &Vec<Particle>, nodes: &Vec
         }
         acc
     } else {
-        let dist = distance(particles[p].p, nodes[cur_node].cm);
+        let dp = particles[p].p - nodes[cur_node].cm;
+        let dp2 = dp * dp;
+        let dist_sqr = dp2.horizontal_sum();
         // println!("dist = {}, size = {}", dist, nodes[cur_node].size);
-        if nodes[cur_node].size / dist < THETA {
-            calc_cm_accel(&particles[p], nodes[cur_node].m, nodes[cur_node].cm)
+        if nodes[cur_node].size * nodes[cur_node].size < THETA * THETA * dist_sqr {
+            let dist = f64::sqrt(dist_sqr);
+            let magi = f64x4::splat(-nodes[cur_node].m / (dist_sqr*dist));
+            dp * magi
         } else {
             accel_recur(nodes[cur_node].left, p, particles, nodes)
                 + accel_recur(nodes[cur_node].right, p, particles, nodes)

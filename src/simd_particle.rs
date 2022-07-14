@@ -115,10 +115,14 @@ pub fn simple_sim(mut bodies: Vec<Particle>, dt: f64) {
   }
 }
 
-pub fn distance(x1: f64x4, x2: f64x4) -> f64 {
+pub fn distance_sqr(x1: f64x4, x2: f64x4) -> f64 {
   let dp = x1 - x2;
   let dp2 = dp * dp;
-  f64::sqrt(dp2.horizontal_sum())
+  dp2.horizontal_sum()
+}
+
+pub fn distance(x1: f64x4, x2: f64x4) -> f64 {
+  f64::sqrt(distance_sqr(x1, x2))
 }
 
 fn calc_accel(i: usize, j: usize, pi: &Particle, pj: &Particle, acc: &mut Vec<f64x4>) {
