@@ -12,3 +12,10 @@ edition = "2018"
 
 core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 fastrand = "1.4"
+
+# resvg = "0.23.0"
+
+# piston = "0.53.0"
+# piston2d-graphics = "0.42.0"
+# pistoncore-glutin_window = "0.69.0"
+# piston2d-opengl_graphics = "0.81.0"

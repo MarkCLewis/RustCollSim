@@ -1,4 +1,4 @@
-use std::{time::Instant, f32::consts::E};
+use std::{time::Instant, f32::consts::E, fs::File, io::Write};
 
 use core_simd::*;
 
@@ -87,7 +87,7 @@ pub fn build_tree<'a>(
         }
         cm /= f64x4::splat(m);
         let mut split_dim = 0;
-        for dim in 1..2 {
+        for dim in 1..3 {
             if max[dim] - min[dim] > max[split_dim] - min[split_dim] {
                 split_dim = dim
             }
@@ -180,10 +180,10 @@ pub fn simple_sim(bodies: &mut Vec<Particle>, dt: f64, steps: i64) {
     for _ in 0..bodies.len() {
         acc.push(f64x4::splat(0.0))
     }
+    let mut time = Instant::now();
     let mut tree = allocate_node_vec(bodies.len());
     let mut indices: Vec<usize> = (0..bodies.len()).collect();
-    let mut time = Instant::now();
-
+    
     for step in 0..steps {
         if step % 100 == 0 {
             let elapsed_secs = time.elapsed().as_nanos() as f64 / 1e9;
@@ -200,12 +200,15 @@ pub fn simple_sim(bodies: &mut Vec<Particle>, dt: f64, steps: i64) {
             indices[i] = i;
         }
         build_tree(&mut indices, 0, bodies.len(), bodies, 0, &mut tree);
-        if step% 1000 == 0 {
-            let mut min = f64x4::splat(-1e100);
-            let mut max = f64x4::splat(1e100);
-            recur_test_tree_struct(0, &tree, &bodies, min, max);
-            println!("Test Done!!!");
-        }
+        // if step % 100 == 0 {
+        //     print_tree(step, &tree, &bodies);
+        // }
+        // if step% 1000 == 0 {
+        //     let min = f64x4::splat(-1e100);
+        //     let max = f64x4::splat(1e100);
+        //     recur_test_tree_struct(0, &tree, &bodies, min, max);
+        //     println!("Test Done!!!");
+        // }
         for i in 0..bodies.len() {
             acc[i] = calc_accel(i, &bodies, &tree);
             // println!("acc[{}] ={},{},{}", i, acc[i][0], acc[i][1], acc[i][2]);
@@ -227,8 +230,23 @@ pub fn simple_sim(bodies: &mut Vec<Particle>, dt: f64, steps: i64) {
     }
 }
 
-fn particles_in_tree() {
+fn print_tree(step: i64, tree: &Vec<KDTree>, particles: &Vec<Particle>) -> std::io::Result<()> {
+    let mut file = File::create(format!("tree{}.txt", step))?;
     
+    file.write_fmt(format_args!("{}\n", particles.len()))?;
+    for n in tree {
+        if n.num_parts > 0 {
+            file.write_fmt(format_args!("L {}\n", n.num_parts))?;
+            for i in 0..n.num_parts {
+                let p = n.particles[i];
+                file.write_fmt(format_args!("{} {} {}\n", particles[p].p[0], particles[p].p[1], particles[p].p[2]))?;
+            }
+        } else {
+            file.write_fmt(format_args!("I {} {} {} {}\n", n.split_dim, n.split_val, n.left, n.right))?;
+        }
+    }
+
+    Ok(())
 }
 
 fn recur_test_tree_struct(
@@ -292,7 +310,7 @@ mod tests {
     fn two_leaves() {
         let parts = simd_particle::circular_orbits(11);
         let mut node_vec = kd_tree2::allocate_node_vec(parts.len());
-        assert_eq!(node_vec.len(), 4);
+        assert_eq!(node_vec.len(), 6);
         let mut indices: Vec<usize> = (0..parts.len()).collect();
         kd_tree2::build_tree(&mut indices, 0, parts.len(), &parts, 0, &mut node_vec);
         kd_tree2::recur_test_tree_struct(
@@ -303,9 +321,7 @@ mod tests {
             f64x4::splat(1e100),
         );
         assert_eq!(node_vec[0].num_parts, 0);
-        assert_eq!(node_vec[0].split_dim, 0);
-        assert_eq!(node_vec[1].num_parts, 5);
-        assert_eq!(node_vec[2].num_parts, 6);
+        assert_eq!(node_vec[1].num_parts + node_vec[2].num_parts, 12);
     }
 
     #[test]
@@ -341,7 +357,7 @@ mod tests {
     #[test]
     fn big_solar_with_steps() {
         let mut parts = simd_particle::circular_orbits(5000);
-        kd_tree2::simple_sim(&mut parts, 1e-3, 100);
+        kd_tree2::simple_sim(&mut parts, 1e-3, 10);
 
         let mut node_vec = kd_tree2::allocate_node_vec(parts.len());
         let mut indices: Vec<usize> = (0..parts.len()).collect();

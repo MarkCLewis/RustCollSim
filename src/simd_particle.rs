@@ -43,23 +43,20 @@ pub fn circular_orbits(n: usize) -> Vec<Particle> {
       m: 1.0,
     });
 
-    for i in 0..n/2 {
+    for i in 0..n {
         let d = 0.1 + ((i as f64) * 5.0 / (n as f64));
         let v = f64::sqrt(1.0 / d);
+        let theta = fastrand::f64() * 6.28;
+        let x = d * f64::cos(theta);
+        let y = d * f64::sin(theta);
+        let vx = -v * f64::sin(theta);
+        let vy = v * f64::cos(theta);
         particle_buf.push(Particle {
-            p: f64x4::from_array([d, 0.0, 0.0, 0.0]),
-            v: f64x4::from_array([0.0, v, 0.0, 0.0]),
+            p: f64x4::from_array([x, y, 0.0, 0.0]),
+            v: f64x4::from_array([vx, vy, 0.0, 0.0]),
             m: 1e-14,
             r: 1e-7,
         });
-        if particle_buf.len() < n {
-            particle_buf.push(Particle {
-                p: f64x4::from_array([-d, 0.0, 0.0, 0.0]),
-                v: f64x4::from_array([0.0, -v, 0.0, 0.0]),
-                m: 1e-14,
-                r: 1e-7,
-            });
-        }
     }
     particle_buf
 }
