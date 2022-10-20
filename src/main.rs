@@ -1,8 +1,7 @@
 #![feature(portable_simd)]
 
 mod particle;
-mod simd_particle;
-mod kd_tree2;
+mod kd_tree;
 
 use std::time::Instant;
 
@@ -26,7 +25,7 @@ fn main() {
     {
         let start = Instant::now();
         // kd_tree2::simple_sim(&mut simd_particle::two_bodies(), dt);
-        kd_tree2::simple_sim(&mut simd_particle::circular_orbits(20001), dt, 6281);
+        kd_tree::simple_sim(&mut particle::circular_orbits(20001), dt, 6281);
         // kd_tree2::simple_sim(&mut &mut simd_particle::galactic_orbits(20001), dt, 6281);
         println!("{}", start.elapsed().as_nanos() as f64 / 1e9);
     }
