@@ -145,7 +145,12 @@ pub fn build_tree<'a>(
     }
 }
 
-fn accel_recur(cur_node: usize, p: usize, particles: &Vec<Particle>, nodes: &Vec<KDTree>) -> [f64; 3] {
+fn accel_recur(
+    cur_node: usize,
+    p: usize,
+    particles: &Vec<Particle>,
+    nodes: &Vec<KDTree>,
+) -> [f64; 3] {
     // println!("accel {}", cur_node);
     if nodes[cur_node].num_parts > 0 {
         let mut acc = [0.0, 0.0, 0.0];
@@ -171,7 +176,11 @@ fn accel_recur(cur_node: usize, p: usize, particles: &Vec<Particle>, nodes: &Vec
         } else {
             let left_acc = accel_recur(nodes[cur_node].left, p, particles, nodes);
             let right_acc = accel_recur(nodes[cur_node].right, p, particles, nodes);
-            [left_acc[0] + right_acc[0], left_acc[1] + right_acc[1], left_acc[2] + right_acc[2]]
+            [
+                left_acc[0] + right_acc[0],
+                left_acc[1] + right_acc[1],
+                left_acc[2] + right_acc[2],
+            ]
         }
     }
 }

@@ -1,7 +1,10 @@
 #![feature(portable_simd)]
 
-mod particle;
 mod kd_tree;
+mod particle;
+mod short_range_forcing;
+mod soft_collision_queue;
+mod util;
 
 use std::time::Instant;
 
