@@ -42,3 +42,26 @@ pub fn borrow_two_elements<'a, T>(
         }
     }
 }
+
+pub struct Acceleration(pub [f64; 3]);
+
+use std::ops::{Add, AddAssign};
+
+impl AddAssign for Acceleration {
+    fn add_assign(&mut self, other: Self) {
+        self.0[0] += other.0[0];
+        self.0[1] += other.0[1];
+        self.0[2] += other.0[2];
+    }
+}
+
+impl Add for Acceleration {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Acceleration([
+            self.0[0] + other.0[0],
+            self.0[1] + other.0[1],
+            self.0[2] + other.0[2],
+        ])
+    }
+}
