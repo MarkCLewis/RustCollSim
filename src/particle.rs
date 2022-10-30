@@ -119,8 +119,3 @@ pub fn calc_pp_accel(pi: &Particle, pj: &Particle) -> [f64; 3] {
     //   println!("magi={}", magi[0]);
     [magi * dx, magi * dy, magi * dz]
 }
-
-/// Some useful math functions
-pub fn dot(a: [f64; 3], b: [f64; 3]) -> f64 {
-    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
