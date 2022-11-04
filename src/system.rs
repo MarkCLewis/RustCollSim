@@ -49,14 +49,13 @@ where
         self.rebuild_kdtree();
 
         for i in 0..self.pop.len() {
-            let acc = calc_accel(i, &self.pop, &self.tree);
-            self.pop[i].v = (Vector(self.pop[i].v) + Vector(acc) * self.time_step).0;
+            apply_and_calc_forces(i, &self.pop, &self.tree);
         }
     }
 
     pub fn end_step(&mut self) {
         let next_time = self.current_time + self.time_step;
-        self.pq.do_one_step(&mut self.pop, &self.tree, next_time);
+        self.pq.do_one_step(&mut self.pop, next_time);
         self.current_time = next_time;
     }
 }

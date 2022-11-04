@@ -1,8 +1,8 @@
 #![feature(portable_simd)]
 
 mod kd_tree;
+mod no_explode;
 mod particle;
-mod short_range_forcing;
 mod soft_collision_queue;
 mod system;
 mod util;
@@ -18,7 +18,7 @@ fn main() {
     demo1();
     return;
 
-    let dt = 1e-3; // * 2.0 * std::f64::consts::PI;
+    // let dt = 1e-3; // * 2.0 * std::f64::consts::PI;
 
     // {
     //     let start = Instant::now();
@@ -32,13 +32,13 @@ fn main() {
     //     println!("{}", start.elapsed().as_nanos());
     // }
 
-    {
-        let start = Instant::now();
-        // kd_tree2::simple_sim(&mut simd_particle::two_bodies(), dt);
-        kd_tree::simple_sim(&mut particle::circular_orbits(20001), dt, 6281);
-        // kd_tree2::simple_sim(&mut &mut simd_particle::galactic_orbits(20001), dt, 6281);
-        println!("{}", start.elapsed().as_nanos() as f64 / 1e9);
-    }
+    // {
+    //     let start = Instant::now();
+    //     // kd_tree2::simple_sim(&mut simd_particle::two_bodies(), dt);
+    //     kd_tree::simple_sim(&mut particle::circular_orbits(20001), dt, 6281);
+    //     // kd_tree2::simple_sim(&mut &mut simd_particle::galactic_orbits(20001), dt, 6281);
+    //     println!("{}", start.elapsed().as_nanos() as f64 / 1e9);
+    // }
 }
 
 fn demo1() {

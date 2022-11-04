@@ -1,7 +1,6 @@
 use std::{cmp::Ordering, collections::BinaryHeap};
 
 use crate::{
-    kd_tree::KDTree,
     particle::{Particle, ParticleIndex},
     util::borrow_two_elements,
     vectors::Vector,
@@ -47,9 +46,18 @@ impl Ord for ForceEvent {
 }
 
 pub struct ForceQueue<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> {
-    queue: BinaryHeap<ForceEvent>,
+    pub queue: BinaryHeap<ForceEvent>,
     big_time_step: f64, // the main time step
     compute_local_acceleration: F,
+    desired_collision_step_count: u32,
+    minimum_time_step: f64,
+}
+
+mod support {
+    pub enum PushPq {
+        DoPush,
+        NoPush,
+    }
 }
 
 impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> {
@@ -58,6 +66,8 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
             queue: BinaryHeap::new(),
             big_time_step,
             compute_local_acceleration,
+            desired_collision_step_count: 10,
+            minimum_time_step: big_time_step / 100.,
         }
     }
 
@@ -71,13 +81,8 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
         particle.t = current_time;
     }
 
-    pub fn do_one_step(
-        &mut self,
-        particles: &mut Vec<Particle>,
-        tree: &Vec<KDTree>,
-        next_sync_step: f64,
-    ) {
-        self.find_initial_collisions(tree, particles);
+    pub fn do_one_step(&mut self, particles: &mut Vec<Particle>, next_sync_step: f64) {
+        //self.queue.clear();
 
         self.run_through_collision_pairs(particles, next_sync_step);
 
@@ -91,10 +96,49 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
         }
     }
 
-    /// fill queue, call at the beginning of step
-    pub fn find_initial_collisions(&mut self, tree: &Vec<KDTree>, particles: &Vec<Particle>) {
-        self.queue.clear();
-        // do stuff -> find potential collisions -> other particles within a dt*v range
+    // the returned time will not be greater than next_sync_step
+    fn get_next_time(
+        &self,
+        separation_distance: f64,
+        next_sync_step: f64,
+        current_impact_vel: f64,
+        event_time: f64,
+        m: f64,
+        r: f64,
+    ) -> (f64, support::PushPq) {
+        use crate::no_explode::{omega_0_from_k, rotter::b_and_k};
+
+        let omega_0 = omega_0_from_k(b_and_k(current_impact_vel, m, r).1, m);
+        assert!(omega_0 > 0.);
+
+        let dt = f64::max(
+            self.minimum_time_step,
+            if separation_distance < 0. {
+                // colliding
+                // 1/(\omega_0 C), => C = step num
+                1. / (omega_0 * self.desired_collision_step_count as f64)
+            } else {
+                // v * t = d
+                let impact_time_dt = separation_distance / current_impact_vel;
+                // max( dist/(2*v_normal) and 1/(\omega_0 C) )
+
+                f64::max(
+                    impact_time_dt.abs() / 2.,
+                    1. / (omega_0 * self.desired_collision_step_count as f64),
+                )
+            },
+        );
+        let mut next_time = event_time + dt;
+
+        // if moving at each other, reschedule at dt/2, but not less than big_time_step/100
+        let repush_to_pq = if next_time > next_sync_step {
+            next_time = next_sync_step;
+            support::PushPq::NoPush
+        } else {
+            support::PushPq::DoPush
+        };
+
+        (next_time, repush_to_pq)
     }
 
     pub fn run_through_collision_pairs(
@@ -120,33 +164,11 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                 let last_time_step = event.time - event.last_time;
                 assert!(last_time_step > 0.);
 
-                let mut next_time = if separation_distance < 0. {
-                    f64::max(last_time_step / 2., self.big_time_step / 100.)
-                } else {
-                    // v * t = d
-                    let impact_time_dt = separation_distance / current_impact_vel;
-                    if impact_time_dt > 0. {
-                        // collision is yet to happen
-                        event.time + f64::max(impact_time_dt / 2., self.big_time_step / 100.)
-                    } else {
-                        // collision is in the past, i.e. drifting away from each other
-                        f64::max(impact_time_dt * 2., self.big_time_step / 100.)
-                    }
-                };
-
-                // if moving at each other, reschedule at dt/2, but not less than big_time_step/100
-                let repush_to_pq = if next_time > next_sync_step {
-                    next_time = next_sync_step;
-                    false
-                } else {
-                    true
-                };
-
                 // compute local forces
                 let (acc1, acc2) = (self.compute_local_acceleration)(p1, p2);
 
-                p1.v = (Vector(p1.v) + Vector(acc1) * (next_time - event.time)).0;
-                p2.v = (Vector(p2.v) + Vector(acc2) * (next_time - event.time)).0;
+                // FIXME: issue: integrating the velocity requires knowing next event time
+                // computing next event time requires knowing velocity
 
                 // if not overlapping, we need a new impact velocity
                 let updated_impact_vel = if separation_distance < 0. {
@@ -155,14 +177,31 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                     current_impact_vel
                 };
 
-                if repush_to_pq {
-                    self.queue.push(ForceEvent {
-                        time: next_time,
-                        last_time: event.time,
-                        p1: event.p1,
-                        p2: event.p2,
-                        impact_vel: updated_impact_vel,
-                    });
+                let (next_time, repush_to_pq) = self.get_next_time(
+                    separation_distance,
+                    next_sync_step,
+                    current_impact_vel,
+                    event.time,
+                    f64::max(p1.m, p2.m),
+                    f64::max(p1.r, p2.r),
+                );
+
+                p1.v = (Vector(p1.v) + Vector(acc1) * (next_time - event.time)).0;
+                p2.v = (Vector(p2.v) + Vector(acc2) * (next_time - event.time)).0;
+
+                match repush_to_pq {
+                    support::PushPq::DoPush => {
+                        self.queue.push(ForceEvent {
+                            time: next_time,
+                            last_time: event.time,
+                            p1: event.p1,
+                            p2: event.p2,
+                            impact_vel: updated_impact_vel,
+                        });
+                    }
+                    support::PushPq::NoPush => {
+                        // do nothing
+                    }
                 }
 
                 println!("{:?}, {:?}", p1, p2);
