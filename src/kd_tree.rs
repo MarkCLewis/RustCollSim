@@ -1,6 +1,6 @@
-use std::{fs::File, io::Write, time::Instant};
+use std::{fs::File, io::Write};
 
-use crate::particle::*;
+use crate::{particle::*, vectors::Vector};
 
 use super::particle::Particle;
 
@@ -8,8 +8,206 @@ const MAX_PARTS: usize = 7;
 const THETA: f64 = 0.3;
 const NEGS: [usize; MAX_PARTS] = [usize::MAX; MAX_PARTS];
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct KDTree {
+    pub nodes: Vec<KDTreeNode>,
+    pub indices: Vec<usize>,
+}
+
+// type PairFuncEmpty = fn(&Particle, &Particle);
+
+#[derive(Clone, Copy, Debug)]
+pub enum Interaction<'a> {
+    ParticleParticle(&'a Particle),
+    ParticleNode,
+}
+
+impl KDTree {
+    pub fn new(n: usize) -> Self {
+        Self {
+            nodes: Self::allocate_node_vec(n),
+            indices: (0..n).collect(),
+        }
+    }
+
+    /// call this to rebuild the tree
+    pub fn rebuild_kdtree(&mut self, particles: &Vec<Particle>) {
+        self.build_tree(0, particles.len(), particles, 0);
+    }
+
+    /// Go through all particles, computing acceleration and giving it to the provided function
+    /// the provided function F will be given: (particle index, &particle, interaction (may contain other &particle), acc of p)
+    pub fn map_calc_acc<'a, F>(&self, p: usize, particles: &'a Vec<Particle>, pair_func: &mut F)
+    where
+        F: FnMut(usize, &'a Particle, Interaction<'a>, Vector),
+    {
+        self.map_calc_acc_recur(0, p, particles, pair_func)
+    }
+
+    fn allocate_node_vec(num_parts: usize) -> Vec<KDTreeNode> {
+        let num_nodes = 2 * (num_parts / (MAX_PARTS - 1) + 1);
+        let mut ret = Vec::new();
+        ret.resize(num_nodes, KDTreeNode::leaf(0, NEGS));
+        ret
+    }
+
+    // Returns the index of the last Node used in the construction.
+    fn build_tree(
+        &mut self,
+        start: usize,
+        end: usize,
+        particles: &Vec<Particle>,
+        cur_node: usize,
+    ) -> usize {
+        // println!("start = {} end = {} cur_node = {}", start, end, cur_node);
+        let np = end - start;
+        // println!("s = {}, e = {}, cn = {}", start, end, cur_node);
+        if np <= MAX_PARTS {
+            if cur_node >= self.nodes.len() {
+                self.nodes.resize(cur_node + 1, KDTreeNode::leaf(0, NEGS));
+            }
+            self.nodes[cur_node].num_parts = np;
+            for i in 0..np {
+                self.nodes[cur_node].particles[i] = self.indices[start + i]
+            }
+            cur_node
+        } else {
+            // Pick split dim and value
+            let mut min = [1e100, 1e100, 1e100];
+            let mut max = [-1e100, -1e100, -1e100];
+            let mut m = 0.0;
+            let mut cm = [0.0, 0.0, 0.0];
+            for i in start..end {
+                m += particles[self.indices[i]].m;
+                cm[0] += particles[self.indices[i]].m * particles[self.indices[i]].p[0];
+                cm[1] += particles[self.indices[i]].m * particles[self.indices[i]].p[1];
+                cm[2] += particles[self.indices[i]].m * particles[self.indices[i]].p[2];
+                min[0] = f64::min(min[0], particles[self.indices[i]].p[0]);
+                min[1] = f64::min(min[1], particles[self.indices[i]].p[1]);
+                min[2] = f64::min(min[2], particles[self.indices[i]].p[2]);
+                max[0] = f64::max(max[0], particles[self.indices[i]].p[0]);
+                max[1] = f64::max(max[1], particles[self.indices[i]].p[1]);
+                max[2] = f64::max(max[2], particles[self.indices[i]].p[2]);
+            }
+            cm[0] /= m;
+            cm[1] /= m;
+            cm[2] /= m;
+            let mut split_dim = 0;
+            for dim in 1..3 {
+                if max[dim] - min[dim] > max[split_dim] - min[split_dim] {
+                    split_dim = dim
+                }
+            }
+            let size = max[split_dim] - min[split_dim];
+
+            // Partition particles on split_dim
+            let mid = (start + end) / 2;
+            let mut s = start;
+            let mut e = end;
+            while s + 1 < e {
+                let pivot = fastrand::usize(s..e);
+                self.indices.swap(s, pivot);
+                let mut low = s + 1;
+                let mut high = e - 1;
+                while low <= high {
+                    if particles[self.indices[low]].p[split_dim]
+                        < particles[self.indices[s]].p[split_dim]
+                    {
+                        low += 1;
+                    } else {
+                        self.indices.swap(low, high);
+                        high -= 1;
+                    }
+                }
+                self.indices.swap(s, high);
+                if high < mid {
+                    s = high + 1;
+                } else if high > mid {
+                    e = high;
+                } else {
+                    s = e;
+                }
+            }
+            let split_val = particles[self.indices[mid]].p[split_dim];
+
+            // Recurse on children and build this node.
+            let left = self.build_tree(start, mid, particles, cur_node + 1);
+            let right = self.build_tree(mid, end, particles, left + 1);
+
+            if cur_node >= self.nodes.len() {
+                self.nodes.resize(cur_node + 1, KDTreeNode::leaf(0, NEGS));
+            }
+            self.nodes[cur_node].num_parts = 0;
+            self.nodes[cur_node].split_dim = split_dim;
+            self.nodes[cur_node].split_val = split_val;
+            self.nodes[cur_node].m = m;
+            self.nodes[cur_node].cm = cm;
+            self.nodes[cur_node].size = size;
+            self.nodes[cur_node].left = cur_node + 1;
+            self.nodes[cur_node].right = left + 1;
+
+            right
+        }
+    }
+
+    fn map_calc_acc_recur<'a, F>(
+        &self,
+        cur_node: usize,
+        p: usize,
+        particles: &'a Vec<Particle>,
+        pair_func: &mut F,
+    ) where
+        F: FnMut(usize, &'a Particle, Interaction<'a>, Vector),
+    {
+        // println!("accel {}", cur_node);
+        if self.nodes[cur_node].num_parts > 0 {
+            // do particle-particle
+            let mut acc = [0.0, 0.0, 0.0];
+            for i in 0..(self.nodes[cur_node].num_parts) {
+                if self.nodes[cur_node].particles[i] != p {
+                    let pp_acc =
+                        calc_pp_accel(&particles[p], &particles[self.nodes[cur_node].particles[i]]);
+                    acc[0] += pp_acc[0];
+                    acc[1] += pp_acc[1];
+                    acc[2] += pp_acc[2];
+
+                    pair_func(
+                        p,
+                        &particles[p],
+                        Interaction::ParticleParticle(
+                            &particles[self.nodes[cur_node].particles[i]],
+                        ),
+                        Vector(acc),
+                    );
+                }
+            }
+        } else {
+            let dx = particles[p].p[0] - self.nodes[cur_node].cm[0];
+            let dy = particles[p].p[1] - self.nodes[cur_node].cm[1];
+            let dz = particles[p].p[2] - self.nodes[cur_node].cm[2];
+            let dist_sqr = dx * dx + dy * dy + dz * dz;
+            // println!("dist = {}, size = {}", dist, nodes[cur_node].size);
+            if self.nodes[cur_node].size * self.nodes[cur_node].size < THETA * THETA * dist_sqr {
+                // particle-node
+                let dist = f64::sqrt(dist_sqr);
+                let magi = -self.nodes[cur_node].m / (dist_sqr * dist);
+                pair_func(
+                    p,
+                    &particles[p],
+                    Interaction::ParticleNode,
+                    Vector([dx * magi, dy * magi, dz * magi]),
+                )
+            } else {
+                // look into node
+                self.map_calc_acc_recur(self.nodes[cur_node].left, p, particles, pair_func);
+                self.map_calc_acc_recur(self.nodes[cur_node].right, p, particles, pair_func);
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct KDTreeNode {
     // For leaves
     num_parts: usize,
     particles: [usize; MAX_PARTS],
@@ -24,9 +222,9 @@ pub struct KDTree {
     right: usize,
 }
 
-impl KDTree {
-    pub fn leaf<'a>(num_parts: usize, particles: [usize; MAX_PARTS]) -> KDTree {
-        KDTree {
+impl KDTreeNode {
+    pub fn leaf<'a>(num_parts: usize, particles: [usize; MAX_PARTS]) -> KDTreeNode {
+        KDTreeNode {
             num_parts: num_parts,
             particles: particles,
             split_dim: usize::MAX,
@@ -38,158 +236,6 @@ impl KDTree {
             right: usize::MAX,
         }
     }
-}
-
-pub fn allocate_node_vec(num_parts: usize) -> Vec<KDTree> {
-    let num_nodes = 2 * (num_parts / (MAX_PARTS - 1) + 1);
-    let mut ret = Vec::new();
-    ret.resize(num_nodes, KDTree::leaf(0, NEGS));
-    ret
-}
-
-// Returns the index of the last Node used in the construction.
-pub fn build_tree<'a>(
-    indices: &mut Vec<usize>,
-    start: usize,
-    end: usize,
-    particles: &Vec<Particle>,
-    cur_node: usize,
-    nodes: &mut Vec<KDTree>,
-) -> usize {
-    // println!("start = {} end = {} cur_node = {}", start, end, cur_node);
-    let np = end - start;
-    // println!("s = {}, e = {}, cn = {}", start, end, cur_node);
-    if np <= MAX_PARTS {
-        if cur_node >= nodes.len() {
-            nodes.resize(cur_node + 1, KDTree::leaf(0, NEGS));
-        }
-        nodes[cur_node].num_parts = np;
-        for i in 0..np {
-            nodes[cur_node].particles[i] = indices[start + i]
-        }
-        cur_node
-    } else {
-        // Pick split dim and value
-        let mut min = [1e100, 1e100, 1e100];
-        let mut max = [-1e100, -1e100, -1e100];
-        let mut m = 0.0;
-        let mut cm = [0.0, 0.0, 0.0];
-        for i in start..end {
-            m += particles[indices[i]].m;
-            cm[0] += particles[indices[i]].m * particles[indices[i]].p[0];
-            cm[1] += particles[indices[i]].m * particles[indices[i]].p[1];
-            cm[2] += particles[indices[i]].m * particles[indices[i]].p[2];
-            min[0] = f64::min(min[0], particles[indices[i]].p[0]);
-            min[1] = f64::min(min[1], particles[indices[i]].p[1]);
-            min[2] = f64::min(min[2], particles[indices[i]].p[2]);
-            max[0] = f64::max(max[0], particles[indices[i]].p[0]);
-            max[1] = f64::max(max[1], particles[indices[i]].p[1]);
-            max[2] = f64::max(max[2], particles[indices[i]].p[2]);
-        }
-        cm[0] /= m;
-        cm[1] /= m;
-        cm[2] /= m;
-        let mut split_dim = 0;
-        for dim in 1..3 {
-            if max[dim] - min[dim] > max[split_dim] - min[split_dim] {
-                split_dim = dim
-            }
-        }
-        let size = max[split_dim] - min[split_dim];
-
-        // Partition particles on split_dim
-        let mid = (start + end) / 2;
-        let mut s = start;
-        let mut e = end;
-        while s + 1 < e {
-            let pivot = fastrand::usize(s..e);
-            indices.swap(s, pivot);
-            let mut low = s + 1;
-            let mut high = e - 1;
-            while low <= high {
-                if particles[indices[low]].p[split_dim] < particles[indices[s]].p[split_dim] {
-                    low += 1;
-                } else {
-                    indices.swap(low, high);
-                    high -= 1;
-                }
-            }
-            indices.swap(s, high);
-            if high < mid {
-                s = high + 1;
-            } else if high > mid {
-                e = high;
-            } else {
-                s = e;
-            }
-        }
-        let split_val = particles[indices[mid]].p[split_dim];
-
-        // Recurse on children and build this node.
-        let left = build_tree(indices, start, mid, particles, cur_node + 1, nodes);
-        let right = build_tree(indices, mid, end, particles, left + 1, nodes);
-
-        if cur_node >= nodes.len() {
-            nodes.resize(cur_node + 1, KDTree::leaf(0, NEGS));
-        }
-        nodes[cur_node].num_parts = 0;
-        nodes[cur_node].split_dim = split_dim;
-        nodes[cur_node].split_val = split_val;
-        nodes[cur_node].m = m;
-        nodes[cur_node].cm = cm;
-        nodes[cur_node].size = size;
-        nodes[cur_node].left = cur_node + 1;
-        nodes[cur_node].right = left + 1;
-
-        right
-    }
-}
-
-fn accel_recur(
-    cur_node: usize,
-    p: usize,
-    particles: &Vec<Particle>,
-    nodes: &Vec<KDTree>,
-) -> [f64; 3] {
-    // println!("accel {}", cur_node);
-    if nodes[cur_node].num_parts > 0 {
-        // do particle-particle
-        let mut acc = [0.0, 0.0, 0.0];
-        for i in 0..(nodes[cur_node].num_parts) {
-            if nodes[cur_node].particles[i] != p {
-                let pp_acc = calc_pp_accel(&particles[p], &particles[nodes[cur_node].particles[i]]);
-                acc[0] += pp_acc[0];
-                acc[1] += pp_acc[1];
-                acc[2] += pp_acc[2];
-            }
-        }
-        acc
-    } else {
-        let dx = particles[p].p[0] - nodes[cur_node].cm[0];
-        let dy = particles[p].p[1] - nodes[cur_node].cm[1];
-        let dz = particles[p].p[2] - nodes[cur_node].cm[2];
-        let dist_sqr = dx * dx + dy * dy + dz * dz;
-        // println!("dist = {}, size = {}", dist, nodes[cur_node].size);
-        if nodes[cur_node].size * nodes[cur_node].size < THETA * THETA * dist_sqr {
-            // particle-node
-            let dist = f64::sqrt(dist_sqr);
-            let magi = -nodes[cur_node].m / (dist_sqr * dist);
-            [dx * magi, dy * magi, dz * magi]
-        } else {
-            // look into node
-            let left_acc = accel_recur(nodes[cur_node].left, p, particles, nodes);
-            let right_acc = accel_recur(nodes[cur_node].right, p, particles, nodes);
-            [
-                left_acc[0] + right_acc[0],
-                left_acc[1] + right_acc[1],
-                left_acc[2] + right_acc[2],
-            ]
-        }
-    }
-}
-
-pub fn calc_accel(p: usize, particles: &Vec<Particle>, nodes: &Vec<KDTree>) -> [f64; 3] {
-    accel_recur(0, p, particles, nodes)
 }
 
 // pub fn simple_sim(bodies: &mut Vec<Particle>, dt: f64, steps: i64) {
@@ -233,7 +279,7 @@ pub fn calc_accel(p: usize, particles: &Vec<Particle>, nodes: &Vec<KDTree>) -> [
 //     }
 // }
 
-fn print_tree(step: i64, tree: &Vec<KDTree>, particles: &Vec<Particle>) -> std::io::Result<()> {
+fn print_tree(step: i64, tree: &Vec<KDTreeNode>, particles: &Vec<Particle>) -> std::io::Result<()> {
     let mut file = File::create(format!("tree{}.txt", step))?;
 
     file.write_fmt(format_args!("{}\n", tree.len()))?;
@@ -260,7 +306,7 @@ fn print_tree(step: i64, tree: &Vec<KDTree>, particles: &Vec<Particle>) -> std::
 
 fn recur_test_tree_struct(
     node: usize,
-    nodes: &Vec<KDTree>,
+    nodes: &Vec<KDTreeNode>,
     particles: &Vec<Particle>,
     mut min: [f64; 3],
     mut max: [f64; 3],

@@ -11,7 +11,7 @@ use crate::{
  */
 
 #[derive(Clone, Copy, Debug)]
-struct ForceEvent {
+pub struct ForceEvent {
     time: f64,
     last_time: f64,
     p1: ParticleIndex,

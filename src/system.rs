@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    kd_tree::{allocate_node_vec, build_tree, calc_accel, KDTree},
+    kd_tree::{self, Interaction},
     particle::Particle,
     soft_collision_queue::ForceQueue,
     vectors::Vector,
@@ -12,11 +12,11 @@ where
     F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3]),
 {
     pop: Vec<Particle>,
-    indices: Vec<usize>,
-    tree: Vec<KDTree>,
+    tree: kd_tree::KDTree,
     time_step: f64,
     current_time: f64,
     pq: ForceQueue<F>,
+    dv_tmp: Vec<Vector>,
 }
 
 impl<F> KDTreeSystem<F>
@@ -24,32 +24,35 @@ where
     F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3]),
 {
     pub fn new(pop: Vec<Particle>, time_step: f64, pair_force: F) -> Self {
+        let size = pop.len();
         Self {
-            indices: (0..pop.len()).collect(),
-            tree: allocate_node_vec(pop.len()),
+            tree: kd_tree::KDTree::new(pop.len()),
             pop,
             time_step,
             current_time: 0.,
             pq: ForceQueue::new(time_step, pair_force),
+            dv_tmp: {
+                let mut v = Vec::new();
+                v.resize(size, Vector::ZERO);
+                v
+            },
         }
     }
 
-    fn rebuild_kdtree(&mut self) {
-        build_tree(
-            &mut self.indices,
-            0,
-            self.pop.len(),
-            &self.pop,
-            0,
-            &mut self.tree,
-        );
-    }
-
     pub fn apply_forces(&mut self) {
-        self.rebuild_kdtree();
+        self.tree.rebuild_kdtree(&self.pop);
 
-        for i in 0..self.pop.len() {
-            apply_and_calc_forces(i, &self.pop, &self.tree);
+        let mut dv_apply =
+            |p: usize, particle: &Particle, inter: Interaction, p_acc: Vector| match inter {
+                Interaction::ParticleParticle(other) => {}
+                Interaction::ParticleNode => {
+                    let dv = p_acc * self.time_step;
+                    self.dv_tmp[p] += dv;
+                }
+            };
+
+        for p in 0..self.pop.len() {
+            self.tree.map_calc_acc(p, &self.pop, &mut dv_apply);
         }
     }
 

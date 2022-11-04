@@ -10,6 +10,8 @@ fn square(x: f64) -> f64 {
 pub struct Vector(pub [f64; 3]);
 
 impl Vector {
+    pub const ZERO: Self = Self([0., 0., 0.]);
+
     #[inline(always)]
     pub fn dot(&self, other: &Vector) -> f64 {
         self.0[0] * other.0[0] + self.0[1] * other.0[1] + self.0[2] + other.0[2]
