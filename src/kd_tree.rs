@@ -18,7 +18,7 @@ pub struct KDTree {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Interaction<'a> {
-    ParticleParticle(&'a Particle),
+    ParticleParticle(ParticleIndex, &'a Particle),
     ParticleNode,
 }
 
@@ -39,7 +39,7 @@ impl KDTree {
     /// the provided function F will be given: (particle index, &particle, interaction (may contain other &particle), acc of p)
     pub fn map_calc_acc<'a, F>(&self, p: usize, particles: &'a Vec<Particle>, pair_func: &mut F)
     where
-        F: FnMut(usize, &'a Particle, Interaction<'a>, Vector),
+        F: FnMut(ParticleIndex, &'a Particle, Interaction<'a>, Vector),
     {
         self.map_calc_acc_recur(0, p, particles, pair_func)
     }
@@ -157,7 +157,7 @@ impl KDTree {
         particles: &'a Vec<Particle>,
         pair_func: &mut F,
     ) where
-        F: FnMut(usize, &'a Particle, Interaction<'a>, Vector),
+        F: FnMut(ParticleIndex, &'a Particle, Interaction<'a>, Vector),
     {
         // println!("accel {}", cur_node);
         if self.nodes[cur_node].num_parts > 0 {
@@ -172,9 +172,10 @@ impl KDTree {
                     acc[2] += pp_acc[2];
 
                     pair_func(
-                        p,
+                        ParticleIndex(p),
                         &particles[p],
                         Interaction::ParticleParticle(
+                            ParticleIndex(self.nodes[cur_node].particles[i]),
                             &particles[self.nodes[cur_node].particles[i]],
                         ),
                         Vector(acc),
@@ -192,7 +193,7 @@ impl KDTree {
                 let dist = f64::sqrt(dist_sqr);
                 let magi = -self.nodes[cur_node].m / (dist_sqr * dist);
                 pair_func(
-                    p,
+                    ParticleIndex(p),
                     &particles[p],
                     Interaction::ParticleNode,
                     Vector([dx * magi, dy * magi, dz * magi]),

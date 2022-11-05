@@ -10,13 +10,30 @@ This repository holds a version of my simulation code written in Rust since I'm 
 - KDTree (gravity forces)
 
 ```mermaid
-graph TD;
+flowchart TD;
     System-- stores -->Population;
     Population -- remakes --> KDTree;
     KDTree -- applies forces --> Population;
     KDTree -- adds events to pq --> ForcePQ;
     ForcePQ -- applies sub steps --> Population;
 ```
+
+## One Step
+
+```mermaid
+flowchart TD;
+    b[Build KDTree] --> c
+    subgraph c[Walk KDTree]
+    p2[Particle-Particle] --> cdv
+    pn[Particle-Node] --> cdv
+    cdv[Compute &Delta;v]
+    coll[Put possible collision on pq]
+    p2 --> coll
+    end
+    c --> pq[Process PQ]
+    pq --> fs[Finalize step]
+```
+
 
 ## Notes
 

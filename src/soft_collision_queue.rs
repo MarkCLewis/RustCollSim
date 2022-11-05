@@ -12,11 +12,11 @@ use crate::{
 
 #[derive(Clone, Copy, Debug)]
 pub struct ForceEvent {
-    time: f64,
-    last_time: f64,
-    p1: ParticleIndex,
-    p2: ParticleIndex,
-    impact_vel: f64,
+    pub time: f64,
+    pub last_time: f64,
+    pub p1: ParticleIndex,
+    pub p2: ParticleIndex,
+    pub impact_vel: f64, // FIXME: track with impact_vel struct
 }
 // data like impact vel needs to be kept from one timestep to the next
 
@@ -50,14 +50,12 @@ pub struct ForceQueue<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3]
     big_time_step: f64, // the main time step
     compute_local_acceleration: F,
     desired_collision_step_count: u32,
-    minimum_time_step: f64,
+    minimum_time_step: f64, // print warn if dt < this
 }
 
-mod support {
-    pub enum PushPq {
-        DoPush,
-        NoPush,
-    }
+pub enum PushPq {
+    DoPush,
+    NoPush,
 }
 
 impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> {
@@ -97,7 +95,8 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
     }
 
     // the returned time will not be greater than next_sync_step
-    fn get_next_time(
+    // returns next_event_time, dt, whether to push to pq
+    pub fn get_next_time(
         &self,
         separation_distance: f64,
         next_sync_step: f64,
@@ -105,40 +104,47 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
         event_time: f64,
         m: f64,
         r: f64,
-    ) -> (f64, support::PushPq) {
+    ) -> (f64, f64, PushPq) {
         use crate::no_explode::{omega_0_from_k, rotter::b_and_k};
 
         let omega_0 = omega_0_from_k(b_and_k(current_impact_vel, m, r).1, m);
         assert!(omega_0 > 0.);
 
-        let dt = f64::max(
-            self.minimum_time_step,
-            if separation_distance < 0. {
-                // colliding
-                // 1/(\omega_0 C), => C = step num
-                1. / (omega_0 * self.desired_collision_step_count as f64)
-            } else {
-                // v * t = d
-                let impact_time_dt = separation_distance / current_impact_vel;
-                // max( dist/(2*v_normal) and 1/(\omega_0 C) )
+        // TODO: abstract out gravity forces
 
-                f64::max(
-                    impact_time_dt.abs() / 2.,
-                    1. / (omega_0 * self.desired_collision_step_count as f64),
-                )
-            },
-        );
+        let dt = if separation_distance < 0. {
+            // colliding
+            // 1/(\omega_0 C), => C = step num
+            1. / (omega_0 * self.desired_collision_step_count as f64)
+        } else {
+            // v * t = d
+            let impact_time_dt = separation_distance / current_impact_vel;
+            // max( dist/(2*v_normal) and 1/(\omega_0 C) )
+
+            f64::max(
+                impact_time_dt.abs() / 2.,
+                1. / (omega_0 * self.desired_collision_step_count as f64),
+            )
+        };
+
+        if dt < self.minimum_time_step {
+            eprintln!(
+                "WARN: time step too small: dt={}, event_time={}",
+                dt, event_time
+            );
+        }
+
         let mut next_time = event_time + dt;
 
         // if moving at each other, reschedule at dt/2, but not less than big_time_step/100
         let repush_to_pq = if next_time > next_sync_step {
             next_time = next_sync_step;
-            support::PushPq::NoPush
+            PushPq::NoPush
         } else {
-            support::PushPq::DoPush
+            PushPq::DoPush
         };
 
-        (next_time, repush_to_pq)
+        (next_time, dt, repush_to_pq)
     }
 
     pub fn run_through_collision_pairs(
@@ -154,10 +160,7 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                 Self::fast_forward(p1, event.time);
                 Self::fast_forward(p2, event.time);
 
-                let unit_to_p2 = (Vector(p2.p) - Vector(p1.p)).unit_vector(); // unit vec from p1 pointing at p2
-
-                // (vel of p2 rel to p1) dot (unit vector pointing at p2 from p1)
-                let current_impact_vel = (Vector(p2.v) - Vector(p1.v)) * unit_to_p2;
+                let current_impact_vel = Particle::impact_vel(p1, p2);
 
                 let separation_distance = (Vector(p1.p) - Vector(p2.p)).mag() - (p1.r + p2.r);
 
@@ -167,7 +170,7 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                 // compute local forces
                 let (acc1, acc2) = (self.compute_local_acceleration)(p1, p2);
 
-                // FIXME: issue: integrating the velocity requires knowing next event time
+                // issue: integrating the velocity requires knowing next event time
                 // computing next event time requires knowing velocity
 
                 // if not overlapping, we need a new impact velocity
@@ -177,7 +180,7 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                     current_impact_vel
                 };
 
-                let (next_time, repush_to_pq) = self.get_next_time(
+                let (next_time, _, repush_to_pq) = self.get_next_time(
                     separation_distance,
                     next_sync_step,
                     current_impact_vel,
@@ -190,7 +193,7 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                 p2.v = (Vector(p2.v) + Vector(acc2) * (next_time - event.time)).0;
 
                 match repush_to_pq {
-                    support::PushPq::DoPush => {
+                    PushPq::DoPush => {
                         self.queue.push(ForceEvent {
                             time: next_time,
                             last_time: event.time,
@@ -199,7 +202,7 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                             impact_vel: updated_impact_vel,
                         });
                     }
-                    support::PushPq::NoPush => {
+                    PushPq::NoPush => {
                         // do nothing
                     }
                 }

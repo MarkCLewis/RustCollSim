@@ -1,9 +1,9 @@
-use std::marker::PhantomData;
+use std::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     kd_tree::{self, Interaction},
-    particle::Particle,
-    soft_collision_queue::ForceQueue,
+    particle::{Particle, ParticleIndex},
+    soft_collision_queue::{ForceEvent, ForceQueue, PushPq},
     vectors::Vector,
 };
 
@@ -15,8 +15,8 @@ where
     tree: kd_tree::KDTree,
     time_step: f64,
     current_time: f64,
-    pq: ForceQueue<F>,
-    dv_tmp: Vec<Vector>,
+    pq: RefCell<ForceQueue<F>>,
+    dv_tmp: RefCell<Vec<Vector>>,
 }
 
 impl<F> KDTreeSystem<F>
@@ -30,11 +30,11 @@ where
             pop,
             time_step,
             current_time: 0.,
-            pq: ForceQueue::new(time_step, pair_force),
+            pq: RefCell::new(ForceQueue::new(time_step, pair_force)),
             dv_tmp: {
                 let mut v = Vec::new();
                 v.resize(size, Vector::ZERO);
-                v
+                RefCell::new(v)
             },
         }
     }
@@ -42,14 +42,57 @@ where
     pub fn apply_forces(&mut self) {
         self.tree.rebuild_kdtree(&self.pop);
 
-        let mut dv_apply =
-            |p: usize, particle: &Particle, inter: Interaction, p_acc: Vector| match inter {
-                Interaction::ParticleParticle(other) => {}
-                Interaction::ParticleNode => {
-                    let dv = p_acc * self.time_step;
-                    self.dv_tmp[p] += dv;
+        let borrow_dv = &self.dv_tmp;
+
+        let next_sync_step = self.current_time + self.time_step;
+
+        let mut dv_apply = |p: ParticleIndex,
+                            particle: &Particle,
+                            inter: Interaction,
+                            p_acc: Vector| match inter {
+            Interaction::ParticleParticle(other_idx, other) => {
+                let current_impact_vel = Particle::impact_vel(particle, other);
+                // FIXME: remember impact vel
+                let updated_impact_vel = current_impact_vel;
+
+                let mut mut_borrow = self.pq.borrow_mut();
+
+                let (next_event_time, dt, push_pq) = mut_borrow.get_next_time(
+                    (Vector(particle.p) - Vector(other.p)).mag(),
+                    next_sync_step,
+                    updated_impact_vel,
+                    self.current_time,
+                    particle.m,
+                    particle.r,
+                );
+
+                let dv = p_acc * dt;
+                {
+                    let mut mut_dv = borrow_dv.borrow_mut();
+                    mut_dv[p.0] += dv;
                 }
-            };
+                match push_pq {
+                    PushPq::DoPush => {
+                        mut_borrow.queue.push(ForceEvent {
+                            time: next_event_time,
+                            last_time: self.current_time,
+                            p1: p,
+                            p2: other_idx,
+                            impact_vel: updated_impact_vel,
+                        });
+                    }
+                    PushPq::NoPush => {
+                        // do nothing
+                    }
+                }
+            }
+            Interaction::ParticleNode => {
+                let dv = p_acc * self.time_step;
+
+                let mut mut_dv = borrow_dv.borrow_mut();
+                mut_dv[p.0] += dv;
+            }
+        };
 
         for p in 0..self.pop.len() {
             self.tree.map_calc_acc(p, &self.pop, &mut dv_apply);
@@ -58,7 +101,7 @@ where
 
     pub fn end_step(&mut self) {
         let next_time = self.current_time + self.time_step;
-        self.pq.do_one_step(&mut self.pop, next_time);
+        self.pq.borrow_mut().do_one_step(&mut self.pop, next_time);
         self.current_time = next_time;
     }
 }

@@ -1,5 +1,9 @@
+use std::hash::Hash;
+
+use crate::vectors::Vector;
+
 /// A wrapper for increased type safety
-#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ParticleIndex(pub usize);
 
 #[derive(Clone, Debug)]
@@ -15,6 +19,13 @@ impl Particle {
     // fn m(&self) -> f64 {
     //     return RHO * self.r * self.r * self.r;
     // }
+
+    pub fn impact_vel(&self, other: &Self) -> f64 {
+        let unit_to_p2 = (Vector(other.p) - Vector(self.p)).unit_vector(); // unit vec from p1 pointing at p2
+
+        // (vel of p2 rel to p1) dot (unit vector pointing at p2 from p1)
+        (Vector(other.v) - Vector(self.v)) * unit_to_p2
+    }
 }
 
 pub fn two_bodies() -> Vec<Particle> {
