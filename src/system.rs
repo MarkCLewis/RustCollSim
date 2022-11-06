@@ -58,11 +58,12 @@ where
                             inter: Interaction,
                             p_acc: Vector| match inter {
             Interaction::ParticleParticle(other_idx, other) => {
-                let current_impact_vel = Particle::impact_vel(particle, other);
-                // FIXME: remember impact vel
-                // let opt = self.impact_vel.borrow().get(p, other_idx);
+                let current_impact_vel = Particle::impact_speed(particle, other);
 
-                let updated_impact_vel = current_impact_vel;
+                let updated_impact_vel = match self.impact_vel.borrow().get(p, other_idx) {
+                    Some((v, _)) => f64::max(v, current_impact_vel),
+                    None => current_impact_vel,
+                };
 
                 let mut mut_borrow = self.pq.borrow_mut();
 

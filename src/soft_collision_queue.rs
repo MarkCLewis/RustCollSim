@@ -164,7 +164,7 @@ impl<F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector)> ForceQueue<F> {
                 Self::fast_forward(p1, event.time);
                 Self::fast_forward(p2, event.time);
 
-                let current_impact_vel = Particle::impact_vel(p1, p2);
+                let current_impact_vel = Particle::impact_speed(p1, p2);
 
                 let separation_distance = (Vector(p1.p) - Vector(p2.p)).mag() - (p1.r + p2.r);
 

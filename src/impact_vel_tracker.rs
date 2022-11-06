@@ -36,7 +36,7 @@ impl ImpactVelocityTracker {
     }
 
     /// tries p1, p2
-    pub fn get(&mut self, p1: ParticleIndex, p2: ParticleIndex) -> Option<(f64, usize)> {
+    pub fn get(&self, p1: ParticleIndex, p2: ParticleIndex) -> Option<(f64, usize)> {
         self.data.get(&smaller_first(p1, p2)).copied()
     }
 

@@ -20,11 +20,12 @@ impl Particle {
     //     return RHO * self.r * self.r * self.r;
     // }
 
-    pub fn impact_vel(&self, other: &Self) -> f64 {
+    /// returns speed (absolute)
+    pub fn impact_speed(&self, other: &Self) -> f64 {
         let unit_to_p2 = (Vector(other.p) - Vector(self.p)).unit_vector(); // unit vec from p1 pointing at p2
 
         // (vel of p2 rel to p1) dot (unit vector pointing at p2 from p1)
-        (Vector(other.v) - Vector(self.v)) * unit_to_p2
+        ((Vector(other.v) - Vector(self.v)) * unit_to_p2).abs()
     }
 }
 
