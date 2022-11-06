@@ -280,6 +280,7 @@ impl KDTreeNode {
 //     }
 // }
 
+#[allow(dead_code)]
 fn print_tree(step: i64, tree: &Vec<KDTreeNode>, particles: &Vec<Particle>) -> std::io::Result<()> {
     let mut file = File::create(format!("tree{}.txt", step))?;
 
@@ -305,6 +306,7 @@ fn print_tree(step: i64, tree: &Vec<KDTreeNode>, particles: &Vec<Particle>) -> s
     Ok(())
 }
 
+#[allow(dead_code)]
 fn recur_test_tree_struct(
     node: usize,
     nodes: &Vec<KDTreeNode>,

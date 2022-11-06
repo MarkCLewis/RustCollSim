@@ -19,6 +19,7 @@ pub fn omega_0_from_k(k: f64, m: f64) -> f64 {
     (k / m).sqrt()
 }
 
+#[allow(dead_code)]
 pub mod rotter {
     use std::f64::consts::PI;
 
@@ -28,8 +29,8 @@ pub mod rotter {
     }
 
     fn omega_0_sq(beta_val: f64) -> f64 {
-        let LN_COEFF_RES_SQ = crate::no_explode::COEFF_RES.ln() * crate::no_explode::COEFF_RES.ln();
-        (beta_val * beta_val * (LN_COEFF_RES_SQ + PI * PI)) / (4. * LN_COEFF_RES_SQ)
+        let ln_coeff_res_sq = crate::no_explode::COEFF_RES.ln() * crate::no_explode::COEFF_RES.ln();
+        (beta_val * beta_val * (ln_coeff_res_sq + PI * PI)) / (4. * ln_coeff_res_sq)
     }
 
     // returns (b, k)
@@ -46,6 +47,7 @@ pub mod rotter {
     }
 }
 
+#[allow(dead_code)]
 pub mod lewis {
     use std::f64::consts::PI;
 
@@ -65,6 +67,7 @@ pub mod lewis {
     }
 }
 
+#[allow(dead_code)]
 pub mod schwartz {
     use std::f64::consts::PI;
 

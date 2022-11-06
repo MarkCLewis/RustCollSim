@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, collections::BinaryHeap};
 
 use crate::{
+    impact_vel_tracker::ImpactVelocityTracker,
     particle::{Particle, ParticleIndex},
     util::borrow_two_elements,
     vectors::Vector,
@@ -16,7 +17,6 @@ pub struct ForceEvent {
     pub last_time: f64,
     pub p1: ParticleIndex,
     pub p2: ParticleIndex,
-    pub impact_vel: f64, // FIXME: track with impact_vel struct
 }
 // data like impact vel needs to be kept from one timestep to the next
 
@@ -45,9 +45,8 @@ impl Ord for ForceEvent {
     }
 }
 
-pub struct ForceQueue<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> {
+pub struct ForceQueue<F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector)> {
     pub queue: BinaryHeap<ForceEvent>,
-    big_time_step: f64, // the main time step
     compute_local_acceleration: F,
     desired_collision_step_count: u32,
     minimum_time_step: f64, // print warn if dt < this
@@ -58,11 +57,10 @@ pub enum PushPq {
     NoPush,
 }
 
-impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> {
+impl<F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector)> ForceQueue<F> {
     pub fn new(big_time_step: f64, compute_local_acceleration: F) -> Self {
         Self {
             queue: BinaryHeap::new(),
-            big_time_step,
             compute_local_acceleration,
             desired_collision_step_count: 10,
             minimum_time_step: big_time_step / 100.,
@@ -79,10 +77,14 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
         particle.t = current_time;
     }
 
-    pub fn do_one_step(&mut self, particles: &mut Vec<Particle>, next_sync_step: f64) {
-        //self.queue.clear();
-
-        self.run_through_collision_pairs(particles, next_sync_step);
+    pub fn do_one_step(
+        &mut self,
+        particles: &mut Vec<Particle>,
+        next_sync_step: f64,
+        impact_vel_tracker: &mut ImpactVelocityTracker,
+        step_count: usize,
+    ) {
+        self.run_through_collision_pairs(particles, next_sync_step, impact_vel_tracker, step_count);
 
         Self::end_step(particles, next_sync_step);
     }
@@ -151,6 +153,8 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
+        impact_vel_tracker: &mut ImpactVelocityTracker,
+        step_count: usize,
     ) {
         loop {
             if let Some(event) = self.queue.pop() {
@@ -173,12 +177,20 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                 // issue: integrating the velocity requires knowing next event time
                 // computing next event time requires knowing velocity
 
-                // if not overlapping, we need a new impact velocity
-                let updated_impact_vel = if separation_distance < 0. {
-                    f64::max(event.impact_vel, current_impact_vel)
-                } else {
-                    current_impact_vel
+                let tracked_impact_vel = impact_vel_tracker.get(event.p1, event.p2);
+                let updated_impact_vel = match tracked_impact_vel {
+                    Some((old_impact_vel, _)) => {
+                        // if not overlapping, we need a new impact velocity
+                        if separation_distance < 0. {
+                            f64::max(old_impact_vel, current_impact_vel)
+                        } else {
+                            current_impact_vel
+                        }
+                    }
+                    None => current_impact_vel,
                 };
+
+                impact_vel_tracker.add(event.p1, event.p2, updated_impact_vel, step_count);
 
                 let (next_time, _, repush_to_pq) = self.get_next_time(
                     separation_distance,
@@ -189,8 +201,8 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                     f64::max(p1.r, p2.r),
                 );
 
-                p1.v = (Vector(p1.v) + Vector(acc1) * (next_time - event.time)).0;
-                p2.v = (Vector(p2.v) + Vector(acc2) * (next_time - event.time)).0;
+                p1.v = (Vector(p1.v) + acc1 * (next_time - event.time)).0;
+                p2.v = (Vector(p2.v) + acc2 * (next_time - event.time)).0;
 
                 match repush_to_pq {
                     PushPq::DoPush => {
@@ -199,13 +211,13 @@ impl<F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3])> ForceQueue<F> 
                             last_time: event.time,
                             p1: event.p1,
                             p2: event.p2,
-                            impact_vel: updated_impact_vel,
                         });
                     }
                     PushPq::NoPush => {
                         // do nothing
                     }
                 }
+                impact_vel_tracker.add(event.p1, event.p2, updated_impact_vel, step_count);
 
                 println!("{:?}, {:?}", p1, p2);
             } else {

@@ -1,6 +1,7 @@
 use std::{cell::RefCell, marker::PhantomData};
 
 use crate::{
+    impact_vel_tracker::ImpactVelocityTracker,
     kd_tree::{self, Interaction},
     particle::{Particle, ParticleIndex},
     soft_collision_queue::{ForceEvent, ForceQueue, PushPq},
@@ -9,7 +10,7 @@ use crate::{
 
 pub struct KDTreeSystem<F>
 where
-    F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3]),
+    F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector),
 {
     pop: Vec<Particle>,
     tree: kd_tree::KDTree,
@@ -17,11 +18,12 @@ where
     current_time: f64,
     pq: RefCell<ForceQueue<F>>,
     dv_tmp: RefCell<Vec<Vector>>,
+    impact_vel: RefCell<ImpactVelocityTracker>,
 }
 
 impl<F> KDTreeSystem<F>
 where
-    F: Fn(&mut Particle, &mut Particle) -> ([f64; 3], [f64; 3]),
+    F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector),
 {
     pub fn new(pop: Vec<Particle>, time_step: f64, pair_force: F) -> Self {
         let size = pop.len();
@@ -36,10 +38,15 @@ where
                 v.resize(size, Vector::ZERO);
                 RefCell::new(v)
             },
+            impact_vel: RefCell::new(ImpactVelocityTracker::new()),
         }
     }
 
-    pub fn apply_forces(&mut self) {
+    pub fn trim_impact_vel_tracker(&mut self, current_step: usize) {
+        self.impact_vel.borrow_mut().trim(current_step);
+    }
+
+    pub fn apply_forces(&mut self, step_count: usize) {
         self.tree.rebuild_kdtree(&self.pop);
 
         let borrow_dv = &self.dv_tmp;
@@ -53,6 +60,8 @@ where
             Interaction::ParticleParticle(other_idx, other) => {
                 let current_impact_vel = Particle::impact_vel(particle, other);
                 // FIXME: remember impact vel
+                // let opt = self.impact_vel.borrow().get(p, other_idx);
+
                 let updated_impact_vel = current_impact_vel;
 
                 let mut mut_borrow = self.pq.borrow_mut();
@@ -78,13 +87,15 @@ where
                             last_time: self.current_time,
                             p1: p,
                             p2: other_idx,
-                            impact_vel: updated_impact_vel,
                         });
                     }
                     PushPq::NoPush => {
                         // do nothing
                     }
                 }
+                self.impact_vel
+                    .borrow_mut()
+                    .add(p, other_idx, updated_impact_vel, step_count);
             }
             Interaction::ParticleNode => {
                 let dv = p_acc * self.time_step;
@@ -99,9 +110,14 @@ where
         }
     }
 
-    pub fn end_step(&mut self) {
+    pub fn end_step(&mut self, step_count: usize) {
         let next_time = self.current_time + self.time_step;
-        self.pq.borrow_mut().do_one_step(&mut self.pop, next_time);
+        self.pq.borrow_mut().do_one_step(
+            &mut self.pop,
+            next_time,
+            &mut self.impact_vel.borrow_mut(),
+            step_count,
+        );
         self.current_time = next_time;
     }
 }
