@@ -10,7 +10,14 @@ use crate::{
 
 pub struct KDTreeSystem<F>
 where
-    F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector),
+    F: Fn(
+        &mut Particle,
+        &mut Particle,
+        &mut ImpactVelocityTracker,
+        ParticleIndex,
+        ParticleIndex,
+        usize,
+    ) -> (Vector, Vector),
 {
     pop: Vec<Particle>,
     tree: kd_tree::KDTree,
@@ -23,7 +30,14 @@ where
 
 impl<F> KDTreeSystem<F>
 where
-    F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector),
+    F: Fn(
+        &mut Particle,
+        &mut Particle,
+        &mut ImpactVelocityTracker,
+        ParticleIndex,
+        ParticleIndex,
+        usize,
+    ) -> (Vector, Vector),
 {
     pub fn new(pop: Vec<Particle>, time_step: f64, pair_force: F) -> Self {
         let size = pop.len();

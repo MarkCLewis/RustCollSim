@@ -45,7 +45,16 @@ impl Ord for ForceEvent {
     }
 }
 
-pub struct ForceQueue<F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector)> {
+pub struct ForceQueue<
+    F: Fn(
+        &mut Particle,
+        &mut Particle,
+        &mut ImpactVelocityTracker,
+        ParticleIndex,
+        ParticleIndex,
+        usize,
+    ) -> (Vector, Vector),
+> {
     pub queue: BinaryHeap<ForceEvent>,
     compute_local_acceleration: F,
     desired_collision_step_count: u32,
@@ -57,7 +66,17 @@ pub enum PushPq {
     NoPush,
 }
 
-impl<F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector)> ForceQueue<F> {
+impl<
+        F: Fn(
+            &mut Particle,
+            &mut Particle,
+            &mut ImpactVelocityTracker,
+            ParticleIndex,
+            ParticleIndex,
+            usize,
+        ) -> (Vector, Vector),
+    > ForceQueue<F>
+{
     pub fn new(big_time_step: f64, compute_local_acceleration: F) -> Self {
         Self {
             queue: BinaryHeap::new(),
@@ -172,7 +191,14 @@ impl<F: Fn(&mut Particle, &mut Particle) -> (Vector, Vector)> ForceQueue<F> {
                 assert!(last_time_step > 0.);
 
                 // compute local forces
-                let (acc1, acc2) = (self.compute_local_acceleration)(p1, p2);
+                let (acc1, acc2) = (self.compute_local_acceleration)(
+                    p1,
+                    p2,
+                    impact_vel_tracker,
+                    event.p1,
+                    event.p2,
+                    step_count,
+                );
 
                 // issue: integrating the velocity requires knowing next event time
                 // computing next event time requires knowing velocity

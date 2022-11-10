@@ -12,7 +12,13 @@ mod vectors;
 
 use std::time::Instant;
 
-use crate::{no_explode::rotter, particle::Particle, system::KDTreeSystem, vectors::Vector};
+use crate::{
+    impact_vel_tracker::ImpactVelocityTracker,
+    no_explode::rotter,
+    particle::{calc_pp_accel, Particle, ParticleIndex},
+    system::KDTreeSystem,
+    vectors::Vector,
+};
 
 fn main() {
     println!("Hello, collisional simulations!");
@@ -49,16 +55,31 @@ fn demo1() {
     {
         let start = Instant::now();
 
-        fn pair_force(p1: &mut Particle, p2: &mut Particle) -> (Vector, Vector) {
+        fn pair_force(
+            p1: &mut Particle,
+            p2: &mut Particle,
+            impact_vel_tracker: &mut ImpactVelocityTracker,
+            p1_i: ParticleIndex,
+            p2_i: ParticleIndex,
+            step_num: usize,
+        ) -> (Vector, Vector) {
             let x_len = (Vector(p1.p) - Vector(p2.p)).mag();
             let x_hat = (Vector(p1.p) - Vector(p2.p)) / x_len;
             let separation_dis = x_len - p1.r - p2.r;
             let vji = Vector(p1.p) - Vector(p2.p);
-            // FIXME: impact vel tracker
-            let impact_vel = 0.;
+
+            let curr_impact = p1.impact_speed(p2);
 
             if separation_dis < 0. {
                 // colliding
+
+                let vel_maybe = impact_vel_tracker.get(p1_i, p2_i);
+                let impact_vel = match vel_maybe {
+                    Some((vel, _)) => f64::max(vel, curr_impact),
+                    None => curr_impact,
+                };
+                impact_vel_tracker.add(p1_i, p2_i, impact_vel, step_num); // update impact vel
+
                 let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
                 let (b, k) = rotter::b_and_k(impact_vel, reduced_mass, f64::min(p1.r, p2.r));
 
@@ -70,8 +91,8 @@ fn demo1() {
                 return (f_total / p1.m, f_total / p2.m);
             } else {
                 // not colliding
-                // FIXME: gravity? calc_pp_accel
-                return (Vector::ZERO, Vector::ZERO);
+
+                return (Vector(calc_pp_accel(p1, p2)), Vector(calc_pp_accel(p2, p1)));
             }
         }
 
