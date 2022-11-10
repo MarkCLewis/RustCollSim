@@ -1,3 +1,4 @@
+use core::fmt;
 use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 #[inline(always)]
@@ -8,6 +9,13 @@ fn square(x: f64) -> f64 {
 // x, y, z for all
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vector(pub [f64; 3]);
+
+impl fmt::Display for Vector {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "<{}, {}, {}>", self.0[0], self.0[1], self.0[2])
+    }
+}
 
 impl Vector {
     pub const ZERO: Self = Self([0., 0., 0.]);

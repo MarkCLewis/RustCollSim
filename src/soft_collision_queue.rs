@@ -129,7 +129,7 @@ impl<
         use crate::no_explode::{omega_0_from_k, rotter::b_and_k};
 
         let omega_0 = omega_0_from_k(b_and_k(current_impact_vel, m, r).1, m);
-        assert!(omega_0 > 0.);
+        assert!(omega_0 >= 0.);
 
         // TODO: abstract out gravity forces
 
