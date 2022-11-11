@@ -1,8 +1,8 @@
-use std::{cmp::Ordering, collections::BinaryHeap};
+use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap};
 
 use crate::{
     impact_vel_tracker::ImpactVelocityTracker,
-    particle::{Particle, ParticleIndex},
+    particle::{calc_pp_accel, Particle, ParticleIndex},
     util::borrow_two_elements,
     vectors::Vector,
 };
@@ -45,7 +45,7 @@ impl Ord for ForceEvent {
     }
 }
 
-pub struct ForceQueue<
+pub struct SoftSphereForce<
     F: Fn(
         &mut Particle,
         &mut Particle,
@@ -59,11 +59,20 @@ pub struct ForceQueue<
     compute_local_acceleration: F,
     desired_collision_step_count: u32,
     minimum_time_step: f64, // print warn if dt < this
+    impact_vel: RefCell<ImpactVelocityTracker>,
 }
 
 pub enum PushPq {
     DoPush,
     NoPush,
+}
+
+struct EventData {
+    impact_speed: f64,
+    b: f64,
+    k: f64,
+    separation_distance: f64,
+    reduced_mass: f64,
 }
 
 impl<
@@ -75,7 +84,7 @@ impl<
             ParticleIndex,
             usize,
         ) -> (Vector, Vector),
-    > ForceQueue<F>
+    > SoftSphereForce<F>
 {
     pub fn new(big_time_step: f64, compute_local_acceleration: F) -> Self {
         Self {
@@ -83,7 +92,12 @@ impl<
             compute_local_acceleration,
             desired_collision_step_count: 10,
             minimum_time_step: big_time_step / 100.,
+            impact_vel: RefCell::new(ImpactVelocityTracker::new()),
         }
+    }
+
+    pub fn trim_impact_vel_tracker(&mut self, current_step: usize) {
+        self.impact_vel.borrow_mut().trim(current_step);
     }
 
     fn fast_forward(particle: &mut Particle, current_time: f64) {
@@ -100,10 +114,9 @@ impl<
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
-        impact_vel_tracker: &mut ImpactVelocityTracker,
         step_count: usize,
     ) {
-        self.run_through_collision_pairs(particles, next_sync_step, impact_vel_tracker, step_count);
+        self.run_through_collision_pairs(particles, next_sync_step, step_count);
 
         Self::end_step(particles, next_sync_step);
     }
@@ -115,20 +128,81 @@ impl<
         }
     }
 
+    fn compute_acc(
+        &mut self,
+        (p1i, p1): (ParticleIndex, &mut Particle),
+        (p2i, p2): (ParticleIndex, &mut Particle),
+        step_num: usize,
+    ) -> (Vector, Vector, EventData) {
+        // FIXME: this
+        let current_impact_vel = Particle::impact_speed(p1, p2);
+        let x_len = (Vector(p1.p) - Vector(p2.p)).mag();
+        let x_hat = (Vector(p1.p) - Vector(p2.p)) / x_len;
+        let separation_distance = x_len - p1.r - p2.r;
+        let vji = Vector(p1.p) - Vector(p2.p);
+
+        let impact_speed = if separation_distance < 0. {
+            // colliding
+            // look up impact velocity
+            match self.impact_vel.borrow().get(p1i, p2i) {
+                None => current_impact_vel,
+                Some((speed, _)) => f64::max(speed, current_impact_vel),
+            }
+        } else {
+            // not colliding
+            current_impact_vel
+        };
+
+        let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
+
+        use crate::rotter::b_and_k;
+        let (b, k) = b_and_k(impact_speed, reduced_mass, f64::min(p1.r, p2.r));
+
+        let info = EventData {
+            impact_speed,
+            b,
+            k,
+            separation_distance,
+            reduced_mass,
+        };
+
+        if separation_distance < 0. {
+            // colliding
+            // spring-force
+            let f_spring = x_hat * -k * separation_distance;
+            let f_damp = vji * -b;
+
+            let f_total = f_spring + f_damp;
+
+            // if colliding, keep refreshing (or updating in case of a speedup) the impact vel tracker
+            self.impact_vel
+                .borrow_mut()
+                .add(p1i, p2i, impact_speed, step_num);
+
+            (f_total / p1.m, f_total / p2.m, info)
+        } else {
+            (
+                Vector(calc_pp_accel(p1, p2)),
+                Vector(calc_pp_accel(p2, p1)),
+                info,
+            )
+        }
+    }
+
     // the returned time will not be greater than next_sync_step
     // returns next_event_time, dt, whether to push to pq
-    pub fn get_next_time(
+    fn get_next_time(
         &self,
         separation_distance: f64,
         next_sync_step: f64,
         current_impact_vel: f64,
         event_time: f64,
+        k: f64,
         m: f64,
-        r: f64,
     ) -> (f64, f64, PushPq) {
-        use crate::no_explode::{omega_0_from_k, rotter::b_and_k};
+        use crate::no_explode::omega_0_from_k;
 
-        let omega_0 = omega_0_from_k(b_and_k(current_impact_vel, m, r).1, m);
+        let omega_0 = omega_0_from_k(k, m);
         assert!(omega_0 >= 0.);
 
         // TODO: abstract out gravity forces
@@ -168,12 +242,52 @@ impl<
         (next_time, dt, repush_to_pq)
     }
 
+    pub fn process_pair_get_dv(
+        &mut self,
+        (p1i, p1): (ParticleIndex, &mut Particle),
+        (p2i, p2): (ParticleIndex, &mut Particle),
+        step_num: usize,
+        next_sync_step: f64,
+        current_time: f64,
+    ) -> (Vector, Vector) {
+        let (acc1, acc2, info) = self.compute_acc((p1i, p1), (p2i, p2), step_num);
+
+        let (next_time, _, repush_to_pq) = self.get_next_time(
+            info.separation_distance,
+            next_sync_step,
+            info.impact_speed,
+            current_time,
+            info.k,
+            info.reduced_mass,
+        );
+
+        let dvs = (
+            acc1 * (next_time - current_time),
+            acc2 * (next_time - current_time),
+        );
+
+        match repush_to_pq {
+            PushPq::DoPush => {
+                self.queue.push(ForceEvent {
+                    time: next_time,
+                    last_time: current_time,
+                    p1: p1i,
+                    p2: p2i,
+                });
+            }
+            PushPq::NoPush => {
+                // do nothing
+            }
+        }
+
+        return dvs;
+    }
+
     pub fn run_through_collision_pairs(
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
-        impact_vel_tracker: &mut ImpactVelocityTracker,
-        step_count: usize,
+        step_num: usize,
     ) {
         loop {
             if let Some(event) = self.queue.pop() {
@@ -183,69 +297,16 @@ impl<
                 Self::fast_forward(p1, event.time);
                 Self::fast_forward(p2, event.time);
 
-                let current_impact_vel = Particle::impact_speed(p1, p2);
-
-                let separation_distance = (Vector(p1.p) - Vector(p2.p)).mag() - (p1.r + p2.r);
-
-                let last_time_step = event.time - event.last_time;
-                assert!(last_time_step > 0.);
-
-                // compute local forces
-                let (acc1, acc2) = (self.compute_local_acceleration)(
-                    p1,
-                    p2,
-                    impact_vel_tracker,
-                    event.p1,
-                    event.p2,
-                    step_count,
-                );
-
-                // issue: integrating the velocity requires knowing next event time
-                // computing next event time requires knowing velocity
-
-                let tracked_impact_vel = impact_vel_tracker.get(event.p1, event.p2);
-                let updated_impact_vel = match tracked_impact_vel {
-                    Some((old_impact_vel, _)) => {
-                        // if not overlapping, we need a new impact velocity
-                        if separation_distance < 0. {
-                            f64::max(old_impact_vel, current_impact_vel)
-                        } else {
-                            current_impact_vel
-                        }
-                    }
-                    None => current_impact_vel,
-                };
-
-                impact_vel_tracker.add(event.p1, event.p2, updated_impact_vel, step_count);
-
-                let (next_time, _, repush_to_pq) = self.get_next_time(
-                    separation_distance,
+                let (dv1, dv2) = self.process_pair_get_dv(
+                    (event.p1, p1),
+                    (event.p2, p2),
+                    step_num,
                     next_sync_step,
-                    current_impact_vel,
                     event.time,
-                    f64::max(p1.m, p2.m),
-                    f64::max(p1.r, p2.r),
                 );
 
-                p1.v = (Vector(p1.v) + acc1 * (next_time - event.time)).0;
-                p2.v = (Vector(p2.v) + acc2 * (next_time - event.time)).0;
-
-                match repush_to_pq {
-                    PushPq::DoPush => {
-                        self.queue.push(ForceEvent {
-                            time: next_time,
-                            last_time: event.time,
-                            p1: event.p1,
-                            p2: event.p2,
-                        });
-                    }
-                    PushPq::NoPush => {
-                        // do nothing
-                    }
-                }
-                impact_vel_tracker.add(event.p1, event.p2, updated_impact_vel, step_count);
-
-                println!("{:?}, {:?}", p1, p2);
+                p1.apply_dv(dv1);
+                p2.apply_dv(dv2);
             } else {
                 break;
             }

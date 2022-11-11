@@ -105,7 +105,7 @@ fn demo1() {
             sys.end_step(i);
 
             if i % 10 == 0 {
-                sys.trim_impact_vel_tracker(i);
+                sys.pq.borrow_mut().trim_impact_vel_tracker(i);
             }
         }
 

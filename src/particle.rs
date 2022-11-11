@@ -27,6 +27,10 @@ impl Particle {
         // (vel of p2 rel to p1) dot (unit vector pointing at p2 from p1)
         ((Vector(other.v) - Vector(self.v)) * unit_to_p2).abs()
     }
+
+    pub fn apply_dv(&mut self, dv: Vector) {
+        self.v = (Vector(self.v) + dv).0;
+    }
 }
 
 #[allow(dead_code)]

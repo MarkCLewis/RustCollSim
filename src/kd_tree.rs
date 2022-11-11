@@ -1,6 +1,6 @@
-use std::{fs::File, io::Write};
+use std::{cell::RefCell, fs::File, io::Write};
 
-use crate::{particle::*, vectors::Vector};
+use crate::{particle::*, util::borrow_two_elements, vectors::Vector};
 
 use super::particle::Particle;
 
@@ -16,10 +16,10 @@ pub struct KDTree {
 
 // type PairFuncEmpty = fn(&Particle, &Particle);
 
-#[derive(Clone, Copy, Debug)]
-pub enum Interaction<'a> {
-    ParticleParticle(ParticleIndex, &'a Particle),
-    ParticleNode,
+#[derive(Debug)]
+pub enum Interaction {
+    ParticleParticle(ParticleIndex),
+    ParticleNode(Vector, f64), // node center of mass loc & mass
 }
 
 impl KDTree {
@@ -37,11 +37,15 @@ impl KDTree {
 
     /// Go through all particles, computing acceleration and giving it to the provided function
     /// the provided function F will be given: (particle index, &particle, interaction (may contain other &particle), acc of p)
-    pub fn map_calc_acc<'a, F>(&self, p: usize, particles: &'a Vec<Particle>, pair_func: &mut F)
-    where
-        F: FnMut(ParticleIndex, &'a Particle, Interaction<'a>, Vector),
+    pub fn map_tree<'a, F>(
+        &self,
+        p: usize,
+        particles: &'a RefCell<Vec<Particle>>,
+        pair_func: &mut F,
+    ) where
+        F: FnMut(ParticleIndex, Interaction),
     {
-        self.map_calc_acc_recur(0, p, particles, pair_func)
+        self.map_tree_recur(0, p, particles, pair_func)
     }
 
     fn allocate_node_vec(num_parts: usize) -> Vec<KDTreeNode> {
@@ -150,58 +154,51 @@ impl KDTree {
         }
     }
 
-    fn map_calc_acc_recur<'a, F>(
+    fn map_tree_recur<'a, 'b, F>(
         &self,
         cur_node: usize,
         p: usize,
-        particles: &'a Vec<Particle>,
+        particles: &'a RefCell<Vec<Particle>>,
         pair_func: &mut F,
     ) where
-        F: FnMut(ParticleIndex, &'a Particle, Interaction<'a>, Vector),
+        F: FnMut(ParticleIndex, Interaction),
     {
-        // println!("accel {}", cur_node);
         if self.nodes[cur_node].num_parts > 0 {
             // do particle-particle
-            let mut acc = [0.0, 0.0, 0.0];
             for i in 0..(self.nodes[cur_node].num_parts) {
                 if self.nodes[cur_node].particles[i] != p {
-                    let pp_acc =
-                        calc_pp_accel(&particles[p], &particles[self.nodes[cur_node].particles[i]]);
-                    acc[0] += pp_acc[0];
-                    acc[1] += pp_acc[1];
-                    acc[2] += pp_acc[2];
-
                     pair_func(
                         ParticleIndex(p),
-                        &particles[p],
-                        Interaction::ParticleParticle(
-                            ParticleIndex(self.nodes[cur_node].particles[i]),
-                            &particles[self.nodes[cur_node].particles[i]],
-                        ),
-                        Vector(acc),
+                        Interaction::ParticleParticle(ParticleIndex(
+                            self.nodes[cur_node].particles[i],
+                        )),
                     );
                 }
             }
         } else {
-            let dx = particles[p].p[0] - self.nodes[cur_node].cm[0];
-            let dy = particles[p].p[1] - self.nodes[cur_node].cm[1];
-            let dz = particles[p].p[2] - self.nodes[cur_node].cm[2];
-            let dist_sqr = dx * dx + dy * dy + dz * dz;
+            let dist_sqr = {
+                let pop_ref = &particles.borrow();
+                let dx = pop_ref[p].p[0] - self.nodes[cur_node].cm[0];
+                let dy = pop_ref[p].p[1] - self.nodes[cur_node].cm[1];
+                let dz = pop_ref[p].p[2] - self.nodes[cur_node].cm[2];
+                dx * dx + dy * dy + dz * dz
+            };
             // println!("dist = {}, size = {}", dist, nodes[cur_node].size);
             if self.nodes[cur_node].size * self.nodes[cur_node].size < THETA * THETA * dist_sqr {
                 // particle-node
-                let dist = f64::sqrt(dist_sqr);
-                let magi = -self.nodes[cur_node].m / (dist_sqr * dist);
                 pair_func(
                     ParticleIndex(p),
-                    &particles[p],
-                    Interaction::ParticleNode,
-                    Vector([dx * magi, dy * magi, dz * magi]),
+                    Interaction::ParticleNode(
+                        Vector(self.nodes[cur_node].cm),
+                        self.nodes[cur_node].m,
+                    ),
                 )
             } else {
                 // look into node
-                self.map_calc_acc_recur(self.nodes[cur_node].left, p, particles, pair_func);
-                self.map_calc_acc_recur(self.nodes[cur_node].right, p, particles, pair_func);
+
+                self.map_tree_recur(self.nodes[cur_node].left, p, particles, pair_func);
+
+                self.map_tree_recur(self.nodes[cur_node].right, p, particles, pair_func);
             }
         }
     }
