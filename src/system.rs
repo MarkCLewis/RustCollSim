@@ -1,7 +1,6 @@
 use std::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    impact_vel_tracker::ImpactVelocityTracker,
     kd_tree::{self, Interaction},
     particle::{Particle, ParticleIndex},
     soft_collision_queue::SoftSphereForce,
@@ -9,44 +8,24 @@ use crate::{
     vectors::Vector,
 };
 
-pub struct KDTreeSystem<F>
-where
-    F: Fn(
-        &mut Particle,
-        &mut Particle,
-        &mut ImpactVelocityTracker,
-        ParticleIndex,
-        ParticleIndex,
-        usize,
-    ) -> (Vector, Vector),
-{
+pub struct KDTreeSystem {
     pop: RefCell<Vec<Particle>>,
     tree: kd_tree::KDTree,
     time_step: f64,
     current_time: f64,
-    pub pq: RefCell<SoftSphereForce<F>>,
+    pub pq: RefCell<SoftSphereForce>,
     dv_tmp: RefCell<Vec<Vector>>,
 }
 
-impl<F> KDTreeSystem<F>
-where
-    F: Fn(
-        &mut Particle,
-        &mut Particle,
-        &mut ImpactVelocityTracker,
-        ParticleIndex,
-        ParticleIndex,
-        usize,
-    ) -> (Vector, Vector),
-{
-    pub fn new(pop: Vec<Particle>, time_step: f64, pair_force: F) -> Self {
+impl KDTreeSystem {
+    pub fn new(pop: Vec<Particle>, time_step: f64) -> Self {
         let size = pop.len();
         Self {
             tree: kd_tree::KDTree::new(pop.len()),
             pop: RefCell::new(pop),
             time_step,
             current_time: 0.,
-            pq: RefCell::new(SoftSphereForce::new(time_step, pair_force)),
+            pq: RefCell::new(SoftSphereForce::new(time_step)),
             dv_tmp: {
                 let mut v = Vec::new();
                 v.resize(size, Vector::ZERO);

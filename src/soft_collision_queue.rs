@@ -45,18 +45,8 @@ impl Ord for ForceEvent {
     }
 }
 
-pub struct SoftSphereForce<
-    F: Fn(
-        &mut Particle,
-        &mut Particle,
-        &mut ImpactVelocityTracker,
-        ParticleIndex,
-        ParticleIndex,
-        usize,
-    ) -> (Vector, Vector),
-> {
+pub struct SoftSphereForce {
     pub queue: BinaryHeap<ForceEvent>,
-    compute_local_acceleration: F,
     desired_collision_step_count: u32,
     minimum_time_step: f64, // print warn if dt < this
     impact_vel: RefCell<ImpactVelocityTracker>,
@@ -75,21 +65,10 @@ struct EventData {
     reduced_mass: f64,
 }
 
-impl<
-        F: Fn(
-            &mut Particle,
-            &mut Particle,
-            &mut ImpactVelocityTracker,
-            ParticleIndex,
-            ParticleIndex,
-            usize,
-        ) -> (Vector, Vector),
-    > SoftSphereForce<F>
-{
-    pub fn new(big_time_step: f64, compute_local_acceleration: F) -> Self {
+impl SoftSphereForce {
+    pub fn new(big_time_step: f64) -> Self {
         Self {
             queue: BinaryHeap::new(),
-            compute_local_acceleration,
             desired_collision_step_count: 10,
             minimum_time_step: big_time_step / 100.,
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),

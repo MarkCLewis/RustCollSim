@@ -1,6 +1,6 @@
 use std::{cell::RefCell, fs::File, io::Write};
 
-use crate::{particle::*, util::borrow_two_elements, vectors::Vector};
+use crate::{particle::*, vectors::Vector};
 
 use super::particle::Particle;
 
