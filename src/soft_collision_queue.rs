@@ -52,6 +52,7 @@ pub struct SoftSphereForce {
     impact_vel: RefCell<ImpactVelocityTracker>,
 }
 
+#[derive(Debug)]
 pub enum PushPq {
     DoPush,
     NoPush,
@@ -82,7 +83,12 @@ impl SoftSphereForce {
     fn fast_forward(particle: &mut Particle, current_time: f64) {
         // kick-step
         let dt = current_time - particle.t;
-        assert!(dt > 0.);
+        assert!(
+            dt >= 0.,
+            "current_time = {}, particle.t = {}",
+            current_time,
+            particle.t
+        );
         particle.p[0] += particle.v[0] * dt;
         particle.p[1] += particle.v[1] * dt;
         particle.p[2] += particle.v[2] * dt;
@@ -131,6 +137,8 @@ impl SoftSphereForce {
             // not colliding
             current_impact_vel
         };
+
+        eprintln!("{}", current_impact_vel);
 
         let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
 
@@ -231,13 +239,18 @@ impl SoftSphereForce {
     ) -> (Vector, Vector) {
         let (acc1, acc2, info) = self.compute_acc((p1i, p1), (p2i, p2), step_num);
 
-        let (next_time, _, repush_to_pq) = self.get_next_time(
+        let (next_time, dt, repush_to_pq) = self.get_next_time(
             info.separation_distance,
             next_sync_step,
             info.impact_speed,
             current_time,
             info.k,
             info.reduced_mass,
+        );
+
+        eprintln!(
+            "{repush_to_pq:?} {dt} {} {}",
+            info.separation_distance, info.impact_speed
         );
 
         let dvs = (

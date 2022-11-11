@@ -166,7 +166,10 @@ impl KDTree {
         if self.nodes[cur_node].num_parts > 0 {
             // do particle-particle
             for i in 0..(self.nodes[cur_node].num_parts) {
-                if self.nodes[cur_node].particles[i] != p {
+                if self.nodes[cur_node].particles[i] > p {
+                    // p < self.nodes[cur_node].particles[i] makes sure that
+                    // a pair of particle is only fed once to pair_func
+                    // and a particle and itself are not fed to pair_func
                     pair_func(
                         ParticleIndex(p),
                         Interaction::ParticleParticle(ParticleIndex(

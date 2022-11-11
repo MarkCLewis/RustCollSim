@@ -49,7 +49,8 @@ fn demo1() {
     {
         let start = Instant::now();
 
-        let mut sys = KDTreeSystem::new(particle::circular_orbits(20001), dt);
+        // let mut sys = KDTreeSystem::new(particle::circular_orbits(20001), dt);
+        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt);
 
         for i in 0 as usize..10 {
             //6281
