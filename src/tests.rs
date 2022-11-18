@@ -133,14 +133,14 @@ mod tests {
         }
     }
 
-    #[test]
-    /// to check collisions
-    fn test_2_bodies_speed() {
-        let r = 1e-7;
-        let rho = 0.88;
-        let init_impact_v = 2. * r * 20.;
-        let sep_dis = 2.2 * r; // x = 1.1r
+    // #[test]
+    // /// to check collisions
+    // fn test_2_bodies_speed() {
+    //     let r = 1e-7;
+    //     let rho = 0.88;
+    //     let init_impact_v = 2. * r * 20.;
+    //     let sep_dis = 2.2 * r; // x = 1.1r
 
-        pair_collision_run(r, rho, init_impact_v, sep_dis, 11);
-    }
+    //     pair_collision_run(r, rho, init_impact_v, sep_dis, 11);
+    // }
 }
