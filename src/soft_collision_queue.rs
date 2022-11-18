@@ -167,7 +167,7 @@ impl SoftSphereForce {
                 .borrow_mut()
                 .add(p1i, p2i, impact_speed, step_num);
 
-            (f_total / p1.m, f_total / p2.m, info)
+            (f_total / p1.m, -f_total / p2.m, info)
         } else {
             (
                 Vector(calc_pp_accel(p1, p2)),

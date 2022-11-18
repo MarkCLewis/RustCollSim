@@ -8,17 +8,18 @@ mod no_explode;
 mod particle;
 mod soft_collision_queue;
 mod system;
+mod tests;
 mod util;
 mod vectors;
 
 use std::{f64::consts::PI, time::Instant};
 
-use crate::{no_explode::rotter, system::KDTreeSystem, vectors::Vector};
+use crate::{no_explode::rotter, system::KDTreeSystem};
 
 fn main() {
     println!("Hello, collisional simulations!");
 
-    demo1();
+    demo2();
     return;
 
     // let dt = 1e-3; // * 2.0 * std::f64::consts::PI;
@@ -44,6 +45,22 @@ fn main() {
     // }
 }
 
+fn demo2() {
+    let dt = 1e-3;
+
+    let r = 1e-7;
+    let rho = 0.88;
+    let init_impact_v = 2. * r * 20.;
+    let sep_dis = 2.2 * r; // x = 1.1r
+
+    let mut sys = KDTreeSystem::new(
+        particle::two_equal_bodies(r, rho, init_impact_v, sep_dis),
+        dt,
+    );
+
+    sys.run(11); // 250
+}
+
 fn demo1() {
     let dt = 1e-3;
 
@@ -53,23 +70,7 @@ fn demo1() {
         // let mut sys = KDTreeSystem::new(particle::circular_orbits(20001), dt);
         let mut sys = KDTreeSystem::new(particle::two_bodies(), dt);
 
-        for i in 0 as usize..((1.95 * PI / dt) as usize) {
-            //6281
-            println!("step: {}", i);
-            sys.apply_forces(i);
-            sys.end_step(i);
-
-            for e in sys.pop.borrow().iter() {
-                print!("{} ", Vector(e.p));
-            }
-            println!("");
-
-            // panic!();
-
-            if i % 10 == 0 {
-                sys.pq.borrow_mut().trim_impact_vel_tracker(i);
-            }
-        }
+        sys.run((2. * PI / dt) as usize);
 
         println!("{}", start.elapsed().as_nanos() as f64 / 1e9);
     }

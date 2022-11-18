@@ -1,5 +1,5 @@
 use core::fmt;
-use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
 #[inline(always)]
 fn square(x: f64) -> f64 {
@@ -129,5 +129,13 @@ impl Mul for Vector {
 
     fn mul(self, f: Self) -> Self::Output {
         self.dot(&f)
+    }
+}
+
+impl Neg for Vector {
+    type Output = Vector;
+
+    fn neg(self) -> Self::Output {
+        self * -1.
     }
 }

@@ -35,6 +35,25 @@ impl KDTreeSystem {
         }
     }
 
+    pub fn run(&mut self, steps: usize) {
+        for i in 0 as usize..steps {
+            // println!("step: {}", i);
+            self.apply_forces(i);
+            self.end_step(i);
+
+            for e in self.pop.borrow().iter() {
+                print!("{} ", Vector(e.p));
+            }
+            println!("");
+
+            // panic!();
+
+            if i % 10 == 0 {
+                self.pq.borrow_mut().trim_impact_vel_tracker(i);
+            }
+        }
+    }
+
     pub fn apply_forces(&mut self, step_num: usize) {
         self.tree.rebuild_kdtree(&self.pop.borrow());
 

@@ -1,5 +1,5 @@
 use core::fmt;
-use std::hash::Hash;
+use std::{f64::consts::PI, hash::Hash};
 
 use crate::{debugln, vectors::Vector};
 
@@ -14,7 +14,7 @@ impl fmt::Display for ParticleIndex {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub struct Particle {
     pub p: [f64; 3],
     pub v: [f64; 3],
@@ -27,6 +27,10 @@ impl Particle {
     // fn m(&self) -> f64 {
     //     return RHO * self.r * self.r * self.r;
     // }
+
+    pub fn mass_from_radius(r: f64, rho: f64) -> f64 {
+        4. / 3. * PI * r * r * r * rho
+    }
 
     /// returns speed (absolute)
     pub fn impact_speed(&self, other: &Self) -> f64 {
@@ -47,6 +51,42 @@ impl Particle {
     }
 }
 
+pub fn momentum(pop: &Vec<Particle>) -> Vector {
+    pop.iter()
+        .map(|p| Vector(p.v) * p.m)
+        .reduce(|a, b| a + b)
+        .unwrap_or(Vector::ZERO)
+}
+
+pub fn kinetic_energy(pop: &Vec<Particle>) -> f64 {
+    pop.iter()
+        .map(|p| Vector(p.v) * Vector(p.v) * p.m / 2.)
+        .sum()
+}
+
+pub fn potential_energy(pop: &Vec<Particle>) -> f64 {
+    // potential is -G m1 m2 / r -> G=1
+    // sum all pairs - this does n1 * n2 and n2 * n1, so divide by 2
+    pop.iter()
+        .map(|p1| {
+            pop.iter()
+                .map(|p2| {
+                    if p1.p == p2.p {
+                        0. // same particle
+                    } else {
+                        -(p1.m * p2.m) / (Vector(p1.p) - Vector(p2.p)).mag()
+                    }
+                })
+                .sum::<f64>()
+        })
+        .sum::<f64>()
+        / 2.
+}
+
+pub fn energy(pop: &Vec<Particle>) -> f64 {
+    potential_energy(pop) + kinetic_energy(pop)
+}
+
 #[allow(dead_code)]
 pub fn two_bodies() -> Vec<Particle> {
     let mut bodies = Vec::new();
@@ -62,6 +102,45 @@ pub fn two_bodies() -> Vec<Particle> {
         v: [0.0, 1.0, 0.0],
         r: 1e-4,
         m: 1e-20,
+        t: 0.,
+    });
+    bodies
+}
+
+#[allow(dead_code)]
+pub fn two_equal_bodies(r: f64, rho: f64, init_impact_v: f64, sep_dis: f64) -> Vec<Particle> {
+    two_unequal_bodies(r, r, rho, init_impact_v, sep_dis)
+}
+
+#[allow(dead_code)]
+pub fn two_unequal_bodies(
+    r1: f64,
+    r2: f64,
+    rho: f64,
+    mut init_impact_v: f64,
+    mut sep_dis: f64,
+) -> Vec<Particle> {
+    let mut bodies = Vec::new();
+
+    init_impact_v = init_impact_v.abs();
+    sep_dis = sep_dis.abs();
+
+    // Symmetric
+    //       -x->
+    // -      |      +
+    // P1 ->  |  <- P2
+    bodies.push(Particle {
+        p: [-sep_dis / 2., 0.0, 0.0],
+        v: [init_impact_v / 2., 0.0, 0.0],
+        r: r1,
+        m: Particle::mass_from_radius(r1, rho),
+        t: 0.,
+    });
+    bodies.push(Particle {
+        p: [sep_dis / 2., 0.0, 0.0],
+        v: [-init_impact_v / 2., 0.0, 0.0],
+        r: r2,
+        m: Particle::mass_from_radius(r2, rho),
         t: 0.,
     });
     bodies
