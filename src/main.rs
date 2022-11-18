@@ -1,6 +1,7 @@
 #![feature(portable_simd)]
 #![feature(hash_drain_filter)]
 
+mod debug;
 mod impact_vel_tracker;
 mod kd_tree;
 mod no_explode;
@@ -10,9 +11,9 @@ mod system;
 mod util;
 mod vectors;
 
-use std::time::Instant;
+use std::{f64::consts::PI, time::Instant};
 
-use crate::{no_explode::rotter, system::KDTreeSystem};
+use crate::{no_explode::rotter, system::KDTreeSystem, vectors::Vector};
 
 fn main() {
     println!("Hello, collisional simulations!");
@@ -52,11 +53,18 @@ fn demo1() {
         // let mut sys = KDTreeSystem::new(particle::circular_orbits(20001), dt);
         let mut sys = KDTreeSystem::new(particle::two_bodies(), dt);
 
-        for i in 0 as usize..10 {
+        for i in 0 as usize..((1.95 * PI / dt) as usize) {
             //6281
             println!("step: {}", i);
             sys.apply_forces(i);
             sys.end_step(i);
+
+            for e in sys.pop.borrow().iter() {
+                print!("{} ", Vector(e.p));
+            }
+            println!("");
+
+            // panic!();
 
             if i % 10 == 0 {
                 sys.pq.borrow_mut().trim_impact_vel_tracker(i);

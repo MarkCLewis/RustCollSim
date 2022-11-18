@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use crate::particle::ParticleIndex;
 
+use crate::debugln;
+
 // #[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
 // struct IndexPair(ParticleIndex, ParticleIndex);
 
@@ -32,7 +34,7 @@ impl ImpactVelocityTracker {
     }
 
     pub fn add(&mut self, p1: ParticleIndex, p2: ParticleIndex, v: f64, step_count: usize) {
-        eprintln!("adding {p1:?} {p2:?}");
+        debugln!("adding {:?} {:?}", p1, p2);
         self.data.insert(smaller_first(p1, p2), (v, step_count));
     }
 

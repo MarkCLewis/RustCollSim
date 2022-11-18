@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 
 use crate::{
+    debugln,
     kd_tree::{self, Interaction},
     particle::{Particle, ParticleIndex},
     soft_collision_queue::SoftSphereForce,
@@ -9,7 +10,7 @@ use crate::{
 };
 
 pub struct KDTreeSystem {
-    pop: RefCell<Vec<Particle>>,
+    pub pop: RefCell<Vec<Particle>>,
     tree: kd_tree::KDTree,
     time_step: f64,
     current_time: f64,
@@ -43,6 +44,7 @@ impl KDTreeSystem {
 
         let mut tree_map_func = |p: ParticleIndex, inter: Interaction| match inter {
             Interaction::ParticleParticle(other_idx) => {
+                debugln!("{p} {other_idx}",);
                 let mut pop_ref = self.pop.borrow_mut();
                 let (p1, p2) = borrow_two_elements(&mut pop_ref, p.0, other_idx.0);
 
@@ -81,6 +83,7 @@ impl KDTreeSystem {
         }
 
         let dv_ref = &mut borrow_dv.borrow_mut();
+
         let pop = &mut self.pop.borrow_mut();
         for (p, dv) in pop.iter_mut().zip(dv_ref.iter()) {
             p.apply_dv(*dv);

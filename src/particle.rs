@@ -1,10 +1,18 @@
+use core::fmt;
 use std::hash::Hash;
 
-use crate::vectors::Vector;
+use crate::{debugln, vectors::Vector};
 
 /// A wrapper for increased type safety
 #[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ParticleIndex(pub usize);
+
+impl fmt::Display for ParticleIndex {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "index({})", self.0)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Particle {
@@ -23,7 +31,12 @@ impl Particle {
     /// returns speed (absolute)
     pub fn impact_speed(&self, other: &Self) -> f64 {
         let unit_to_p2 = (Vector(other.p) - Vector(self.p)).unit_vector(); // unit vec from p1 pointing at p2
-        eprintln!("{unit_to_p2} {} {}", Vector(other.v), Vector(self.v));
+        debugln!(
+            "{unit_to_p2} {} {} {}",
+            Vector(other.v),
+            Vector(self.v),
+            ((Vector(other.v) - Vector(self.v)) * unit_to_p2).abs()
+        );
         // FIXME: velocity is crazy
         // (vel of p2 rel to p1) dot (unit vector pointing at p2 from p1)
         ((Vector(other.v) - Vector(self.v)) * unit_to_p2).abs()
@@ -40,7 +53,7 @@ pub fn two_bodies() -> Vec<Particle> {
     bodies.push(Particle {
         p: [0.0, 0.0, 0.0],
         v: [0.0, 0.0, 0.0],
-        r: 1.0,
+        r: 1e-3,
         m: 1.0,
         t: 0.,
     });

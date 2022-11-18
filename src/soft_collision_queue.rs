@@ -1,6 +1,7 @@
 use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap};
 
 use crate::{
+    debugln,
     impact_vel_tracker::ImpactVelocityTracker,
     particle::{calc_pp_accel, Particle, ParticleIndex},
     util::borrow_two_elements,
@@ -138,7 +139,7 @@ impl SoftSphereForce {
             current_impact_vel
         };
 
-        eprintln!("{}", current_impact_vel);
+        debugln!("current_impact_vel={}", current_impact_vel);
 
         let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
 
@@ -194,7 +195,7 @@ impl SoftSphereForce {
 
         // TODO: abstract out gravity forces
 
-        let dt = if separation_distance < 0. {
+        let mut dt = if separation_distance < 0. {
             // colliding
             // 1/(\omega_0 C), => C = step num
             1. / (omega_0 * self.desired_collision_step_count as f64)
@@ -221,6 +222,7 @@ impl SoftSphereForce {
         // if moving at each other, reschedule at dt/2, but not less than big_time_step/100
         let repush_to_pq = if next_time > next_sync_step {
             next_time = next_sync_step;
+            dt = next_time - event_time;
             PushPq::NoPush
         } else {
             PushPq::DoPush
@@ -248,9 +250,10 @@ impl SoftSphereForce {
             info.reduced_mass,
         );
 
-        eprintln!(
-            "{repush_to_pq:?} {dt} {} {}",
-            info.separation_distance, info.impact_speed
+        debugln!(
+            "repush_to_pq={repush_to_pq:?} dt={dt} sep_dis={} impact_speed={}",
+            info.separation_distance,
+            info.impact_speed
         );
 
         let dvs = (

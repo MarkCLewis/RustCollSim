@@ -13,7 +13,11 @@ pub struct Vector(pub [f64; 3]);
 impl fmt::Display for Vector {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "<{}, {}, {}>", self.0[0], self.0[1], self.0[2])
+        write!(
+            f,
+            "<{:.3e}, {:.3e}, {:.3e}>",
+            self.0[0], self.0[1], self.0[2]
+        )
     }
 }
 
