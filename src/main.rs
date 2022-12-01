@@ -14,7 +14,7 @@ mod vectors;
 
 use std::{f64::consts::PI, time::Instant};
 
-use crate::{no_explode::rotter, system::KDTreeSystem};
+use crate::{no_explode::rotter, system::KDTreeSystem, vectors::Vector};
 
 fn main() {
     println!("Hello, collisional simulations!");
@@ -50,7 +50,7 @@ fn demo2() {
 
     let r = 1e-7;
     let rho = 0.88;
-    let init_impact_v = 2. * r * 20.;
+    let init_impact_v = 2. * r * 500.;
     let sep_dis = 2.2 * r; // x = 1.1r
 
     let mut sys = KDTreeSystem::new(
@@ -58,7 +58,13 @@ fn demo2() {
         dt,
     );
 
+    let v = Vector(sys.pop.borrow()[0].v).mag();
+
     sys.run(11); // 250
+
+    let v_after = Vector(sys.pop.borrow()[0].v).mag();
+
+    println!("{}", v_after / v);
 }
 
 fn demo1() {

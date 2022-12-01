@@ -120,12 +120,11 @@ impl SoftSphereForce {
         (p2i, p2): (ParticleIndex, &mut Particle),
         step_num: usize,
     ) -> (Vector, Vector, EventData) {
-        // FIXME: this
         let current_impact_vel = Particle::impact_speed(p1, p2);
         let x_len = (Vector(p1.p) - Vector(p2.p)).mag();
         let x_hat = (Vector(p1.p) - Vector(p2.p)) / x_len;
         let separation_distance = x_len - p1.r - p2.r;
-        let vji = Vector(p1.p) - Vector(p2.p);
+        let vji = Vector(p1.v) - Vector(p2.v);
 
         let impact_speed = if separation_distance < 0. {
             // colliding
@@ -159,6 +158,8 @@ impl SoftSphereForce {
             // spring-force
             let f_spring = x_hat * -k * separation_distance;
             let f_damp = vji * -b;
+
+            debugln!("{} {}", f_spring.mag(), f_damp.mag());
 
             let f_total = f_spring + f_damp;
 

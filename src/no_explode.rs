@@ -13,7 +13,7 @@
 //pub const K: f64 = 6.595530918688126e-18;
 
 pub const PEN_RATIO_DEFAULT: f64 = 0.02;
-const COEFF_RES: f64 = 0.3;
+const COEFF_RES: f64 = 0.5;
 
 pub fn omega_0_from_k(k: f64, m: f64) -> f64 {
     (k / m).sqrt()
