@@ -48,9 +48,9 @@ impl Ord for ForceEvent {
 
 pub struct SoftSphereForce {
     pub queue: BinaryHeap<ForceEvent>,
-    desired_collision_step_count: u32,
+    desired_collision_step_count: usize,
     minimum_time_step: f64, // print warn if dt < this
-    impact_vel: RefCell<ImpactVelocityTracker>,
+    pub impact_vel: RefCell<ImpactVelocityTracker>,
 }
 
 #[derive(Debug)]
@@ -61,17 +61,17 @@ pub enum PushPq {
 
 struct EventData {
     impact_speed: f64,
-    b: f64,
+    // b: f64,
     k: f64,
     separation_distance: f64,
     reduced_mass: f64,
 }
 
 impl SoftSphereForce {
-    pub fn new(big_time_step: f64) -> Self {
+    pub fn new(big_time_step: f64, desired_collision_step_count: usize) -> Self {
         Self {
             queue: BinaryHeap::new(),
-            desired_collision_step_count: 10,
+            desired_collision_step_count,
             minimum_time_step: big_time_step / 100.,
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),
         }
@@ -147,7 +147,7 @@ impl SoftSphereForce {
 
         let info = EventData {
             impact_speed,
-            b,
+            // b,
             k,
             separation_distance,
             reduced_mass,

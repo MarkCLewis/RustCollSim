@@ -56,6 +56,7 @@ fn demo2() {
     let mut sys = KDTreeSystem::new(
         particle::two_equal_bodies(r, rho, init_impact_v, sep_dis),
         dt,
+        10,
     );
 
     let v = Vector(sys.pop.borrow()[0].v).mag();
@@ -67,6 +68,7 @@ fn demo2() {
     println!("{}", v_after / v);
 }
 
+#[allow(dead_code)]
 fn demo1() {
     let dt = 1e-3;
 
@@ -74,7 +76,7 @@ fn demo1() {
         let start = Instant::now();
 
         // let mut sys = KDTreeSystem::new(particle::circular_orbits(20001), dt);
-        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt);
+        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10);
 
         sys.run((2. * PI / dt) as usize);
 

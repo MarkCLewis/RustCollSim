@@ -19,14 +19,17 @@ pub struct KDTreeSystem {
 }
 
 impl KDTreeSystem {
-    pub fn new(pop: Vec<Particle>, time_step: f64) -> Self {
+    pub fn new(pop: Vec<Particle>, time_step: f64, desired_collision_step_count: usize) -> Self {
         let size = pop.len();
         Self {
             tree: kd_tree::KDTree::new(pop.len()),
             pop: RefCell::new(pop),
             time_step,
             current_time: 0.,
-            pq: RefCell::new(SoftSphereForce::new(time_step)),
+            pq: RefCell::new(SoftSphereForce::new(
+                time_step,
+                desired_collision_step_count,
+            )),
             dv_tmp: {
                 let mut v = Vec::new();
                 v.resize(size, Vector::ZERO);
@@ -40,11 +43,6 @@ impl KDTreeSystem {
             // println!("step: {}", i);
             self.apply_forces(i);
             self.end_step(i);
-
-            for e in self.pop.borrow().iter() {
-                print!("{} ", Vector(e.p));
-            }
-            println!("");
 
             // panic!();
 

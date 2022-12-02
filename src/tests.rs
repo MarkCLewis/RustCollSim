@@ -1,72 +1,133 @@
-use crate::{
-    particle::{energy, momentum},
-    vectors::Vector,
-};
-
-fn percent_error(actual: f64, expected: f64) -> f64 {
-    (actual - expected) / expected * 100.
-}
-
-fn pair_collision_run(r: f64, rho: f64, init_impact_v: f64, sep_dis: f64, steps: usize) {
-    use crate::{particle, system::KDTreeSystem};
-
-    let dt = 1e-3;
-
-    let mut sys = KDTreeSystem::new(
-        particle::two_equal_bodies(r, rho, init_impact_v, sep_dis),
-        dt,
-    );
-
-    let (pre1, pre2) = {
-        let pop = sys.pop.borrow();
-        (pop[0], pop[1])
-    };
-
-    let pre_momentum = momentum(&sys.pop.borrow());
-    let pre_energy = energy(&sys.pop.borrow());
-
-    sys.run(steps);
-
-    let (post1, post2) = {
-        let pop = sys.pop.borrow();
-        (pop[0], pop[1])
-    };
-
-    let post_momentum = momentum(&sys.pop.borrow());
-    let post_energy = energy(&sys.pop.borrow());
-
-    assert!((Vector(post1.v).mag() / Vector(pre1.v).mag()) < 0.55);
-    assert!((Vector(post2.v).mag() / Vector(pre2.v).mag()) < 0.55);
-
-    assert!((Vector(post1.v).mag() / Vector(pre1.v).mag()) > 0.45);
-    assert!((Vector(post2.v).mag() / Vector(pre2.v).mag()) > 0.45);
-
-    // conservation of momentum
-    // assert_eq!((pre_momentum - post_momentum).mag(), 0.);
-    // assert!(false, "{}", post_momentum);
-
-    let coeff_of_res1 = Vector(post1.v).mag() / Vector(pre1.v).mag();
-    let coeff_of_res2 = Vector(post2.v).mag() / Vector(pre2.v).mag();
-
-    // assert!(false, "{}", coeff_of_res1);
-
-    // coeff_of_res is around 0.998
-
-    // assert!(
-    //     false,
-    //     "{} {} {}",
-    //     pre_energy,
-    //     post_energy,
-    //     pre_energy / post_energy
-    // );
-
-    assert_eq!(post1.p[2], 0.);
-    assert_eq!(post2.p[2], 0.);
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{tests::pair_collision_run, vectors::Vector};
+    use crate::particle::momentum;
+    use crate::vectors::Vector;
+    use crate::{no_explode::COEFF_RES, particle::ParticleIndex};
+    use anyhow::{ensure, Context, Result};
+
+    fn percent_error(actual: f64, expected: f64) -> f64 {
+        ((actual - expected) / expected * 100.).abs()
+    }
+
+    fn assert_equal_orders_of_mag(
+        actual: f64,
+        expected: f64,
+        allowed_difference: f64,
+    ) -> Result<()> {
+        let diff = (actual.log10() - expected.log10()).abs();
+
+        ensure!(diff < allowed_difference);
+        Ok(())
+    }
+
+    fn assert_coeff_of_res(
+        v_before: [f64; 3],
+        v_after: [f64; 3],
+        percentage_error: f64,
+    ) -> Result<()> {
+        let coeff = Vector(v_after).mag() / Vector(v_before).mag();
+        // assert!(coeff < COEFF)
+        let error = COEFF_RES * percentage_error;
+        ensure!(
+            coeff <= COEFF_RES + error,
+            "Coeff of res too small, got {} but expected {}. Error: {:.2}%",
+            coeff,
+            COEFF_RES,
+            percent_error(coeff, COEFF_RES)
+        );
+        ensure!(
+            coeff >= COEFF_RES - error,
+            "Coeff of res too small, got {} but expected {}. Error: {:.2}%",
+            coeff,
+            COEFF_RES,
+            percent_error(coeff, COEFF_RES)
+        );
+
+        Ok(())
+    }
+
+    fn pair_collision_run(
+        dt: f64,
+        r: f64,
+        rho: f64,
+        init_impact_v: f64,
+        sep_dis: f64,
+        steps: usize,
+    ) -> Result<()> {
+        use crate::{particle, system::KDTreeSystem};
+
+        let collision_step_count = 15;
+
+        let mut sys = KDTreeSystem::new(
+            particle::two_equal_bodies(r, rho, init_impact_v, sep_dis),
+            dt,
+            collision_step_count,
+        );
+
+        let (pre1, pre2) = {
+            let pop = sys.pop.borrow();
+            (pop[0], pop[1])
+        };
+
+        let pre_momentum = momentum(&sys.pop.borrow());
+
+        sys.run(steps);
+
+        let collision_step_count_actual = sys
+            .pq
+            .borrow()
+            .impact_vel
+            .borrow()
+            .get_updated_count(ParticleIndex(0), ParticleIndex(1))
+            .unwrap_or(0);
+
+        assert_equal_orders_of_mag(
+            collision_step_count_actual as f64,
+            collision_step_count as f64,
+            1.,
+        )
+        .with_context(|| {
+            format!(
+                "Got {} but expected {}",
+                collision_step_count_actual, collision_step_count
+            )
+        })?;
+
+        let (post1, post2) = {
+            let pop = sys.pop.borrow();
+            (pop[0], pop[1])
+        };
+
+        let post_momentum = momentum(&sys.pop.borrow());
+
+        assert_coeff_of_res(pre1.v, post1.v, 0.10)?;
+        assert_coeff_of_res(pre2.v, post2.v, 0.10)?;
+
+        ensure!(
+            (post_momentum - pre_momentum).mag()
+                <= (f64::max(post_momentum.mag(), pre_momentum.mag())) * 0.01,
+            "Momentum changed from {} to {}",
+            pre_momentum.mag(),
+            post_momentum.mag()
+        );
+
+        if pre1.p[0] < pre2.p[1] {
+            ensure!(
+                post1.p[0] < post2.p[0],
+                "particles passed through each other"
+            );
+        } else {
+            ensure!(
+                post1.p[0] >= post2.p[0],
+                "particles passed through each other"
+            );
+        }
+
+        ensure!(post1.p[2] == 0.);
+        ensure!(post2.p[2] == 0.);
+
+        Ok(())
+    }
 
     #[test]
     /// to check gravity
@@ -77,7 +138,7 @@ mod tests {
 
         let dt = 1e-3;
 
-        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt);
+        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10);
 
         let (sun, planet) = {
             let pop = sys.pop.borrow();
@@ -105,24 +166,38 @@ mod tests {
 
     #[test]
     /// to check collisions
-    fn test_2_bodies() {
+    fn test_2_bodies() -> Result<()> {
         let r = 1e-7;
         let rho = 0.88;
         let init_impact_v = 2. * r;
         let sep_dis = 2.2 * r; // x = 1.1r
 
-        pair_collision_run(r, rho, init_impact_v, sep_dis, 250);
+        pair_collision_run(1e-3, r, rho, init_impact_v, sep_dis, 250)
     }
 
-    // #[test]
-    // fn test_2_bodies_robust() {
-    //     let rho = 0.88;
-    //     for r in &[1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10] {
-    //         let init_impact_v = 2. * r;
-    //         let sep_dis = 2.2 * r; // x = 1.1r
-    //         pair_collision_run(*r, rho, init_impact_v, sep_dis, 250);
-    //     }
-    // }
+    #[test]
+    fn test_robust_2_bodies() -> Result<()> {
+        let rho = 0.88;
+        for &r in &[1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10] {
+            for &init_impact_v_multiplier in &[1.0, 2.0, 5.0, 10.0, 100.0] {
+                for &dt in &[1e-5, 1e-3, 1e-1] {
+                    let init_impact_v = init_impact_v_multiplier * r;
+                    let sep_dis = 2.2 * r; // x = 1.1r
+                    let steps = (0.25 / dt) as usize;
+                    pair_collision_run(dt, r, rho, init_impact_v, sep_dis, steps).with_context(
+                        || {
+                            format!(
+                                "r = {:e}, init_impact_v = {:e}, dt = {:e}",
+                                r, init_impact_v, dt
+                            )
+                        },
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 
     // #[test]
     // /// to check collisions

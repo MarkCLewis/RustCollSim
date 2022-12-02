@@ -2,3 +2,6 @@
 # Generated
 /target
 *.log
+
+# User specific settings
+.vscode/settings.json

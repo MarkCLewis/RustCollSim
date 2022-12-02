@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{f64::consts::PI, hash::Hash};
 
-use crate::{debugln, vectors::Vector};
+use crate::vectors::Vector;
 
 /// A wrapper for increased type safety
 #[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -45,6 +45,7 @@ impl Particle {
     }
 }
 
+#[allow(dead_code)]
 pub fn momentum(pop: &Vec<Particle>) -> Vector {
     pop.iter()
         .map(|p| Vector(p.v) * p.m)
@@ -52,12 +53,14 @@ pub fn momentum(pop: &Vec<Particle>) -> Vector {
         .unwrap_or(Vector::ZERO)
 }
 
+#[allow(dead_code)]
 pub fn kinetic_energy(pop: &Vec<Particle>) -> f64 {
     pop.iter()
         .map(|p| Vector(p.v) * Vector(p.v) * p.m / 2.)
         .sum()
 }
 
+#[allow(dead_code)]
 pub fn potential_energy(pop: &Vec<Particle>) -> f64 {
     // potential is -G m1 m2 / r -> G=1
     // sum all pairs - this does n1 * n2 and n2 * n1, so divide by 2
@@ -77,6 +80,7 @@ pub fn potential_energy(pop: &Vec<Particle>) -> f64 {
         / 2.
 }
 
+#[allow(dead_code)]
 pub fn energy(pop: &Vec<Particle>) -> f64 {
     potential_energy(pop) + kinetic_energy(pop)
 }
@@ -184,6 +188,7 @@ pub fn two_unequal_bodies(
 //     acc[j][2] += dz * magj;
 // }
 
+#[allow(dead_code)]
 pub fn circular_orbits(n: usize) -> Vec<Particle> {
     let mut particle_buf = vec![];
     particle_buf.push(Particle {
