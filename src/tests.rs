@@ -64,6 +64,8 @@ mod tests {
             collision_step_count,
         );
 
+        sys.with_tracing("pair_collision_run.txt");
+
         let (pre1, pre2) = {
             let pop = sys.pop.borrow();
             (pop[0], pop[1])

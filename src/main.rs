@@ -18,6 +18,9 @@ use crate::{no_explode::rotter, system::KDTreeSystem, vectors::Vector};
 
 fn main() {
     println!("Hello, collisional simulations!");
+    if cfg!(feature = "no_gravity") {
+        println!("no_gravity");
+    }
 
     demo2();
     return;

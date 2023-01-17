@@ -1,4 +1,5 @@
-use std::cell::RefCell;
+use std::io::Write;
+use std::{cell::RefCell, fs::File, io::BufWriter};
 
 use crate::{
     debugln,
@@ -16,6 +17,7 @@ pub struct KDTreeSystem {
     current_time: f64,
     pub pq: RefCell<SoftSphereForce>,
     dv_tmp: RefCell<Vec<Vector>>,
+    tracing_writer: Option<BufWriter<File>>,
 }
 
 impl KDTreeSystem {
@@ -35,7 +37,12 @@ impl KDTreeSystem {
                 v.resize(size, Vector::ZERO);
                 RefCell::new(v)
             },
+            tracing_writer: None,
         }
+    }
+
+    pub fn with_tracing(&mut self, file_path: &str) {
+        self.tracing_writer = Some(BufWriter::new(File::create(file_path).unwrap()));
     }
 
     pub fn run(&mut self, steps: usize) {
@@ -44,7 +51,14 @@ impl KDTreeSystem {
             self.apply_forces(i);
             self.end_step(i);
 
-            // panic!();
+            if let Some(ref mut writer) = self.tracing_writer {
+                write!(writer, "S").unwrap();
+                let pop = self.pop.borrow();
+                for (i, p) in pop.iter().enumerate() {
+                    write!(writer, "{};{};{}|", i, Vector(p.p), p.r).unwrap();
+                }
+                writeln!(writer, "").unwrap();
+            }
 
             if i % 10 == 0 {
                 self.pq.borrow_mut().trim_impact_vel_tracker(i);
@@ -78,6 +92,9 @@ impl KDTreeSystem {
                 mut_dv[other_idx.0] += dv2;
             }
             Interaction::ParticleNode(com, mass) => {
+                if cfg!(feature = "no_gravity") {
+                    return;
+                }
                 let mut pop_ref = self.pop.borrow_mut();
                 let particle = &mut pop_ref[p.0];
                 let d_position = Vector(particle.p) - com;
@@ -114,9 +131,27 @@ impl KDTreeSystem {
     pub fn end_step(&mut self, step_count: usize) {
         let next_time = self.current_time + self.time_step;
         let mut pop_ref = self.pop.borrow_mut();
-        self.pq
-            .borrow_mut()
-            .do_one_step(&mut pop_ref, next_time, step_count);
+
+        let tracing_writer = &mut self.tracing_writer;
+        self.pq.borrow_mut().do_one_step(
+            &mut pop_ref,
+            next_time,
+            step_count,
+            Some(&mut |(p1_idx, p1), (p2_idx, p2), time| {
+                if let Some(ref mut writer) = tracing_writer {
+                    writeln!(
+                        writer,
+                        "C|{};{}|{};{}|T{}",
+                        p1_idx.0,
+                        Vector(p1.p),
+                        p2_idx.0,
+                        Vector(p2.p),
+                        time
+                    )
+                    .unwrap();
+                }
+            }),
+        );
         self.current_time = next_time;
     }
 }

@@ -40,3 +40,12 @@ flowchart TD;
 - Particle-Node gravity is applied for full step.
 - Particle-Particle gravity is applied till next pq event.
 - KDTree: $\Delta v$ will be collected and applied at the end of going through all particles.
+
+## Notes - Dec 2
+- How long should the collision
+- turn off gravity feature
+- check if collision velocity goes down during collision - should be highest
+- make the big timestep like 1
+
+## Notes - Dec 9
+- bug: elastic collision if 10x radius diff

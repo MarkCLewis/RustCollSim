@@ -29,16 +29,12 @@ impl PartialEq for ForceEvent {
 // binary heap is max, but we want the closest time event, so we need to reverse the order
 impl PartialOrd for ForceEvent {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.time.partial_cmp(&other.time).map(|e| match e {
-            Ordering::Less => Ordering::Greater, // flipping order as binary heap is max heap
-            Ordering::Greater => Ordering::Less,
-            Ordering::Equal => Ordering::Equal,
-        })
+        self.time.partial_cmp(&other.time).map(Ordering::reverse) // flipping order as binary heap is max heap
     }
 }
 impl Eq for ForceEvent {} // time better not be NaN or infinity, otherwise this breaks
 impl Ord for ForceEvent {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).expect(&format!(
             "Got invalid timestamp in ForceEvent: {} and {}",
             self.time, other.time
@@ -101,8 +97,11 @@ impl SoftSphereForce {
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
         step_count: usize,
+        trace_func: Option<
+            &mut impl FnMut((ParticleIndex, &Particle), (ParticleIndex, &Particle), f64),
+        >,
     ) {
-        self.run_through_collision_pairs(particles, next_sync_step, step_count);
+        self.run_through_collision_pairs(particles, next_sync_step, step_count, trace_func);
 
         Self::end_step(particles, next_sync_step);
     }
@@ -170,11 +169,16 @@ impl SoftSphereForce {
 
             (f_total / p1.m, -f_total / p2.m, info)
         } else {
-            (
-                Vector(calc_pp_accel(p1, p2)),
-                Vector(calc_pp_accel(p2, p1)),
-                info,
-            )
+            if cfg!(feature = "no_gravity") {
+                (Vector::ZERO, Vector::ZERO, info)
+            } else {
+                // gravity
+                (
+                    Vector(calc_pp_accel(p1, p2)),
+                    Vector(calc_pp_accel(p2, p1)),
+                    info,
+                )
+            }
         }
     }
 
@@ -284,6 +288,9 @@ impl SoftSphereForce {
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
         step_num: usize,
+        mut trace_func: Option<
+            &mut impl FnMut((ParticleIndex, &Particle), (ParticleIndex, &Particle), f64),
+        >,
     ) {
         loop {
             if let Some(event) = self.queue.pop() {
@@ -303,6 +310,10 @@ impl SoftSphereForce {
 
                 p1.apply_dv(dv1);
                 p2.apply_dv(dv2);
+
+                if let Some(ref mut trace_func_) = trace_func {
+                    trace_func_((event.p1, p1), (event.p2, p2), event.time);
+                }
             } else {
                 break;
             }
