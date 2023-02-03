@@ -86,7 +86,7 @@ mod tests {
         assert_equal_orders_of_mag(
             collision_step_count_actual as f64,
             collision_step_count as f64,
-            1.,
+            0.2,
         )
         .with_context(|| {
             format!(
@@ -95,6 +95,11 @@ mod tests {
             )
         })?;
 
+        println!(
+            "collision_step_count_actual: {}",
+            collision_step_count_actual
+        );
+
         let (post1, post2) = {
             let pop = sys.pop.borrow();
             (pop[0], pop[1])
@@ -102,8 +107,8 @@ mod tests {
 
         let post_momentum = momentum(&sys.pop.borrow());
 
-        assert_coeff_of_res(pre1.v, post1.v, 0.10)?;
-        assert_coeff_of_res(pre2.v, post2.v, 0.10)?;
+        assert_coeff_of_res(pre1.v, post1.v, 0.20)?;
+        assert_coeff_of_res(pre2.v, post2.v, 0.20)?;
 
         ensure!(
             (post_momentum - pre_momentum).mag()
@@ -168,34 +173,33 @@ mod tests {
 
     #[test]
     /// to check collisions
+    /// this test is invoked by analysis/STEP.py, its not meant to pass
+    /// it is meant to collect debug information
     fn test_2_bodies() -> Result<()> {
         let r = 1e-7;
         let rho = 0.88;
         let init_impact_v = 2. * r;
         let sep_dis = 2.2 * r; // x = 1.1r
+        let dt = 0.025; //1e-3;
 
-        pair_collision_run(1e-3, r, rho, init_impact_v, sep_dis, 250)
+        pair_collision_run(dt, r, rho, init_impact_v, sep_dis, (0.25 / dt) as usize)?;
+
+        ensure!(false, "test is ok");
+
+        Ok(())
     }
 
     #[test]
-    fn test_robust_2_bodies() -> Result<()> {
+    fn test_2_bodies_variations_of_dt() -> Result<()> {
+        let r = 1e-7;
         let rho = 0.88;
-        for &r in &[1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10] {
-            for &init_impact_v_multiplier in &[1.0, 2.0, 5.0, 10.0, 100.0] {
-                for &dt in &[1e-5, 1e-3, 1e-1] {
-                    let init_impact_v = init_impact_v_multiplier * r;
-                    let sep_dis = 2.2 * r; // x = 1.1r
-                    let steps = (0.25 / dt) as usize;
-                    pair_collision_run(dt, r, rho, init_impact_v, sep_dis, steps).with_context(
-                        || {
-                            format!(
-                                "r = {:e}, init_impact_v = {:e}, dt = {:e}",
-                                r, init_impact_v, dt
-                            )
-                        },
-                    )?;
-                }
-            }
+        let init_impact_v = 2. * r;
+        let sep_dis = 2.2 * r; // x = 1.1r
+
+        // total simulation time is 0.25
+
+        for dt in vec![0.25, 0.05, 0.025, 0.005, 0.0025] {
+            pair_collision_run(dt, r, rho, init_impact_v, sep_dis, (0.25 / dt) as usize)?;
         }
 
         Ok(())

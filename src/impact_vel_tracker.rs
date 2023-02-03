@@ -43,17 +43,27 @@ impl ImpactVelocityTracker {
             .copied()
     }
 
-    pub fn add(&mut self, p1: ParticleIndex, p2: ParticleIndex, v: f64, step_count: usize) {
+    pub fn add(
+        &mut self,
+        p1: ParticleIndex,
+        p2: ParticleIndex,
+        v: f64,
+        step_count: usize,
+        is_colliding: bool,
+    ) {
         #[cfg(test)]
         {
-            // track how many times a pair has had its impact vel updated, useful for determining
-            // how many steps a collision took
-            let times_updated = self
-                .collision_step_count
-                .get(&smaller_first(p1, p2))
-                .unwrap_or(&0);
-            self.collision_step_count
-                .insert(smaller_first(p1, p2), times_updated + 1);
+            if is_colliding {
+                // track how many times a pair has had its impact vel updated, useful for determining
+                // how many steps a collision took
+                let times_updated = self
+                    .collision_step_count
+                    .get(&smaller_first(p1, p2))
+                    .unwrap_or(&0);
+
+                self.collision_step_count
+                    .insert(smaller_first(p1, p2), times_updated + 1);
+            }
         }
 
         self.data.insert(smaller_first(p1, p2), (v, step_count));

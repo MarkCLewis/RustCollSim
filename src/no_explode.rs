@@ -19,6 +19,14 @@ pub fn omega_0_from_k(k: f64, m: f64) -> f64 {
     (k / m).sqrt()
 }
 
+pub fn omega_l(k: f64, m: f64, b: f64) -> f64 {
+    let omega_0 = omega_0_from_k(k, m);
+    let omega_0_sq = omega_0 * omega_0;
+    let b_sq = b * b;
+    let omega_l_sq = omega_0_sq - b_sq / (4. * m * m);
+    omega_l_sq.sqrt()
+}
+
 #[allow(dead_code)]
 pub mod rotter {
     use std::f64::consts::PI;

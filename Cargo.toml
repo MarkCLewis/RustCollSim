@@ -9,6 +9,7 @@ edition = "2018"
 # To switch versions - rustup override set nightly
 [features]
 no_gravity = []
+debug_assertions = []
 
 [dependencies]
 core_simd = { git = "https://github.com/rust-lang/portable-simd" }

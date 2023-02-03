@@ -60,6 +60,10 @@ impl KDTreeSystem {
                 writeln!(writer, "").unwrap();
             }
 
+            for (p_idx, p) in self.pop.borrow().iter().enumerate() {
+                debugln!("STEP {},{},{},{}", self.current_time, p_idx, p.p[0], p.v[0]);
+            }
+
             if i % 10 == 0 {
                 self.pq.borrow_mut().trim_impact_vel_tracker(i);
             }

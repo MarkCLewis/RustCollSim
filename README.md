@@ -49,3 +49,17 @@ flowchart TD;
 
 ## Notes - Dec 9
 - bug: elastic collision if 10x radius diff
+
+## Notes - Jan 27
+- still does many small time steps even if big time step count > desired steps
+- test: vary big time step
+- test: big time step in middle of collision
+- test: 1 big step before collision and one near the end
+- so if time steps are really big its well behaved
+- too many small steps taken
+- adjust small time step counter: only count collision small steps
+
+## Notes - Feb 3
+- test analysis: 
+    ```radius_0,radius_1,desired_impact_vel,k,c,time_step,rho,coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,collision_steps,real_impact_vel,desired_collision_step_count
+    ```

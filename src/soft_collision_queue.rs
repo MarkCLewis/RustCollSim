@@ -57,7 +57,7 @@ pub enum PushPq {
 
 struct EventData {
     impact_speed: f64,
-    // b: f64,
+    b: f64,
     k: f64,
     separation_distance: f64,
     reduced_mass: f64,
@@ -146,7 +146,7 @@ impl SoftSphereForce {
 
         let info = EventData {
             impact_speed,
-            // b,
+            b,
             k,
             separation_distance,
             reduced_mass,
@@ -165,7 +165,7 @@ impl SoftSphereForce {
             // if colliding, keep refreshing (or updating in case of a speedup) the impact vel tracker
             self.impact_vel
                 .borrow_mut()
-                .add(p1i, p2i, impact_speed, step_num);
+                .add(p1i, p2i, impact_speed, step_num, true);
 
             (f_total / p1.m, -f_total / p2.m, info)
         } else {
@@ -192,18 +192,29 @@ impl SoftSphereForce {
         event_time: f64,
         k: f64,
         m: f64,
+        b: f64,
     ) -> (f64, f64, PushPq) {
-        use crate::no_explode::omega_0_from_k;
+        use crate::no_explode::{omega_0_from_k, omega_l};
 
-        let omega_0 = omega_0_from_k(k, m);
-        assert!(omega_0 >= 0.);
+        // let omega_0 = omega_0_from_k(k, m);
+        // assert!(omega_0 >= 0.);
+
+        let omega_l = omega_l(k, m, b);
+
+        // T = 1/f = 2\pi/\omega
+        // Time of collision is T/2
+        let collision_time = std::f64::consts::PI / omega_l;
+        let collision_time_dt = collision_time / self.desired_collision_step_count as f64;
 
         // TODO: abstract out gravity forces
 
         let mut dt = if separation_distance < 0. {
+            debugln!("colliding",);
             // colliding
             // 1/(\omega_0 C), => C = step num
-            1. / (omega_0 * self.desired_collision_step_count as f64)
+            // 1. / (omega_l * self.desired_collision_step_count as f64)
+            collision_time_dt
+            // FIXME: this is off, about 2.8 times too small
         } else {
             // v * t = d
             let impact_time_dt = separation_distance / current_impact_vel;
@@ -211,7 +222,7 @@ impl SoftSphereForce {
 
             f64::max(
                 impact_time_dt.abs() / 2.,
-                1. / (omega_0 * self.desired_collision_step_count as f64),
+                collision_time_dt, // 1. / (omega_l * self.desired_collision_step_count as f64),
             )
         };
 
@@ -253,12 +264,24 @@ impl SoftSphereForce {
             current_time,
             info.k,
             info.reduced_mass,
+            info.b,
         );
 
         debugln!(
             "repush_to_pq={repush_to_pq:?} dt={dt} sep_dis={} impact_speed={}",
             info.separation_distance,
             info.impact_speed
+        );
+
+        debugln!(
+            "SUB_STEP {},{},{},{},{},{},{}",
+            current_time,
+            p1i.0,
+            p1.p[0],
+            p1.v[0],
+            p2i.0,
+            p2.p[0],
+            p2.v[0]
         );
 
         let dvs = (
