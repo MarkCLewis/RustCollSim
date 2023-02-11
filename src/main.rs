@@ -8,6 +8,7 @@ mod no_explode;
 mod particle;
 mod soft_collision_queue;
 mod system;
+mod test_setup;
 mod tests;
 mod util;
 mod vectors;

@@ -33,7 +33,7 @@ impl Particle {
     }
 
     /// returns speed (absolute)
-    pub fn impact_speed(&self, other: &Self) -> f64 {
+    pub fn relative_speed(&self, other: &Self) -> f64 {
         let unit_to_p2 = (Vector(other.p) - Vector(self.p)).unit_vector(); // unit vec from p1 pointing at p2
 
         // (vel of p2 rel to p1) dot (unit vector pointing at p2 from p1)
@@ -42,6 +42,10 @@ impl Particle {
 
     pub fn apply_dv(&mut self, dv: Vector) {
         self.v = (Vector(self.v) + dv).0;
+    }
+
+    pub fn is_colliding(&self, other: &Self) -> bool {
+        (Vector(self.p) - Vector(other.p)).mag() < self.r + other.r
     }
 }
 

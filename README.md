@@ -61,5 +61,11 @@ flowchart TD;
 
 ## Notes - Feb 3
 - test analysis: 
-    ```radius_0,radius_1,desired_impact_vel,k,c,time_step,rho,coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,collision_steps,real_impact_vel,desired_collision_step_count
+    ```radius_0,radius_1,desired_impact_vel,time_step,rho,coeff_of_res,max_pen_depth_percent_0,max_pen_depth_percent_1,collision_steps,real_impact_vel,desired_collision_step_count
     ```
+
+- current method of finding the exit velocity doesn't work if there is only 1 collision step
+
+## Notes - Feb 10
+- various epsilons: 0.1 to 1
+- find thesis comittee members - mehta and who?

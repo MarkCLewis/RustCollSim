@@ -97,11 +97,15 @@ impl SoftSphereForce {
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
         step_count: usize,
-        trace_func: Option<
-            &mut impl FnMut((ParticleIndex, &Particle), (ParticleIndex, &Particle), f64),
-        >,
+        #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) {
-        self.run_through_collision_pairs(particles, next_sync_step, step_count, trace_func);
+        self.run_through_collision_pairs(
+            particles,
+            next_sync_step,
+            step_count,
+            #[cfg(feature = "early_quit")]
+            check_early_quit,
+        );
 
         Self::end_step(particles, next_sync_step);
     }
@@ -119,7 +123,7 @@ impl SoftSphereForce {
         (p2i, p2): (ParticleIndex, &mut Particle),
         step_num: usize,
     ) -> (Vector, Vector, EventData) {
-        let current_impact_vel = Particle::impact_speed(p1, p2);
+        let current_relative_speed = Particle::relative_speed(p1, p2);
         let x_len = (Vector(p1.p) - Vector(p2.p)).mag();
         let x_hat = (Vector(p1.p) - Vector(p2.p)) / x_len;
         let separation_distance = x_len - p1.r - p2.r;
@@ -129,12 +133,14 @@ impl SoftSphereForce {
             // colliding
             // look up impact velocity
             match self.impact_vel.borrow().get(p1i, p2i) {
-                None => current_impact_vel,
-                Some((speed, _)) => f64::max(speed, current_impact_vel),
+                None => current_relative_speed,
+                Some((last_known_impact_speed, _)) => {
+                    f64::max(last_known_impact_speed, current_relative_speed)
+                }
             }
         } else {
             // not colliding
-            current_impact_vel
+            current_relative_speed
         };
 
         debugln!("current_impact_vel={}", current_impact_vel);
@@ -163,9 +169,18 @@ impl SoftSphereForce {
             let f_total = f_spring + f_damp;
 
             // if colliding, keep refreshing (or updating in case of a speedup) the impact vel tracker
-            self.impact_vel
-                .borrow_mut()
-                .add(p1i, p2i, impact_speed, step_num, true);
+            self.impact_vel.borrow_mut().add(
+                p1i,
+                p2i,
+                impact_speed,
+                step_num,
+                #[cfg(test)]
+                true,
+                #[cfg(test)]
+                (-separation_distance).max(0.), // penetration depth, as a positive number. If not colliding, this is 0.
+                #[cfg(test)]
+                current_relative_speed,
+            );
 
             (f_total / p1.m, -f_total / p2.m, info)
         } else {
@@ -194,7 +209,7 @@ impl SoftSphereForce {
         m: f64,
         b: f64,
     ) -> (f64, f64, PushPq) {
-        use crate::no_explode::{omega_0_from_k, omega_l};
+        use crate::no_explode::omega_l;
 
         // let omega_0 = omega_0_from_k(k, m);
         // assert!(omega_0 >= 0.);
@@ -214,7 +229,6 @@ impl SoftSphereForce {
             // 1/(\omega_0 C), => C = step num
             // 1. / (omega_l * self.desired_collision_step_count as f64)
             collision_time_dt
-            // FIXME: this is off, about 2.8 times too small
         } else {
             // v * t = d
             let impact_time_dt = separation_distance / current_impact_vel;
@@ -257,7 +271,7 @@ impl SoftSphereForce {
     ) -> (Vector, Vector) {
         let (acc1, acc2, info) = self.compute_acc((p1i, p1), (p2i, p2), step_num);
 
-        let (next_time, dt, repush_to_pq) = self.get_next_time(
+        let (next_time, _dt, repush_to_pq) = self.get_next_time(
             info.separation_distance,
             next_sync_step,
             info.impact_speed,
@@ -311,9 +325,7 @@ impl SoftSphereForce {
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
         step_num: usize,
-        mut trace_func: Option<
-            &mut impl FnMut((ParticleIndex, &Particle), (ParticleIndex, &Particle), f64),
-        >,
+        #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) {
         loop {
             if let Some(event) = self.queue.pop() {
@@ -334,8 +346,9 @@ impl SoftSphereForce {
                 p1.apply_dv(dv1);
                 p2.apply_dv(dv2);
 
-                if let Some(ref mut trace_func_) = trace_func {
-                    trace_func_((event.p1, p1), (event.p2, p2), event.time);
+                #[cfg(feature = "early_quit")]
+                if check_early_quit(particles) {
+                    break;
                 }
             } else {
                 break;
