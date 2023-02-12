@@ -69,3 +69,6 @@ flowchart TD;
 ## Notes - Feb 10
 - various epsilons: 0.1 to 1
 - find thesis comittee members - mehta and who?
+
+- also: the early_quit method currently requires no_gravity
+- TODO: f64's might be negative when I expect them to be positive

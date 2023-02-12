@@ -143,7 +143,7 @@ impl SoftSphereForce {
             current_relative_speed
         };
 
-        debugln!("current_impact_vel={}", current_impact_vel);
+        debugln!("current_impact_vel={}", impact_speed);
 
         let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
 
@@ -221,6 +221,8 @@ impl SoftSphereForce {
         let collision_time = std::f64::consts::PI / omega_l;
         let collision_time_dt = collision_time / self.desired_collision_step_count as f64;
 
+        let current_impact_speed = current_impact_vel.abs();
+
         // TODO: abstract out gravity forces
 
         let mut dt = if separation_distance < 0. {
@@ -231,7 +233,7 @@ impl SoftSphereForce {
             collision_time_dt
         } else {
             // v * t = d
-            let impact_time_dt = separation_distance / current_impact_vel;
+            let impact_time_dt = separation_distance / current_impact_speed;
             // max( dist/(2*v_normal) and 1/(\omega_0 C) )
 
             f64::max(
@@ -271,7 +273,7 @@ impl SoftSphereForce {
     ) -> (Vector, Vector) {
         let (acc1, acc2, info) = self.compute_acc((p1i, p1), (p2i, p2), step_num);
 
-        let (next_time, _dt, repush_to_pq) = self.get_next_time(
+        let (next_time, dt, repush_to_pq) = self.get_next_time(
             info.separation_distance,
             next_sync_step,
             info.impact_speed,

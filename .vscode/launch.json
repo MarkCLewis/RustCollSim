@@ -1,0 +1,34 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug debug_one_test",
+      "cargo": {
+        "args": [
+          "test",
+          "--features=no_gravity",
+          "--features=early_quit",
+          "--features=debug_assertions",
+          "--",
+          "test_setup::debug_one_test",
+          "--nocapture"
+        ],
+        "filter": {
+          "name": "rust_coll_sim",
+          "kind": "bin"
+        }
+      },
+      "args": [
+        "--",
+        "test_setup::debug_one_test",
+        "--nocapture"
+      ],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

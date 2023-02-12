@@ -20,7 +20,11 @@ use crate::{no_explode::rotter, system::KDTreeSystem, vectors::Vector};
 fn main() {
     println!("Hello, collisional simulations!");
     if cfg!(feature = "no_gravity") {
-        println!("no_gravity");
+        eprintln!("Running with feature: no_gravity");
+    }
+
+    if cfg!(feature = "early_quit") {
+        eprintln!("Running with feature: early_quit");
     }
 
     demo2();
