@@ -15,7 +15,7 @@ mod vectors;
 
 use std::{f64::consts::PI, time::Instant};
 
-use crate::{no_explode::rotter, system::KDTreeSystem};
+use crate::system::KDTreeSystem;
 
 fn main() {
     println!("Hello, collisional simulations!");
@@ -65,6 +65,7 @@ fn demo2() {
         particle::two_equal_bodies(r, rho, init_impact_v, sep_dis),
         dt,
         10,
+        0.5,
     );
 
     let v = sys.pop.borrow()[0].v.mag();
@@ -84,7 +85,7 @@ fn demo1() {
         let start = Instant::now();
 
         // let mut sys = KDTreeSystem::new(particle::circular_orbits(20001), dt);
-        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10);
+        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10, 0.5);
 
         sys.run((2. * PI / dt) as usize);
 

@@ -251,6 +251,7 @@ pub mod test_setup {
                 ),
                 self.dt,
                 self.desired_steps,
+                0.5,
             );
 
             debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", self.r0, self.r1, self.rho, self.init_impact_v, self.sep_dis, self.dt, self.steps, self.desired_steps);

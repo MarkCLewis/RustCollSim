@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::particle::momentum;
+    use crate::particle::ParticleIndex;
     use crate::vectors::Vector;
-    use crate::{no_explode::COEFF_RES, particle::ParticleIndex};
     use anyhow::{ensure, Context, Result};
 
     fn percent_error(actual: f64, expected: f64) -> f64 {
@@ -20,23 +20,28 @@ mod tests {
         Ok(())
     }
 
-    fn assert_coeff_of_res(v_before: Vector, v_after: Vector, percentage_error: f64) -> Result<()> {
+    fn assert_coeff_of_res(
+        v_before: Vector,
+        v_after: Vector,
+        percentage_error: f64,
+        coeff_res: f64,
+    ) -> Result<()> {
         let coeff = v_after.mag() / v_before.mag();
         // assert!(coeff < COEFF)
-        let error = COEFF_RES * percentage_error;
+        let error = coeff_res * percentage_error;
         ensure!(
-            coeff <= COEFF_RES + error,
+            coeff <= coeff_res + error,
             "Coeff of res too small, got {} but expected {}. Error: {:.2}%",
             coeff,
-            COEFF_RES,
-            percent_error(coeff, COEFF_RES)
+            coeff_res,
+            percent_error(coeff, coeff_res)
         );
         ensure!(
-            coeff >= COEFF_RES - error,
+            coeff >= coeff_res - error,
             "Coeff of res too small, got {} but expected {}. Error: {:.2}%",
             coeff,
-            COEFF_RES,
-            percent_error(coeff, COEFF_RES)
+            coeff_res,
+            percent_error(coeff, coeff_res)
         );
 
         Ok(())
@@ -54,10 +59,13 @@ mod tests {
 
         let collision_step_count = 15;
 
+        let default_coeff_of_res = 0.5;
+
         let mut sys = KDTreeSystem::new(
             particle::two_equal_bodies(r, rho, init_impact_v, sep_dis),
             dt,
             collision_step_count,
+            default_coeff_of_res,
         );
 
         let (pre1, pre2) = {
@@ -101,8 +109,8 @@ mod tests {
 
         let post_momentum = momentum(&sys.pop.borrow());
 
-        assert_coeff_of_res(pre1.v, post1.v, 0.20)?;
-        assert_coeff_of_res(pre2.v, post2.v, 0.20)?;
+        assert_coeff_of_res(pre1.v, post1.v, 0.20, default_coeff_of_res)?;
+        assert_coeff_of_res(pre2.v, post2.v, 0.20, default_coeff_of_res)?;
 
         ensure!(
             (post_momentum - pre_momentum).mag()
@@ -139,7 +147,7 @@ mod tests {
 
         let dt = 1e-3;
 
-        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10);
+        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10, 0.5);
 
         let (sun, planet) = {
             let pop = sys.pop.borrow();

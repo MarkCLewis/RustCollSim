@@ -12,8 +12,10 @@
 //pub const B: f64 = 3.4194745456729856e-20;
 //pub const K: f64 = 6.595530918688126e-18;
 
-pub const PEN_RATIO_DEFAULT: f64 = 0.02;
-pub const COEFF_RES: f64 = 0.5;
+// pub const PEN_RATIO_DEFAULT: f64 = 0.02;
+// pub const COEFF_RES: f64 = 0.5;
+
+use std::f64::consts::PI;
 
 pub fn omega_0_from_k(k: f64, m: f64) -> f64 {
     (k / m).sqrt()
@@ -27,75 +29,135 @@ pub fn omega_l(k: f64, m: f64, b: f64) -> f64 {
     omega_l_sq.sqrt()
 }
 
-#[allow(dead_code)]
-pub mod rotter {
-    use std::f64::consts::PI;
+pub trait SpringDerivation {
+    // pen fraction is the fraction of acceptable overlap, 0.02 is 2% overlap
+    fn b_and_k(&self, v_0: f64, m: f64, radius: f64) -> (f64, f64);
+}
 
-    fn beta2(v_0: f64, pen_depth: f64) -> f64 {
-        (-v_0 * 2. * crate::no_explode::COEFF_RES.ln() * crate::no_explode::COEFF_RES.sqrt())
-            / (pen_depth * PI)
+// Rotter derivation
+pub struct Rotter {
+    coeff_res: f64,
+    pen_fraction: f64,
+}
+
+impl Rotter {
+    #[inline(always)]
+    fn beta2(&self, v_0: f64, pen_depth: f64) -> f64 {
+        (-v_0 * 2. * self.coeff_res.ln() * self.coeff_res.sqrt()) / (pen_depth * PI)
     }
 
-    fn omega_0_sq(beta_val: f64) -> f64 {
-        let ln_coeff_res_sq = crate::no_explode::COEFF_RES.ln() * crate::no_explode::COEFF_RES.ln();
+    #[inline(always)]
+    fn omega_0_sq(&self, beta_val: f64) -> f64 {
+        let ln_coeff_res_sq = self.coeff_res.ln() * self.coeff_res.ln();
         (beta_val * beta_val * (ln_coeff_res_sq + PI * PI)) / (4. * ln_coeff_res_sq)
     }
 
+    #[inline(always)]
     // returns (b, k)
-    fn b_and_k2(v_0: f64, m: f64, pen_depth: f64) -> (f64, f64) {
-        let beta_val = beta2(v_0, pen_depth);
-        let omega_0_sq_val = omega_0_sq(beta_val);
+    fn b_and_k2(&self, v_0: f64, m: f64, pen_depth: f64) -> (f64, f64) {
+        let beta_val = self.beta2(v_0, pen_depth);
+        let omega_0_sq_val = self.omega_0_sq(beta_val);
 
         (beta_val * m, omega_0_sq_val * m)
     }
-
-    // returns (b, k)
-    pub fn b_and_k(v_0: f64, m: f64, radius: f64) -> (f64, f64) {
-        b_and_k2(v_0, m, radius * crate::no_explode::PEN_RATIO_DEFAULT)
+    pub fn new(coeff_res: f64, pen_fraction: f64) -> Self {
+        Self {
+            coeff_res,
+            pen_fraction,
+        }
     }
 }
 
-#[allow(dead_code)]
-pub mod lewis {
-    use std::f64::consts::PI;
+impl SpringDerivation for Rotter {
+    fn b_and_k(&self, v_0: f64, m: f64, radius: f64) -> (f64, f64) {
+        self.b_and_k2(v_0, m, radius * self.pen_fraction)
+    }
+}
 
-    fn k(m: f64, v_i: f64, r: f64) -> f64 {
-        let delta_r = crate::no_explode::PEN_RATIO_DEFAULT * r;
+impl Default for Rotter {
+    fn default() -> Self {
+        Self::new(0.5, 0.02)
+    }
+}
+
+pub struct Lewis {
+    coeff_res: f64,
+    pen_fraction: f64,
+}
+
+impl Lewis {
+    #[inline(always)]
+    fn k(&self, m: f64, v_i: f64, r: f64) -> f64 {
+        let delta_r = self.pen_fraction * r;
         m * v_i * v_i / (delta_r * delta_r)
     }
 
-    fn c(k: f64, m: f64) -> f64 {
-        2. * (k * m).sqrt() * crate::no_explode::COEFF_RES.ln() / PI
+    #[inline(always)]
+    fn c(&self, k: f64, m: f64) -> f64 {
+        2. * (k * m).sqrt() * self.coeff_res.ln() / PI
     }
 
-    pub fn b_and_k(v_0: f64, m: f64, radius: f64) -> (f64, f64) {
-        let k = k(m, v_0, radius);
-        let c = c(k, m).abs();
+    pub fn new(coeff_res: f64, pen_fraction: f64) -> Self {
+        Self {
+            coeff_res,
+            pen_fraction,
+        }
+    }
+}
+
+impl SpringDerivation for Lewis {
+    fn b_and_k(&self, v_0: f64, m: f64, radius: f64) -> (f64, f64) {
+        let k = self.k(m, v_0, radius);
+        let c = self.c(k, m).abs();
         (c, k)
     }
 }
 
-#[allow(dead_code)]
-pub mod schwartz {
-    use std::f64::consts::PI;
+impl Default for Lewis {
+    fn default() -> Self {
+        Self::new(0.5, 0.02)
+    }
+}
 
-    const CONST_OF_PROP: f64 = 1.; // TODO: what is this?
-                                   // I think its about 1 as it works for the example given
-    const MAX_PEN_RATIO: f64 = 0.02;
+pub struct Schwartz {
+    const_of_prop: f64, // TODO: what is this?
+    // I think const_of_prop is about 1 as it works for the example given
+    max_pen_ratio: f64,
+    coeff_res: f64,
+}
 
-    fn k(m: f64, v_max: f64, x_max: f64) -> f64 {
-        let tmp = v_max / x_max;
-        m * CONST_OF_PROP * tmp * tmp
+impl Schwartz {
+    pub fn new(max_pen_ratio: f64, coeff_res: f64) -> Self {
+        Self {
+            const_of_prop: 1.,
+            max_pen_ratio,
+            coeff_res,
+        }
     }
 
-    fn c(k: f64, m: f64) -> f64 {
-        let lne = crate::no_explode::COEFF_RES.ln();
+    #[inline(always)]
+    fn k(&self, m: f64, v_max: f64, x_max: f64) -> f64 {
+        let tmp = v_max / x_max;
+        m * self.const_of_prop * tmp * tmp
+    }
+
+    #[inline(always)]
+    fn c(&self, k: f64, m: f64) -> f64 {
+        let lne = self.coeff_res.ln();
         -2. * (k * m / (PI * PI + lne * lne)).sqrt() * lne
     }
+}
 
-    pub fn b_and_k(v_max: f64, m: f64, r: f64) -> (f64, f64) {
-        let k = k(m, v_max, r * MAX_PEN_RATIO).abs();
-        let c = c(k, m).abs();
+impl SpringDerivation for Schwartz {
+    fn b_and_k(&self, v_max: f64, m: f64, r: f64) -> (f64, f64) {
+        let k = self.k(m, v_max, r * self.max_pen_ratio).abs();
+        let c = self.c(k, m).abs();
         (c, k)
+    }
+}
+
+impl Default for Schwartz {
+    fn default() -> Self {
+        Self::new(0.5, 0.02)
     }
 }

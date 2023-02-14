@@ -3,6 +3,7 @@ use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap};
 use crate::{
     debugln,
     impact_vel_tracker::ImpactVelocityTracker,
+    no_explode::SpringDerivation,
     particle::{calc_pp_accel, Particle, ParticleIndex},
     util::borrow_two_elements,
     vectors::Vector,
@@ -42,11 +43,12 @@ impl Ord for ForceEvent {
     }
 }
 
-pub struct SoftSphereForce {
+pub struct SoftSphereForce<S: SpringDerivation> {
     pub queue: BinaryHeap<ForceEvent>,
     desired_collision_step_count: usize,
     minimum_time_step: f64, // print warn if dt < this
     pub impact_vel: RefCell<ImpactVelocityTracker>,
+    spring_derivation: S,
 }
 
 #[derive(Debug)]
@@ -63,13 +65,18 @@ struct EventData {
     reduced_mass: f64,
 }
 
-impl SoftSphereForce {
-    pub fn new(big_time_step: f64, desired_collision_step_count: usize) -> Self {
+impl<S: SpringDerivation> SoftSphereForce<S> {
+    pub fn new(
+        big_time_step: f64,
+        desired_collision_step_count: usize,
+        spring_derivation: S,
+    ) -> Self {
         Self {
             queue: BinaryHeap::new(),
             desired_collision_step_count,
             minimum_time_step: big_time_step / 100.,
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),
+            spring_derivation,
         }
     }
 
@@ -146,8 +153,9 @@ impl SoftSphereForce {
 
         let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
 
-        use crate::rotter::b_and_k;
-        let (b, k) = b_and_k(impact_speed, reduced_mass, f64::min(p1.r, p2.r));
+        let (b, k) =
+            self.spring_derivation
+                .b_and_k(impact_speed, reduced_mass, f64::min(p1.r, p2.r));
 
         let info = EventData {
             impact_speed,

@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use crate::{
     debugln,
     kd_tree::{self, Interaction},
+    no_explode,
     particle::{Particle, ParticleIndex},
     soft_collision_queue::SoftSphereForce,
     util::borrow_two_elements,
@@ -14,12 +15,18 @@ pub struct KDTreeSystem {
     tree: kd_tree::KDTree,
     time_step: f64,
     current_time: f64,
-    pub pq: RefCell<SoftSphereForce>,
+    pub pq: RefCell<SoftSphereForce<no_explode::Rotter>>,
     dv_tmp: RefCell<Vec<Vector>>,
 }
 
 impl KDTreeSystem {
-    pub fn new(pop: Vec<Particle>, time_step: f64, desired_collision_step_count: usize) -> Self {
+    pub fn new(
+        pop: Vec<Particle>,
+        time_step: f64,
+        desired_collision_step_count: usize,
+        desired_coefficient_of_restitution: f64,
+    ) -> Self {
+        let default_pen_fraction = 0.02;
         let size = pop.len();
         Self {
             tree: kd_tree::KDTree::new(pop.len()),
@@ -29,6 +36,7 @@ impl KDTreeSystem {
             pq: RefCell::new(SoftSphereForce::new(
                 time_step,
                 desired_collision_step_count,
+                no_explode::Rotter::new(desired_coefficient_of_restitution, default_pen_fraction),
             )),
             dv_tmp: {
                 let mut v = Vec::new();
@@ -37,10 +45,6 @@ impl KDTreeSystem {
             },
         }
     }
-
-    // pub fn with_tracing(&mut self, file_path: &str) {
-    //     self.tracing_writer = Some(BufWriter::new(File::create(file_path).unwrap()));
-    // }
 
     /// FIXME: this optional feature mess
     pub fn run(&mut self, steps: usize) {
