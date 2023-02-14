@@ -14,8 +14,6 @@ pub struct KDTree {
     pub indices: Vec<usize>,
 }
 
-// type PairFuncEmpty = fn(&Particle, &Particle);
-
 #[derive(Debug)]
 pub enum Interaction {
     ParticleParticle(ParticleIndex),
@@ -239,47 +237,6 @@ impl KDTreeNode {
     }
 }
 
-// pub fn simple_sim(bodies: &mut Vec<Particle>, dt: f64, steps: i64) {
-//     let mut acc = Vec::new();
-//     for _ in 0..bodies.len() {
-//         acc.push([0.0, 0.0, 0.0])
-//     }
-//     // let mut time = Instant::now();
-//     let mut tree = allocate_node_vec(bodies.len());
-//     let mut indices: Vec<usize> = (0..bodies.len()).collect();
-//     for step in 0..steps {
-//         // if step % 100 == 0 {
-//         //     let elapsed_secs = time.elapsed().as_nanos() as f64 / 1e9;
-//         //     println!("Step = {}, duration = {}, n = {}, nodes = {}", step, elapsed_secs, bodies.len(), tree.len());
-//         //     time = Instant::now();
-//         // }
-//         for i in 0..bodies.len() {
-//             indices[i] = i;
-//         }
-//         build_tree(&mut indices, 0, bodies.len(), bodies, 0, &mut tree);
-//         // if step % 10 == 0 {
-//         //     print_tree(step, &tree, &bodies);
-//         // }
-//         for i in 0..bodies.len() {
-//             acc[i] = calc_accel(i, &bodies, &tree);
-//         }
-//         for i in 0..bodies.len() {
-//             bodies[i].v[0] += dt * acc[i][0];
-//             bodies[i].v[1] += dt * acc[i][1];
-//             bodies[i].v[2] += dt * acc[i][2];
-//             let dx = dt * bodies[i].v[0];
-//             let dy = dt * bodies[i].v[1];
-//             let dz = dt * bodies[i].v[2];
-//             bodies[i].p[0] += dx;
-//             bodies[i].p[1] += dy;
-//             bodies[i].p[2] += dz;
-//             acc[i][0] = 0.0;
-//             acc[i][1] = 0.0;
-//             acc[i][2] = 0.0;
-//         }
-//     }
-// }
-
 #[allow(dead_code)]
 fn print_tree(step: i64, tree: &Vec<KDTreeNode>, particles: &Vec<Particle>) -> std::io::Result<()> {
     let mut file = File::create(format!("tree{}.txt", step))?;
@@ -348,68 +305,3 @@ fn recur_test_tree_struct(
         min[split_dim] = tmin;
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::{kd_tree, particle};
-
-//     #[test]
-//     fn single_node() {
-//         let parts = particle::two_bodies();
-//         let mut node_vec = kd_tree::allocate_node_vec(parts.len());
-//         assert_eq!(node_vec.len(), 2);
-//         let mut indices: Vec<usize> = (0..parts.len()).collect();
-//         kd_tree::build_tree(&mut indices, 0, parts.len(), &parts, 0, &mut node_vec);
-//         assert_eq!(node_vec[0].num_parts, parts.len());
-//     }
-
-//     #[test]
-//     fn two_leaves() {
-//         let parts = particle::circular_orbits(11);
-//         let mut node_vec = kd_tree::allocate_node_vec(parts.len());
-//         assert_eq!(node_vec.len(), 6);
-//         let mut indices: Vec<usize> = (0..parts.len()).collect();
-//         kd_tree::build_tree(&mut indices, 0, parts.len(), &parts, 0, &mut node_vec);
-//         kd_tree::recur_test_tree_struct(
-//             0,
-//             &node_vec,
-//             &parts,
-//             [-1e100, -1e100, -1e100],
-//             [1e100, 1e100, 1e100],
-//         );
-//         assert_eq!(node_vec[0].num_parts, 0);
-//         assert_eq!(node_vec[1].num_parts + node_vec[2].num_parts, 12);
-//     }
-
-//     #[test]
-//     fn big_solar() {
-//         let parts = particle::circular_orbits(5000);
-//         let mut node_vec = kd_tree::allocate_node_vec(parts.len());
-//         let mut indices: Vec<usize> = (0..parts.len()).collect();
-//         kd_tree::build_tree(&mut indices, 0, parts.len(), &parts, 0, &mut node_vec);
-//         kd_tree::recur_test_tree_struct(
-//             0,
-//             &node_vec,
-//             &parts,
-//             [-1e100, -1e100, -1e100],
-//             [1e100, 1e100, 1e100],
-//         );
-//     }
-
-//     #[test]
-//     fn big_solar_with_steps() {
-//         let mut parts = particle::circular_orbits(5000);
-//         kd_tree::simple_sim(&mut parts, 1e-3, 10);
-
-//         let mut node_vec = kd_tree::allocate_node_vec(parts.len());
-//         let mut indices: Vec<usize> = (0..parts.len()).collect();
-//         kd_tree::build_tree(&mut indices, 0, parts.len(), &parts, 0, &mut node_vec);
-//         kd_tree::recur_test_tree_struct(
-//             0,
-//             &node_vec,
-//             &parts,
-//             [-1e100, -1e100, -1e100],
-//             [1e100, 1e100, 1e100],
-//         );
-//     }
-// }

@@ -1,5 +1,3 @@
-// const DO_DEBUG: bool = true;
-
 #[macro_export]
 macro_rules! debugln {
     ($s:literal, $( $x:expr ),*) => {

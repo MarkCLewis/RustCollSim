@@ -2,15 +2,6 @@ use std::collections::HashMap;
 
 use crate::particle::ParticleIndex;
 
-// #[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
-// struct IndexPair(ParticleIndex, ParticleIndex);
-
-// impl IndexPair {
-//     pub fn swap(&self) -> Self {
-//         Self(self.1, self.0)
-//     }
-// }
-
 pub fn smaller_first(p1: ParticleIndex, p2: ParticleIndex) -> (ParticleIndex, ParticleIndex) {
     if p1 < p2 {
         (p1, p2)
