@@ -67,7 +67,13 @@ impl KDTreeSystem {
 
             #[allow(unused_variables)]
             for (p_idx, p) in self.pop.borrow().iter().enumerate() {
-                debugln!("STEP {},{},{},{}", self.current_time, p_idx, p.p[0], p.v[0]);
+                debugln!(
+                    "STEP {},{},{},{}",
+                    self.current_time,
+                    p_idx,
+                    p.p.x(),
+                    p.v.x()
+                );
             }
 
             if i % 10 == 0 {
@@ -112,7 +118,7 @@ impl KDTreeSystem {
                 }
                 let mut pop_ref = self.pop.borrow_mut();
                 let particle = &mut pop_ref[p.0];
-                let d_position = Vector(particle.p) - com;
+                let d_position = particle.p - com;
                 let d_sq = d_position * d_position;
                 let d = d_sq.sqrt();
                 let magi = -mass / (d * d_sq);

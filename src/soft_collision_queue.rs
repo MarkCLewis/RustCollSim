@@ -86,9 +86,8 @@ impl SoftSphereForce {
             current_time,
             particle.t
         );
-        particle.p[0] += particle.v[0] * dt;
-        particle.p[1] += particle.v[1] * dt;
-        particle.p[2] += particle.v[2] * dt;
+
+        particle.p += particle.v * dt;
         particle.t = current_time;
     }
 
@@ -124,10 +123,10 @@ impl SoftSphereForce {
         step_num: usize,
     ) -> (Vector, Vector, EventData) {
         let current_relative_speed = Particle::relative_speed(p1, p2);
-        let x_len = (Vector(p1.p) - Vector(p2.p)).mag();
-        let x_hat = (Vector(p1.p) - Vector(p2.p)) / x_len;
+        let x_len = (p1.p - p2.p).mag();
+        let x_hat = (p1.p - p2.p) / x_len;
         let separation_distance = x_len - p1.r - p2.r;
-        let vji = Vector(p1.v) - Vector(p2.v);
+        let vji = p1.v - p2.v;
 
         let impact_speed = if separation_distance < 0. {
             // colliding
@@ -188,11 +187,7 @@ impl SoftSphereForce {
                 (Vector::ZERO, Vector::ZERO, info)
             } else {
                 // gravity
-                (
-                    Vector(calc_pp_accel(p1, p2)),
-                    Vector(calc_pp_accel(p2, p1)),
-                    info,
-                )
+                (calc_pp_accel(p1, p2), calc_pp_accel(p2, p1), info)
             }
         }
     }
@@ -294,11 +289,11 @@ impl SoftSphereForce {
             "SUB_STEP {},{},{},{},{},{},{}",
             current_time,
             p1i.0,
-            p1.p[0],
-            p1.v[0],
+            p1.p.x(),
+            p1.v.x(),
             p2i.0,
-            p2.p[0],
-            p2.v[0]
+            p2.p.x(),
+            p2.v.x()
         );
 
         let dvs = (

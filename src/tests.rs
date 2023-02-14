@@ -20,12 +20,8 @@ mod tests {
         Ok(())
     }
 
-    fn assert_coeff_of_res(
-        v_before: [f64; 3],
-        v_after: [f64; 3],
-        percentage_error: f64,
-    ) -> Result<()> {
-        let coeff = Vector(v_after).mag() / Vector(v_before).mag();
+    fn assert_coeff_of_res(v_before: Vector, v_after: Vector, percentage_error: f64) -> Result<()> {
+        let coeff = v_after.mag() / v_before.mag();
         // assert!(coeff < COEFF)
         let error = COEFF_RES * percentage_error;
         ensure!(
@@ -116,20 +112,20 @@ mod tests {
             post_momentum.mag()
         );
 
-        if pre1.p[0] < pre2.p[1] {
+        if pre1.p.x() < pre2.p.x() {
             ensure!(
-                post1.p[0] < post2.p[0],
+                post1.p.x() < post2.p.x(),
                 "particles passed through each other"
             );
         } else {
             ensure!(
-                post1.p[0] >= post2.p[0],
+                post1.p.x() >= post2.p.x(),
                 "particles passed through each other"
             );
         }
 
-        ensure!(post1.p[2] == 0.);
-        ensure!(post2.p[2] == 0.);
+        ensure!(post1.p.z() == 0.);
+        ensure!(post2.p.z() == 0.);
 
         Ok(())
     }
@@ -157,16 +153,16 @@ mod tests {
             (pop[0], pop[1])
         };
 
-        let sun_drift = (Vector(sun.p) - Vector(sun2.p)).mag();
-        let planet_drift = (Vector(planet.p) - Vector(planet2.p)).mag();
-        let planet_v_drift = (Vector(planet.v) - Vector(planet2.v)).mag();
+        let sun_drift = (sun.p - sun2.p).mag();
+        let planet_drift = (planet.p - planet2.p).mag();
+        let planet_v_drift = (planet.v - planet2.v).mag();
 
         assert!(sun_drift < 2e-4);
         assert!(planet_drift < 2e-4);
-        assert!(Vector(sun2.v).mag() < 2e-4);
+        assert!(sun2.v.mag() < 2e-4);
         assert!(planet_v_drift < 2e-4);
-        assert_eq!(sun2.p[2], 0.);
-        assert_eq!(planet2.p[2], 0.);
+        assert_eq!(sun2.p.z(), 0.);
+        assert_eq!(planet2.p.z(), 0.);
     }
 
     #[test]

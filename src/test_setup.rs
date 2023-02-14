@@ -359,14 +359,14 @@ pub mod test_setup {
                 )
             );
 
-            if pre1.p[0] < pre2.p[0] {
+            if pre1.p.x() < pre2.p.x() {
                 ensure!(
-                    post1.p[0] < post2.p[0],
+                    post1.p.x() < post2.p.x(),
                     "particles passed through each other"
                 );
             } else {
                 ensure!(
-                    post1.p[0] > post2.p[0],
+                    post1.p.x() > post2.p.x(),
                     "particles passed through each other"
                 );
             }
@@ -374,12 +374,12 @@ pub mod test_setup {
             ensure!(!post1.is_colliding(&post2), "particles are still colliding");
 
             ensure!(
-                post1.p[2] == 0. && post1.p[1] == 0.,
+                post1.p.z() == 0. && post1.p.y() == 0.,
                 "particle 1 not on x axis"
             );
 
             ensure!(
-                post2.p[2] == 0. && post2.p[1] == 0.,
+                post2.p.z() == 0. && post2.p.y() == 0.,
                 "particle 2 not on x axis"
             );
 

@@ -1,6 +1,9 @@
 use std::{cell::RefCell, fs::File, io::Write};
 
-use crate::{particle::*, vectors::Vector};
+use crate::{
+    particle::*,
+    vectors::{Axis, Vector},
+};
 
 use super::particle::Particle;
 
@@ -75,27 +78,21 @@ impl KDTree {
             cur_node
         } else {
             // Pick split dim and value
-            let mut min = [1e100, 1e100, 1e100];
-            let mut max = [-1e100, -1e100, -1e100];
+            let mut min = Vector([1e100, 1e100, 1e100]);
+            let mut max = Vector([-1e100, -1e100, -1e100]);
             let mut m = 0.0;
-            let mut cm = [0.0, 0.0, 0.0];
+            let mut cm = Vector::ZERO;
             for i in start..end {
                 m += particles[self.indices[i]].m;
-                cm[0] += particles[self.indices[i]].m * particles[self.indices[i]].p[0];
-                cm[1] += particles[self.indices[i]].m * particles[self.indices[i]].p[1];
-                cm[2] += particles[self.indices[i]].m * particles[self.indices[i]].p[2];
-                min[0] = f64::min(min[0], particles[self.indices[i]].p[0]);
-                min[1] = f64::min(min[1], particles[self.indices[i]].p[1]);
-                min[2] = f64::min(min[2], particles[self.indices[i]].p[2]);
-                max[0] = f64::max(max[0], particles[self.indices[i]].p[0]);
-                max[1] = f64::max(max[1], particles[self.indices[i]].p[1]);
-                max[2] = f64::max(max[2], particles[self.indices[i]].p[2]);
+                cm += particles[self.indices[i]].p * particles[self.indices[i]].m;
+
+                min = min.min_of_every_axis(&particles[self.indices[i]].p);
+                max = max.max_of_every_axis(&particles[self.indices[i]].p);
             }
-            cm[0] /= m;
-            cm[1] /= m;
-            cm[2] /= m;
-            let mut split_dim = 0;
-            for dim in 1..3 {
+            cm /= m;
+
+            let mut split_dim = Axis::X;
+            for dim in Axis::iter() {
                 if max[dim] - min[dim] > max[split_dim] - min[split_dim] {
                     split_dim = dim
                 }
@@ -179,20 +176,15 @@ impl KDTree {
         } else {
             let dist_sqr = {
                 let pop_ref = &particles.borrow();
-                let dx = pop_ref[p].p[0] - self.nodes[cur_node].cm[0];
-                let dy = pop_ref[p].p[1] - self.nodes[cur_node].cm[1];
-                let dz = pop_ref[p].p[2] - self.nodes[cur_node].cm[2];
-                dx * dx + dy * dy + dz * dz
+                let dx = pop_ref[p].p - self.nodes[cur_node].cm;
+                dx * dx
             };
             // println!("dist = {}, size = {}", dist, nodes[cur_node].size);
             if self.nodes[cur_node].size * self.nodes[cur_node].size < THETA * THETA * dist_sqr {
                 // particle-node
                 pair_func(
                     ParticleIndex(p),
-                    Interaction::ParticleNode(
-                        Vector(self.nodes[cur_node].cm),
-                        self.nodes[cur_node].m,
-                    ),
+                    Interaction::ParticleNode(self.nodes[cur_node].cm, self.nodes[cur_node].m),
                 )
             } else {
                 // look into node
@@ -212,10 +204,10 @@ pub struct KDTreeNode {
     particles: [usize; MAX_PARTS],
 
     // For internal nodes
-    split_dim: usize,
+    split_dim: Axis,
     split_val: f64,
     m: f64,
-    cm: [f64; 3],
+    cm: Vector,
     size: f64,
     left: usize,
     right: usize,
@@ -226,10 +218,10 @@ impl KDTreeNode {
         KDTreeNode {
             num_parts: num_parts,
             particles: particles,
-            split_dim: usize::MAX,
+            split_dim: Axis::X, // or whatever axis
             split_val: 0.0,
             m: 0.0,
-            cm: [0.0, 0.0, 0.0],
+            cm: Vector::ZERO,
             size: 0.0,
             left: usize::MAX,
             right: usize::MAX,
@@ -249,12 +241,14 @@ fn print_tree(step: i64, tree: &Vec<KDTreeNode>, particles: &Vec<Particle>) -> s
                 let p = n.particles[i];
                 file.write_fmt(format_args!(
                     "{} {} {}\n",
-                    particles[p].p[0], particles[p].p[1], particles[p].p[2]
+                    particles[p].p.x(),
+                    particles[p].p.y(),
+                    particles[p].p.z()
                 ))?;
             }
         } else {
             file.write_fmt(format_args!(
-                "I {} {} {} {}\n",
+                "I {:?} {} {} {}\n",
                 n.split_dim, n.split_val, n.left, n.right
             ))?;
         }
@@ -268,16 +262,16 @@ fn recur_test_tree_struct(
     node: usize,
     nodes: &Vec<KDTreeNode>,
     particles: &Vec<Particle>,
-    mut min: [f64; 3],
-    mut max: [f64; 3],
+    mut min: Vector,
+    mut max: Vector,
 ) {
     if nodes[node].num_parts > 0 {
         for index in 0..nodes[node].num_parts {
             let i = nodes[node].particles[index];
-            for dim in 0..2 {
+            for dim in Axis::iter() {
                 assert!(
                     particles[i].p[dim] >= min[dim],
-                    "Particle dim {} is below min. i={} p={} min={}",
+                    "Particle dim {:?} is below min. i={} p={} min={}",
                     dim,
                     i,
                     particles[i].p[dim],
@@ -285,7 +279,7 @@ fn recur_test_tree_struct(
                 );
                 assert!(
                     particles[i].p[dim] < max[dim],
-                    "Particle dim {} is above max. i={} p={} max={}",
+                    "Particle dim {:?} is above max. i={} p={} max={}",
                     dim,
                     i,
                     particles[i].p[dim],

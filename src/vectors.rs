@@ -1,9 +1,22 @@
 use core::fmt;
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, Neg, Sub, SubAssign};
 
 #[inline(always)]
 fn square(x: f64) -> f64 {
     x * x
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Axis {
+    X,
+    Y,
+    Z,
+}
+
+impl Axis {
+    pub fn iter() -> impl Iterator<Item = Axis> {
+        [Axis::X, Axis::Y, Axis::Z].iter().copied()
+    }
 }
 
 // x, y, z for all
@@ -23,6 +36,9 @@ impl fmt::Display for Vector {
 
 impl Vector {
     pub const ZERO: Self = Self([0., 0., 0.]);
+    pub const X_HAT: Self = Self([1., 0., 0.]);
+    pub const Y_HAT: Self = Self([0., 1., 0.]);
+    pub const Z_HAT: Self = Self([0., 0., 1.]);
 
     #[inline(always)]
     pub fn dot(&self, other: &Vector) -> f64 {
@@ -55,6 +71,60 @@ impl Vector {
     #[inline(always)]
     pub fn unit_vector(&self) -> Vector {
         self / self.mag()
+    }
+
+    #[inline(always)]
+    pub fn x(&self) -> f64 {
+        self.0[0]
+    }
+
+    #[inline(always)]
+    pub fn y(&self) -> f64 {
+        self.0[1]
+    }
+
+    #[inline(always)]
+    pub fn z(&self) -> f64 {
+        self.0[2]
+    }
+
+    pub fn min_of_every_axis(&self, other: &Self) -> Self {
+        Self([
+            self.0[0].min(other.0[0]),
+            self.0[1].min(other.0[1]),
+            self.0[2].min(other.0[2]),
+        ])
+    }
+
+    pub fn max_of_every_axis(&self, other: &Self) -> Self {
+        Self([
+            self.0[0].max(other.0[0]),
+            self.0[1].max(other.0[1]),
+            self.0[2].max(other.0[2]),
+        ])
+    }
+}
+
+// useful for iterating over dimensions of a vector
+impl Index<Axis> for Vector {
+    type Output = f64;
+
+    fn index(&self, index: Axis) -> &Self::Output {
+        match index {
+            Axis::X => &self.0[0],
+            Axis::Y => &self.0[1],
+            Axis::Z => &self.0[2],
+        }
+    }
+}
+
+impl IndexMut<Axis> for Vector {
+    fn index_mut(&mut self, index: Axis) -> &mut Self::Output {
+        match index {
+            Axis::X => &mut self.0[0],
+            Axis::Y => &mut self.0[1],
+            Axis::Z => &mut self.0[2],
+        }
     }
 }
 
@@ -113,6 +183,12 @@ impl Div<f64> for &Vector {
 
     fn div(self, f: f64) -> Self::Output {
         Vector([self.0[0] / f, self.0[1] / f, self.0[2] / f])
+    }
+}
+
+impl DivAssign<f64> for Vector {
+    fn div_assign(&mut self, f: f64) {
+        *self = Self([self.0[0] / f, self.0[1] / f, self.0[2] / f]);
     }
 }
 

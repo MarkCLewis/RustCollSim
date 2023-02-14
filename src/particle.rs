@@ -16,8 +16,8 @@ impl fmt::Display for ParticleIndex {
 
 #[derive(Clone, Debug, Copy)]
 pub struct Particle {
-    pub p: [f64; 3],
-    pub v: [f64; 3],
+    pub p: Vector,
+    pub v: Vector,
     pub r: f64,
     pub m: f64,
     pub t: f64, // current time of particle
@@ -34,35 +34,33 @@ impl Particle {
 
     /// returns speed (absolute)
     pub fn relative_speed(&self, other: &Self) -> f64 {
-        let unit_to_p2 = (Vector(other.p) - Vector(self.p)).unit_vector(); // unit vec from p1 pointing at p2
+        let unit_to_p2 = (other.p - self.p).unit_vector(); // unit vec from p1 pointing at p2
 
         // (vel of p2 rel to p1) dot (unit vector pointing at p2 from p1)
-        ((Vector(other.v) - Vector(self.v)) * unit_to_p2).abs()
+        ((other.v - self.v) * unit_to_p2).abs()
     }
 
     pub fn apply_dv(&mut self, dv: Vector) {
-        self.v = (Vector(self.v) + dv).0;
+        self.v = self.v + dv;
     }
 
     #[allow(dead_code)]
     pub fn is_colliding(&self, other: &Self) -> bool {
-        (Vector(self.p) - Vector(other.p)).mag() < self.r + other.r
+        (self.p - other.p).mag() < self.r + other.r
     }
 }
 
 #[allow(dead_code)]
 pub fn momentum(pop: &Vec<Particle>) -> Vector {
     pop.iter()
-        .map(|p| Vector(p.v) * p.m)
+        .map(|p| p.v * p.m)
         .reduce(|a, b| a + b)
         .unwrap_or(Vector::ZERO)
 }
 
 #[allow(dead_code)]
 pub fn kinetic_energy(pop: &Vec<Particle>) -> f64 {
-    pop.iter()
-        .map(|p| Vector(p.v) * Vector(p.v) * p.m / 2.)
-        .sum()
+    pop.iter().map(|p| p.v * p.v * p.m / 2.).sum()
 }
 
 #[allow(dead_code)]
@@ -76,7 +74,7 @@ pub fn potential_energy(pop: &Vec<Particle>) -> f64 {
                     if p1.p == p2.p {
                         0. // same particle
                     } else {
-                        -(p1.m * p2.m) / (Vector(p1.p) - Vector(p2.p)).mag()
+                        -(p1.m * p2.m) / (p1.p - p2.p).mag()
                     }
                 })
                 .sum::<f64>()
@@ -94,15 +92,15 @@ pub fn energy(pop: &Vec<Particle>) -> f64 {
 pub fn two_bodies() -> Vec<Particle> {
     let mut bodies = Vec::new();
     bodies.push(Particle {
-        p: [0.0, 0.0, 0.0],
-        v: [0.0, 0.0, 0.0],
+        p: Vector::ZERO,
+        v: Vector::ZERO,
         r: 1e-3,
         m: 1.0,
         t: 0.,
     });
     bodies.push(Particle {
-        p: [1.0, 0.0, 0.0],
-        v: [0.0, 1.0, 0.0],
+        p: Vector::X_HAT,
+        v: Vector::Y_HAT,
         r: 1e-4,
         m: 1e-20,
         t: 0.,
@@ -133,15 +131,15 @@ pub fn two_unequal_bodies(
     // -      |      +
     // P1 ->  |  <- P2
     bodies.push(Particle {
-        p: [-sep_dis / 2., 0.0, 0.0],
-        v: [init_impact_v / 2., 0.0, 0.0],
+        p: Vector::X_HAT * (-sep_dis / 2.),
+        v: Vector::X_HAT * (init_impact_v / 2.),
         r: r1,
         m: Particle::mass_from_radius(r1, rho),
         t: 0.,
     });
     bodies.push(Particle {
-        p: [sep_dis / 2., 0.0, 0.0],
-        v: [-init_impact_v / 2., 0.0, 0.0],
+        p: Vector::X_HAT * (sep_dis / 2.),
+        v: Vector::X_HAT * (-init_impact_v / 2.),
         r: r2,
         m: Particle::mass_from_radius(r2, rho),
         t: 0.,
@@ -197,8 +195,8 @@ pub fn two_unequal_bodies(
 pub fn circular_orbits(n: usize) -> Vec<Particle> {
     let mut particle_buf = vec![];
     particle_buf.push(Particle {
-        p: [0.0, 0.0, 0.0],
-        v: [0.0, 0.0, 0.0],
+        p: Vector::ZERO,
+        v: Vector::ZERO,
         r: 0.00465047,
         m: 1.0,
         t: 0.,
@@ -213,8 +211,8 @@ pub fn circular_orbits(n: usize) -> Vec<Particle> {
         let vx = -v * f64::sin(theta);
         let vy = v * f64::cos(theta);
         particle_buf.push(Particle {
-            p: [x, y, 0.0],
-            v: [vx, vy, 0.0],
+            p: Vector([x, y, 0.0]),
+            v: Vector([vx, vy, 0.0]),
             m: 1e-14,
             r: 1e-7,
             t: 0.,
@@ -224,13 +222,9 @@ pub fn circular_orbits(n: usize) -> Vec<Particle> {
 }
 
 /// acceleration for the first particle
-pub fn calc_pp_accel(pi: &Particle, pj: &Particle) -> [f64; 3] {
-    let dx = pi.p[0] - pj.p[0];
-    let dy = pi.p[1] - pj.p[1];
-    let dz = pi.p[2] - pj.p[2];
-    let dp2 = dx * dx + dy * dy + dz * dz;
-    let dist = f64::sqrt(dp2);
+pub fn calc_pp_accel(pi: &Particle, pj: &Particle) -> Vector {
+    let dx = pi.p - pj.p;
+    let dist = dx.mag();
     let magi = -pj.m / (dist * dist * dist);
-    //   println!("magi={}", magi[0]);
-    [magi * dx, magi * dy, magi * dz]
+    dx * magi
 }

@@ -15,7 +15,7 @@ mod vectors;
 
 use std::{f64::consts::PI, time::Instant};
 
-use crate::{no_explode::rotter, system::KDTreeSystem, vectors::Vector};
+use crate::{no_explode::rotter, system::KDTreeSystem};
 
 fn main() {
     println!("Hello, collisional simulations!");
@@ -67,11 +67,11 @@ fn demo2() {
         10,
     );
 
-    let v = Vector(sys.pop.borrow()[0].v).mag();
+    let v = sys.pop.borrow()[0].v.mag();
 
     sys.run(11); // 250
 
-    let v_after = Vector(sys.pop.borrow()[0].v).mag();
+    let v_after = sys.pop.borrow()[0].v.mag();
 
     println!("{}", v_after / v);
 }
