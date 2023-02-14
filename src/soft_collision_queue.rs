@@ -273,6 +273,7 @@ impl SoftSphereForce {
     ) -> (Vector, Vector) {
         let (acc1, acc2, info) = self.compute_acc((p1i, p1), (p2i, p2), step_num);
 
+        #[allow(unused_variables)]
         let (next_time, dt, repush_to_pq) = self.get_next_time(
             info.separation_distance,
             next_sync_step,

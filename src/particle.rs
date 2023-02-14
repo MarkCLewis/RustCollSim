@@ -44,6 +44,7 @@ impl Particle {
         self.v = (Vector(self.v) + dv).0;
     }
 
+    #[allow(dead_code)]
     pub fn is_colliding(&self, other: &Self) -> bool {
         (Vector(self.p) - Vector(other.p)).mag() < self.r + other.r
     }

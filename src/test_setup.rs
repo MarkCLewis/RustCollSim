@@ -6,7 +6,7 @@ pub mod test_setup {
 
     use crate::{
         debugln,
-        particle::{self, momentum, Particle, ParticleIndex},
+        particle::{self, momentum, ParticleIndex},
         system::KDTreeSystem,
     };
 
@@ -266,7 +266,7 @@ pub mod test_setup {
             let mut isColliding = false;
 
             #[cfg(feature = "early_quit")] //check_early_quit: &mut dyn FnMut(&[Particle]) -> bool
-            let mut check_early_quit = |particles: &[Particle]| {
+            let mut check_early_quit = |particles: &[particle::Particle]| {
                 let p0 = particles[0];
                 let p1 = particles[1];
 

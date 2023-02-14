@@ -1,5 +1,4 @@
-use std::io::Write;
-use std::{cell::RefCell, fs::File, io::BufWriter};
+use std::cell::RefCell;
 
 use crate::{
     debugln,
@@ -66,6 +65,7 @@ impl KDTreeSystem {
                 check_early_quit,
             );
 
+            #[allow(unused_variables)]
             for (p_idx, p) in self.pop.borrow().iter().enumerate() {
                 debugln!("STEP {},{},{},{}", self.current_time, p_idx, p.p[0], p.v[0]);
             }
