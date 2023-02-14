@@ -245,6 +245,13 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             )
         };
 
+        if dt == 0. {
+            panic!(
+                "dt is 0. This should not happen and will create an infinite loop.\n separation distance: {}\n next_sync_step: {}\n current_impact_vel: {}\n event_time: {}\n k: {}\n m: {}\n b: {}\n",
+                separation_distance, next_sync_step, current_impact_vel, event_time, k, m, b
+            );
+        }
+
         if dt < self.minimum_time_step {
             eprintln!(
                 "WARN: time step too small: dt={}, event_time={}",
