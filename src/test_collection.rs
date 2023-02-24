@@ -91,7 +91,7 @@ pub mod test_collection {
 
         let desired_steps_vals = [1, 3, 5, 7, 10, 12, 15, 20];
 
-        let desired_coeff_of_res_vals = [0.2, 0.5, 0.7, 0.9]; //[0.2, 0.5, 0.7, 1.];
+        let desired_coeff_of_res_vals = [0.2, 0.5, 0.7, 0.9, 1.]; //[0.2, 0.5, 0.7, 1.];
 
         // steps = 0.25/dt at v=2e-7.
         // so if v=1e-7, the collision will take twice as much time.

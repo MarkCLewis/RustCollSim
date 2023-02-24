@@ -72,3 +72,14 @@ flowchart TD;
 
 - also: the early_quit method currently requires no_gravity
 - TODO: f64's might be negative when I expect them to be positive
+
+## Notes - Feb 17
+- at the very beginning of step, do v += hillsForce * dt
+  - https://github.com/MarkCLewis/NonSphericalSoftSphere/blob/723cd6fedb15ee1538ae157055640179938c5026/src/simulations/NBodyMutableSim.scala#L119
+- slidingBrickBoundary ? also up there
+  - do at end of time step, 100k to 1M particles
+  - random location with velocity (vx=0, vy=-1.5x, vz=0)
+  - size of cell, 1e-5 to 1e-6, square cell?
+  - z - random, on order of particle size (+- 1e-7)
+  - output: x,y,z,r text for now (every big time step: 2pi/1000) up to (5k-10k)
+- fix termination of run
