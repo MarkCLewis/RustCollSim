@@ -2,6 +2,7 @@
 #![feature(hash_drain_filter)]
 
 mod debug;
+mod hills_force;
 mod impact_vel_tracker;
 mod kd_tree;
 mod no_explode;
@@ -14,9 +15,9 @@ mod unit_tests;
 mod util;
 mod vectors;
 
-use std::{f64::consts::PI, time::Instant};
+use std::{f64::consts::PI, fs::File, time::Instant};
 
-use crate::system::KDTreeSystem;
+use crate::{particle::Particle, system::KDTreeSystem, vectors::Vector};
 
 fn main() {
     println!("Hello, collisional simulations!");
@@ -28,7 +29,7 @@ fn main() {
         eprintln!("Running with feature: early_quit");
     }
 
-    demo2();
+    demo_big_sim_hills_sliding_brick();
     return;
 
     // let dt = 1e-3; // * 2.0 * std::f64::consts::PI;
@@ -54,28 +55,55 @@ fn main() {
     // }
 }
 
-fn demo2() {
-    let dt = 1e-3;
+fn demo_big_sim_hills_sliding_brick() {
+    fastrand::seed(42);
+
+    let dt = 2. * PI / 1000.;
+
+    let cell = hills_force::SlidingBrickBoundary::new(1e-5, 1e-5);
 
     let r = 1e-7;
     let rho = 0.88;
-    let init_impact_v = 2. * r * 500.;
-    let sep_dis = 2.2 * r; // x = 1.1r
 
-    let mut sys = KDTreeSystem::new(
-        particle::two_equal_bodies(r, rho, init_impact_v, sep_dis),
-        dt,
-        10,
-        0.5,
-    );
+    // range -0.5..0.5
+    let centered_rand = || fastrand::f64() - 0.5;
 
-    let v = sys.pop.borrow()[0].v.mag();
+    let mut pop: Vec<Particle> = Vec::new();
 
-    sys.run(11); // 250
+    for _ in 0..100 {
+        let mut p;
+        loop {
+            p = Vector::new(
+                centered_rand() * cell.sx,
+                centered_rand() * cell.sy,
+                centered_rand() * 2. * r, // +- 1e-7
+            );
 
-    let v_after = sys.pop.borrow()[0].v.mag();
+            let is_overlap = pop
+                .iter()
+                .any(|p_old| (p - p_old.p).mag_sq() < (p_old.r + r) * (p_old.r + r));
 
-    println!("{}", v_after / v);
+            if !is_overlap {
+                break;
+            }
+        }
+
+        let v = Vector::new(0., -1.5 * p.x(), 0.);
+
+        let particle = particle::Particle::new(p, v, r, rho);
+        pop.push(particle);
+    }
+
+    eprintln!("pop created: {}", pop.len());
+
+    let file = File::create("demo_big_sim_hills_sliding_brick.csv").unwrap();
+
+    let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5)
+        .set_hills_force(hills_force::HillsForce::new())
+        .set_sliding_brick(cell)
+        .set_serialize_run(file);
+
+    sys.run(1000); // 1000
 }
 
 #[allow(dead_code)]

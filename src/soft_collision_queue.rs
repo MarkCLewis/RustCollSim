@@ -259,6 +259,12 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             );
         }
 
+        if event_time + dt == event_time {
+            panic!(
+                "dt is so small its a rounding error.\nevent_time + dt == event_time. This should not happen and will create an infinite loop.\n separation distance: {}\n next_sync_step: {}\n current_impact_vel: {}\n event_time: {}\n k: {}\n m: {}\n b: {}\n",
+                separation_distance, next_sync_step, current_impact_vel, event_time, k, m, b)
+        }
+
         let mut next_time = event_time + dt;
 
         // if moving at each other, reschedule at dt/2, but not less than big_time_step/100

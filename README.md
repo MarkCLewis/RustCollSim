@@ -83,3 +83,7 @@ flowchart TD;
   - z - random, on order of particle size (+- 1e-7)
   - output: x,y,z,r text for now (every big time step: 2pi/1000) up to (5k-10k)
 - fix termination of run
+
+## Notes - Feb 24
+- Format `x y z r`
+- 

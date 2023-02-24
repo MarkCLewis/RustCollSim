@@ -40,6 +40,10 @@ impl Vector {
     pub const Y_HAT: Self = Self([0., 1., 0.]);
     pub const Z_HAT: Self = Self([0., 0., 1.]);
 
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
+        Self([x, y, z])
+    }
+
     #[inline(always)]
     pub fn dot(&self, other: &Vector) -> f64 {
         self.0[0] * other.0[0] + self.0[1] * other.0[1] + self.0[2] * other.0[2]

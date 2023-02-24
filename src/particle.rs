@@ -24,6 +24,15 @@ pub struct Particle {
 }
 
 impl Particle {
+    pub fn new(p: Vector, v: Vector, r: f64, rho: f64) -> Self {
+        Self {
+            p,
+            v,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        }
+    }
     // fn m(&self) -> f64 {
     //     return RHO * self.r * self.r * self.r;
     // }

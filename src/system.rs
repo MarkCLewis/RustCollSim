@@ -1,7 +1,8 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, fs::File, io::Write};
 
 use crate::{
     debugln,
+    hills_force::{HillsForce, SlidingBrickBoundary},
     kd_tree::{self, Interaction},
     no_explode,
     particle::{Particle, ParticleIndex},
@@ -17,6 +18,9 @@ pub struct KDTreeSystem {
     current_time: f64,
     pub pq: RefCell<SoftSphereForce<no_explode::Rotter>>,
     dv_tmp: RefCell<Vec<Vector>>,
+    hills_force: Option<HillsForce>,
+    sliding_brick: Option<SlidingBrickBoundary>,
+    serialize_run: Option<File>,
 }
 
 impl KDTreeSystem {
@@ -43,7 +47,25 @@ impl KDTreeSystem {
                 v.resize(size, Vector::ZERO);
                 RefCell::new(v)
             },
+            hills_force: None,
+            sliding_brick: None,
+            serialize_run: None,
         }
+    }
+
+    pub fn set_hills_force(mut self: Self, hills_force: HillsForce) -> Self {
+        self.hills_force = Some(hills_force);
+        self
+    }
+
+    pub fn set_sliding_brick(mut self: Self, sliding_brick: SlidingBrickBoundary) -> Self {
+        self.sliding_brick = Some(sliding_brick);
+        self
+    }
+
+    pub fn set_serialize_run(mut self: Self, serialize_run_file: File) -> Self {
+        self.serialize_run = Some(serialize_run_file);
+        self
     }
 
     /// FIXME: this optional feature mess
@@ -60,7 +82,13 @@ impl KDTreeSystem {
         steps: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) {
+        self.attempt_serialize(0);
+
         for i in 0 as usize..steps {
+            if let Some(hills_force) = &self.hills_force {
+                hills_force.apply_delta_velocity(&mut self.pop.borrow_mut(), self.current_time);
+            }
+
             // println!("step: {}", i);
             self.apply_forces(i);
             self.end_step(
@@ -80,14 +108,20 @@ impl KDTreeSystem {
                 );
             }
 
-            if i % 10 == 0 {
-                self.pq.borrow_mut().trim_impact_vel_tracker(i);
-            }
-
             #[cfg(feature = "early_quit")]
             if check_early_quit(&self.pop.borrow()) {
                 break;
             }
+
+            if let Some(sliding_brick) = &self.sliding_brick {
+                sliding_brick.apply(&mut self.pop.borrow_mut(), self.current_time);
+            }
+
+            if i % 10 == 0 {
+                self.pq.borrow_mut().trim_impact_vel_tracker(i);
+            }
+
+            self.attempt_serialize(i + 1);
         }
     }
 
@@ -169,6 +203,32 @@ impl KDTreeSystem {
             check_early_quit,
         );
         self.current_time = next_time;
+    }
+
+    fn serialize(&self, step: usize) -> String {
+        let mut s = String::new();
+        for p in self.pop.borrow().iter() {
+            s.push_str(&format!(
+                "{} {} {} {} {}\n",
+                p.p.x(),
+                p.p.y(),
+                p.p.z(),
+                p.r,
+                step
+            ));
+        }
+        s
+    }
+
+    fn attempt_serialize(&mut self, step: usize) {
+        if self.serialize_run.is_none() {
+            return;
+        }
+
+        let s = self.serialize(step);
+        if let Some(f) = &mut self.serialize_run {
+            f.write_all(s.as_bytes()).unwrap();
+        }
     }
 }
 
