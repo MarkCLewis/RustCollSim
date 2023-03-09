@@ -71,10 +71,10 @@ pub mod test_collection {
             cfg!(feature = "early_quit"),
             "early_quit feature is required for this test"
         );
-        ensure!(
-            cfg!(feature = "no_gravity"),
-            "no_gravity feature is required for this test"
-        );
+        // ensure!(
+        //     cfg!(feature = "no_gravity"),
+        //     "no_gravity feature is required for this test"
+        // );
 
         let dt_vals = [1., 0.5, 0.1, 0.05, 0.025];
         let velocities_vals = [3e-8, 1e-7, 3e-7, 1e-6, 3e-6];
@@ -133,7 +133,15 @@ pub mod test_collection {
             results.len()
         );
 
-        write_to_csv("data/generate_and_run_setups_0.csv", results)?;
+        let file_name = if cfg!(feature = "no_gravity") {
+            "data/generate_and_run_setups_0.csv"
+        } else {
+            "data/generate_and_run_setups_0_gravity.csv"
+        };
+
+        eprintln!("writing to csv, {}", file_name,);
+
+        write_to_csv(file_name, results)?;
 
         Ok(())
     }

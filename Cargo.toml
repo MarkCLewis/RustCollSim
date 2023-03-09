@@ -10,8 +10,7 @@ edition = "2018"
 [features]
 no_gravity = []
 debug_assertions = []
-# FIXME: the way early_quit works right now requires no_gravity, as it will finish the big step, during which gravity can change
-early_quit = ["no_gravity"]
+early_quit = []
 
 [dependencies]
 core_simd = { git = "https://github.com/rust-lang/portable-simd" }

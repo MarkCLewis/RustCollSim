@@ -3,6 +3,8 @@
 help:
 	@echo "make generate-results"
 	@echo "    Generate the csv file of runs"
+	@echo "make generate-results-gravity"
+	@echo "    Generate the csv file of runs with gravity"
 	@echo "make debug-run"
 	@echo "    Run the test useful for re-creating a single csv row, for debugging"
 	@echo "make plot_debug_assertions"
@@ -11,6 +13,10 @@ help:
 # For generation the csv file of runs
 generate-results:
 	cargo test --features="no_gravity" --features="early_quit" -- generate_and_run_setups_0 --nocapture
+
+generate-results-gravity:
+	cargo test --features="early_quit" -- generate_and_run_setups_0 --nocapture
+
 
 # Run the test useful for re-creating a single csv row, for debugging
 debug-run:
