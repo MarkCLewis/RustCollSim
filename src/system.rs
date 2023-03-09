@@ -6,7 +6,7 @@ use crate::{
     kd_tree::{self, Interaction},
     no_explode,
     particle::{Particle, ParticleIndex},
-    soft_collision_queue::SoftSphereForce,
+    soft_collision_queue::{ExitReason, SoftSphereForce},
     util::borrow_two_elements,
     vectors::Vector,
 };
@@ -91,7 +91,7 @@ impl KDTreeSystem {
 
             // println!("step: {}", i);
             self.apply_forces(i);
-            self.end_step(
+            let exit_reason = self.end_step(
                 i,
                 #[cfg(feature = "early_quit")]
                 check_early_quit,
@@ -106,6 +106,10 @@ impl KDTreeSystem {
                     p.p.x(),
                     p.v.x()
                 );
+            }
+
+            if let ExitReason::TerminatedEarly = exit_reason {
+                break;
             }
 
             #[cfg(feature = "early_quit")]
@@ -191,18 +195,25 @@ impl KDTreeSystem {
         &mut self,
         step_count: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
-    ) {
+    ) -> ExitReason {
         let next_time = self.current_time + self.time_step;
         let mut pop_ref = self.pop.borrow_mut();
 
-        self.pq.borrow_mut().do_one_step(
+        let exit_reason = self.pq.borrow_mut().do_one_step(
             &mut pop_ref,
             next_time,
             step_count,
             #[cfg(feature = "early_quit")]
             check_early_quit,
         );
+
+        if let ExitReason::TerminatedEarly = exit_reason {
+            return exit_reason;
+        }
+
         self.current_time = next_time;
+
+        ExitReason::NormalEnd
     }
 
     fn serialize(&self, step: usize) -> String {

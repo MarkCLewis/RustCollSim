@@ -86,4 +86,15 @@ flowchart TD;
 
 ## Notes - Feb 24
 - Format `x y z r`
-- 
+
+
+## Notes - March 3
+- TODO: 2-particle with gravity!
+  - fix termination of run
+- comment out boundary condition in x
+- what particles are causing the issue, did they just jump?
+- test 3 particle combos, like
+-    a --> b  c
+-    a --> b <-- c
+- print warn if overlap is significantly too big
+

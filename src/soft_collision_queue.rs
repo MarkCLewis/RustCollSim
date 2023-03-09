@@ -1,4 +1,4 @@
-use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap};
+use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap, error::Error};
 
 use crate::{
     debugln,
@@ -8,6 +8,12 @@ use crate::{
     util::borrow_two_elements,
     vectors::Vector,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ExitReason {
+    NormalEnd,
+    TerminatedEarly,
+}
 
 /**
  * This file contains code elements used for the higher time resolution integration of close interactions.
@@ -104,8 +110,8 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         next_sync_step: f64,
         step_count: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
-    ) {
-        self.run_through_collision_pairs(
+    ) -> ExitReason {
+        let exit_reason = self.run_through_collision_pairs(
             particles,
             next_sync_step,
             step_count,
@@ -113,7 +119,12 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             check_early_quit,
         );
 
+        if let ExitReason::TerminatedEarly = exit_reason {
+            return exit_reason;
+        }
+
         Self::end_step(particles, next_sync_step);
+        ExitReason::NormalEnd
     }
 
     /// fast-forward every particle to the next time step to sync them
@@ -339,13 +350,13 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         return dvs;
     }
 
-    pub fn run_through_collision_pairs(
+    fn run_through_collision_pairs(
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
         step_num: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
-    ) {
+    ) -> ExitReason {
         loop {
             if let Some(event) = self.queue.pop() {
                 // do stuff -> process collisions
@@ -367,10 +378,10 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
 
                 #[cfg(feature = "early_quit")]
                 if check_early_quit(particles) {
-                    break;
+                    return ExitReason::TerminatedEarly;
                 }
             } else {
-                break;
+                return ExitReason::NormalEnd;
             }
         }
     }
