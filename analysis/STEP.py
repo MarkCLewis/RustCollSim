@@ -4,6 +4,7 @@ Pass in the argument 'pre-run' to not trigger the run of the test, but rather ev
 
 import subprocess
 import sys
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     cli_arg = sys.argv[1] if len(sys.argv) >= 2 else None
@@ -82,21 +83,29 @@ if __name__ == '__main__':
         particle_x.sort(key=lambda x: x[0])
         return particle_x
 
+    def plot_scatter(x: list[float], y: list[float], marker='o'):
+        plt.plot(x, y, '--', zorder=1)
+        plt.scatter(x, y, zorder=2, marker=marker)
+
     r0 = float(setup_ops['r0'])
     r1 = float(setup_ops['r1'])
 
     p0_t, p0_x = list(zip(*collect_for_particle(0)))
     p1_t, p1_x = list(zip(*collect_for_particle(1)))
 
-    import matplotlib.pyplot as plt
-    plt.scatter(p0_t, p0_x)
-    plt.scatter(p1_t, p1_x)
+    p2_t, p2_x = list(zip(*collect_for_particle(2)))
 
-    plt.scatter(p0_t, [x + r0 for x in p0_x], marker='x')
-    plt.scatter(p0_t, [x - r0 for x in p0_x], marker='x')
+    plot_scatter(p0_t, p0_x)
+    plot_scatter(p0_t, [x + r0 for x in p0_x], marker='x')
+    plot_scatter(p0_t, [x - r0 for x in p0_x], marker='x')
 
-    plt.scatter(p1_t, [x + r1 for x in p1_x], marker='x')
-    plt.scatter(p1_t, [x - r1 for x in p1_x], marker='x')
+    plot_scatter(p1_t, p1_x)
+    plot_scatter(p1_t, [x + r1 for x in p1_x], marker='x')
+    plot_scatter(p1_t, [x - r1 for x in p1_x], marker='x')
+
+    plot_scatter(p2_t, p2_x)
+    plot_scatter(p2_t, [x + r1 for x in p2_x], marker='x')
+    plot_scatter(p2_t, [x - r1 for x in p2_x], marker='x')
     plt.show()
 
     print(f'sub_steps={len(sub_steps)}')

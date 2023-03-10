@@ -12,6 +12,7 @@ pub mod test_collection {
             cfg!(feature = "early_quit"),
             "early_quit feature is required for this test"
         );
+        // gravity info is not stored in the csv file so ?
         ensure!(
             cfg!(feature = "no_gravity"),
             "no_gravity feature is required for this test"

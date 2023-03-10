@@ -57,6 +57,11 @@ impl Particle {
     pub fn is_colliding(&self, other: &Self) -> bool {
         (self.p - other.p).mag() < self.r + other.r
     }
+
+    #[allow(dead_code)]
+    pub fn kinetic_energy(&self) -> f64 {
+        self.v * self.v * self.m / 2.
+    }
 }
 
 #[allow(dead_code)]

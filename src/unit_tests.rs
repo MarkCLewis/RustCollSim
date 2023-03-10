@@ -1,7 +1,10 @@
 #[cfg(test)]
 mod tests {
+    use crate::debugln;
     use crate::particle::momentum;
+    use crate::particle::Particle;
     use crate::particle::ParticleIndex;
+    use crate::soft_collision_queue::ExitReason;
     use crate::vectors::Vector;
     use anyhow::{ensure, Context, Result};
 
@@ -217,4 +220,182 @@ mod tests {
 
     //     pair_collision_run(r, rho, init_impact_v, sep_dis, 11);
     // }
+
+    #[test]
+    fn test_3_bodies_symmetric() -> Result<()> {
+        let r = 1e-7;
+        let rho = 0.88;
+        let init_impact_v = 2. * r;
+        let sep_dis = 2.2 * r; // x = 1.1r
+
+        use crate::system::KDTreeSystem;
+
+        let collision_step_count = 15;
+
+        let default_coeff_of_res = 0.5;
+
+        let dt = 0.025;
+        let steps = (0.25 / dt * 2.0) as usize;
+
+        let mut bodies = Vec::new();
+
+        debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, init_impact_v, sep_dis, dt, steps, collision_step_count);
+
+        // Symmetric
+        //       -x->
+        // -      |      +
+        // P1 ->  P2  <- P3
+        bodies.push(Particle {
+            p: Vector::X_HAT * (-sep_dis),
+            v: Vector::X_HAT * (init_impact_v / 2.),
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+        bodies.push(Particle {
+            p: Vector::ZERO,
+            v: Vector::ZERO,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+        bodies.push(Particle {
+            p: Vector::X_HAT * (sep_dis),
+            v: Vector::X_HAT * (-init_impact_v / 2.),
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+
+        let mut sys = KDTreeSystem::new(bodies, dt, collision_step_count, default_coeff_of_res);
+
+        let total_ke_before = {
+            let (p1, p2, p3) = {
+                let pop = sys.pop.borrow();
+                (pop[0], pop[1], pop[2])
+            };
+
+            p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy()
+        };
+
+        sys.run(steps);
+
+        let total_ke_after = {
+            let (p1, p2, p3) = {
+                let pop = sys.pop.borrow();
+                (pop[0], pop[1], pop[2])
+            };
+
+            p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy()
+        };
+
+        ensure!(
+            total_ke_after < total_ke_before,
+            "total_ke_after < total_ke_before"
+        );
+
+        // let collision_step_count_actual = sys
+        //     .pq
+        //     .borrow()
+        //     .impact_vel
+        //     .borrow()
+        //     .get_updated_count(ParticleIndex(0), ParticleIndex(1))
+        //     .unwrap_or(0);
+
+        // println!(
+        //     "collision_step_count_actual: {}",
+        //     collision_step_count_actual
+        // );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_3_bodies_asymmetric() -> Result<()> {
+        let r = 1e-7;
+        let rho = 0.88;
+        let init_impact_v = 2. * r;
+        let sep_dis = 2.2 * r; // x = 1.1r
+
+        use crate::system::KDTreeSystem;
+
+        let collision_step_count = 15;
+
+        let default_coeff_of_res = 0.5;
+
+        let dt = 0.1;
+        let steps = (0.25 / dt * 20.0) as usize;
+
+        let mut bodies = Vec::new();
+
+        debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, init_impact_v, sep_dis, dt, steps, collision_step_count);
+
+        // Asymmetric, only P1 moves initially
+        //       -x->
+        // -      |      +
+        // P1 ->  P2     P3
+        bodies.push(Particle {
+            p: Vector::X_HAT * (-sep_dis),
+            v: Vector::X_HAT * init_impact_v,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+        bodies.push(Particle {
+            p: Vector::ZERO,
+            v: Vector::ZERO,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+        bodies.push(Particle {
+            p: Vector::X_HAT * (sep_dis),
+            v: Vector::ZERO,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+
+        let mut sys = KDTreeSystem::new(bodies, dt, collision_step_count, default_coeff_of_res);
+
+        let total_ke_before = {
+            let (p1, p2, p3) = {
+                let pop = sys.pop.borrow();
+                (pop[0], pop[1], pop[2])
+            };
+
+            p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy()
+        };
+
+        sys.run(steps);
+
+        let total_ke_after = {
+            let (p1, p2, p3) = {
+                let pop = sys.pop.borrow();
+                (pop[0], pop[1], pop[2])
+            };
+
+            p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy()
+        };
+
+        ensure!(
+            total_ke_after < total_ke_before,
+            "total_ke_after < total_ke_before"
+        );
+
+        // let collision_step_count_actual = sys
+        //     .pq
+        //     .borrow()
+        //     .impact_vel
+        //     .borrow()
+        //     .get_updated_count(ParticleIndex(0), ParticleIndex(1))
+        //     .unwrap_or(0);
+
+        // println!(
+        //     "collision_step_count_actual: {}",
+        //     collision_step_count_actual
+        // );
+
+        Ok(())
+    }
 }

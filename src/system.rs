@@ -69,19 +69,19 @@ impl KDTreeSystem {
     }
 
     /// FIXME: this optional feature mess
-    pub fn run(&mut self, steps: usize) {
+    pub fn run(&mut self, steps: usize) -> ExitReason {
         self.run_with_quit_option(
             steps,
             #[cfg(feature = "early_quit")]
             &mut |_| false,
-        );
+        )
     }
 
     pub fn run_with_quit_option(
         &mut self,
         steps: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
-    ) {
+    ) -> ExitReason {
         self.attempt_serialize(0);
 
         for i in 0 as usize..steps {
@@ -109,12 +109,12 @@ impl KDTreeSystem {
             }
 
             if let ExitReason::TerminatedEarly = exit_reason {
-                break;
+                return exit_reason;
             }
 
             #[cfg(feature = "early_quit")]
             if check_early_quit(&self.pop.borrow()) {
-                break;
+                return ExitReason::TerminatedEarly;
             }
 
             if let Some(sliding_brick) = &self.sliding_brick {
@@ -127,6 +127,8 @@ impl KDTreeSystem {
 
             self.attempt_serialize(i + 1);
         }
+
+        ExitReason::NormalEnd
     }
 
     pub fn apply_forces(&mut self, step_num: usize) {

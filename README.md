@@ -89,8 +89,8 @@ flowchart TD;
 
 
 ## Notes - March 3
-- TODO: 2-particle with gravity!
-  - fix termination of run
+- TODO: 2-particle with gravity! - done
+  - fix termination of run - done
 - comment out boundary condition in x
 - what particles are causing the issue, did they just jump?
 - test 3 particle combos, like

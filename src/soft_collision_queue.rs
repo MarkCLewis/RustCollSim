@@ -1,4 +1,4 @@
-use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap, error::Error};
+use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap};
 
 use crate::{
     debugln,
