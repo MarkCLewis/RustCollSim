@@ -93,8 +93,31 @@ flowchart TD;
   - fix termination of run - done
 - comment out boundary condition in x
 - what particles are causing the issue, did they just jump?
-- test 3 particle combos, like
+- test 3 particle combos, like - done
 -    a --> b  c
 -    a --> b <-- c
 - print warn if overlap is significantly too big
 
+## Notes - March 10
+- minimum dt based on distance / velocity
+- particles overlapping should be processed more often too on pq (some fraction of big dt)
+  - some max dt for overlapping particles
+  - like 1/100th
+  - what is the distance?
+    - 2% of min(r1, r2) / 20?
+  - for speed, see `determine what speed to expect`
+- re-find neighbors idea?
+  - particle radius / big dt is a measure of what is a big change
+- determine what speed to expect:
+  - relative velocity of everything in every leaf
+    - rel velocity of each -> add squares -> div by N -> sqrt
+  - or do max for safety
+  - or for most safety, do max of leaves (double for extra safety)
+
+<!-- 
+Thesis writing notes:
+fundamental change in how the integrator works
+write outline, put notes of everything I can think of and that is related
+write about pair-collision (it works well)
+issues of stability with 3+ particle
+-->
