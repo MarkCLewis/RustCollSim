@@ -12,6 +12,7 @@ use crate::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExitReason {
     NormalEnd,
+    #[allow(dead_code)]
     TerminatedEarly,
 }
 

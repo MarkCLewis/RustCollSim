@@ -2,7 +2,7 @@
 pub mod test_collection {
     use anyhow::ensure;
 
-    use crate::test_setup::test_setup::{write_to_csv, TestSetup};
+    use super::super::test_setup::test_setup::{write_to_csv, TestSetup};
 
     #[test]
     /// This test is a utility for debugging a single test case from a run,

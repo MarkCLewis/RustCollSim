@@ -4,6 +4,7 @@ mod tests {
     use crate::particle::momentum;
     use crate::particle::Particle;
     use crate::particle::ParticleIndex;
+    #[allow(unused_imports)]
     use crate::soft_collision_queue::ExitReason;
     use crate::vectors::Vector;
     use anyhow::{ensure, Context, Result};
