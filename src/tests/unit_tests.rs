@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod tests {
     use crate::debugln;
+    use crate::hills_force;
     use crate::particle::momentum;
     use crate::particle::Particle;
     use crate::particle::ParticleIndex;
     #[allow(unused_imports)]
     use crate::soft_collision_queue::ExitReason;
+    use crate::system::KDTreeSystem;
     use crate::vectors::Vector;
     use anyhow::{ensure, Context, Result};
 
@@ -51,15 +53,19 @@ mod tests {
         Ok(())
     }
 
-    fn pair_collision_run(
+    fn pair_collision_run<F>(
         dt: f64,
         r: f64,
         rho: f64,
         init_impact_v: f64,
         sep_dis: f64,
         steps: usize,
-    ) -> Result<()> {
-        use crate::{particle, system::KDTreeSystem};
+        sys_modder: Option<F>,
+    ) -> Result<()>
+    where
+        F: FnOnce(KDTreeSystem) -> KDTreeSystem,
+    {
+        use crate::particle;
 
         let collision_step_count = 15;
 
@@ -72,6 +78,10 @@ mod tests {
             default_coeff_of_res,
             None,
         );
+
+        if let Some(modder) = sys_modder {
+            sys = modder(sys);
+        }
 
         let (pre1, pre2) = {
             let pop = sys.pop.borrow();
@@ -189,9 +199,48 @@ mod tests {
         let sep_dis = 2.2 * r; // x = 1.1r
         let dt = 0.025; //1e-3;
 
-        pair_collision_run(dt, r, rho, init_impact_v, sep_dis, (0.25 / dt) as usize)?;
+        pair_collision_run(
+            dt,
+            r,
+            rho,
+            init_impact_v,
+            sep_dis,
+            (0.25 / dt) as usize,
+            None::<fn(KDTreeSystem) -> KDTreeSystem>,
+        )?;
 
         ensure!(false, "test is ok");
+
+        Ok(())
+    }
+
+    #[test]
+    /// to check collisions
+    /// this test is invoked by analysis/STEP.py, its not meant to pass
+    /// it is meant to collect debug information
+    fn test_2_bodies_sliding_brick() -> Result<()> {
+        let r = 1e-7;
+        let rho = 0.88;
+        let init_impact_v = 2. * r;
+        let sep_dis = 2.2 * r; // x = 1.1r
+        let dt = 0.025; //1e-3;
+
+        let cell = hills_force::SlidingBrickBoundary::new(1e-5, 1e-5);
+
+        debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, init_impact_v, sep_dis, dt, 0, 0);
+
+        pair_collision_run(
+            dt,
+            r,
+            rho,
+            init_impact_v,
+            sep_dis,
+            (0.25 / dt) as usize,
+            Some(move |sys: KDTreeSystem| {
+                sys.set_sliding_brick(cell)
+                    .set_hills_force(hills_force::HillsForce::new())
+            }),
+        )?;
 
         Ok(())
     }
@@ -206,7 +255,15 @@ mod tests {
         // total simulation time is 0.25
 
         for dt in vec![0.25, 0.05, 0.025, 0.005, 0.0025] {
-            pair_collision_run(dt, r, rho, init_impact_v, sep_dis, (0.25 / dt) as usize)?;
+            pair_collision_run(
+                dt,
+                r,
+                rho,
+                init_impact_v,
+                sep_dis,
+                (0.25 / dt) as usize,
+                None::<fn(KDTreeSystem) -> KDTreeSystem>,
+            )?;
         }
 
         Ok(())

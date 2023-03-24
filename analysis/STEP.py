@@ -71,14 +71,19 @@ if __name__ == '__main__':
         time, x
         '''
         particle_x = []
+
+        def filter_add(s, idx_x):
+            if abs(s[2]) < 0.0001:  # hacky, so remove if-condition when not using
+                particle_x.append((s[0], s[idx_x]))
+
         for s in steps:
             if s[1] == n:
-                particle_x.append((s[0], s[2]))
+                filter_add(s, 2)
         for s in sub_steps:
             if s[1] == n:
-                particle_x.append((s[0], s[2]))
+                filter_add(s, 2)
             elif s[4] == n:
-                particle_x.append((s[0], s[5]))
+                filter_add(s, 5)
 
         particle_x.sort(key=lambda x: x[0])
         return particle_x
@@ -93,8 +98,6 @@ if __name__ == '__main__':
     p0_t, p0_x = list(zip(*collect_for_particle(0)))
     p1_t, p1_x = list(zip(*collect_for_particle(1)))
 
-    p2_t, p2_x = list(zip(*collect_for_particle(2)))
-
     plot_scatter(p0_t, p0_x)
     plot_scatter(p0_t, [x + r0 for x in p0_x], marker='x')
     plot_scatter(p0_t, [x - r0 for x in p0_x], marker='x')
@@ -103,9 +106,17 @@ if __name__ == '__main__':
     plot_scatter(p1_t, [x + r1 for x in p1_x], marker='x')
     plot_scatter(p1_t, [x - r1 for x in p1_x], marker='x')
 
-    plot_scatter(p2_t, p2_x)
-    plot_scatter(p2_t, [x + r1 for x in p2_x], marker='x')
-    plot_scatter(p2_t, [x - r1 for x in p2_x], marker='x')
+    third = collect_for_particle(2)
+    if len(third) > 0:
+        p2_t, p2_x = list(zip(*third))
+        plot_scatter(p2_t, p2_x)
+        plot_scatter(p2_t, [x + r1 for x in p2_x], marker='x')
+        plot_scatter(p2_t, [x - r1 for x in p2_x], marker='x')
+
+    # for bounding box
+    plt.hlines([-1e-5/2, 1e-5/2], 0, max(p0_t),
+               colors='black', linestyles='dashed')
+
     plt.show()
 
     print(f'sub_steps={len(sub_steps)}')

@@ -30,6 +30,15 @@ pub struct Opts {
     /// prevents serializing for movie plotting (for speed)
     #[clap(long, default_value_t = false)]
     no_serialize: bool,
+    /// RNG seed
+    #[clap(long, default_value_t = 42)]
+    seed: u64,
+    /// number of steps in 2PI
+    #[clap(long, default_value_t = 1000)]
+    steps_in_2pi: usize,
+    /// number of big time steps
+    #[clap(long, default_value_t = 1000)]
+    big_steps: usize,
 }
 
 fn main() {
@@ -71,9 +80,9 @@ fn main() {
 }
 
 fn demo_big_sim_hills_sliding_brick(opts: Opts) {
-    fastrand::seed(42);
+    fastrand::seed(opts.seed);
 
-    let dt = 2. * PI / 1000.;
+    let dt = 2. * PI / opts.steps_in_2pi as f64;
 
     let cell = hills_force::SlidingBrickBoundary::new(1e-5, 1e-5);
 
@@ -112,6 +121,11 @@ fn demo_big_sim_hills_sliding_brick(opts: Opts) {
 
     eprintln!("pop created: {}", pop.len());
 
+    println!("dt: {}", dt);
+
+    // this is only for plotting
+    debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, 0, 0, 0, 0, 0);
+
     let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5, Some(&opts))
         .set_hills_force(hills_force::HillsForce::new())
         .set_sliding_brick(cell)
@@ -121,7 +135,7 @@ fn demo_big_sim_hills_sliding_brick(opts: Opts) {
             None
         });
 
-    sys.run(1000); // 1000
+    sys.run(opts.big_steps); // 1000
 }
 
 #[allow(dead_code)]

@@ -27,7 +27,7 @@ debug-run:
 plot_debug_assertions:
 	python3.10 analysis/STEP.py pre-run
 
-test_3_bodies_symmetric test_3_bodies_asymmetric:
+test_3_bodies_symmetric test_3_bodies_asymmetric test_2_bodies_sliding_brick:
 	cargo test --features="debug_assertions" --features="no_gravity" -- '$@' --nocapture 2> run.log 
 	python3.10 analysis/STEP.py pre-run
 
