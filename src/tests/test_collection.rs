@@ -5,6 +5,7 @@ pub mod test_collection {
     use super::super::test_setup::test_setup::{write_to_csv, TestSetup};
 
     #[test]
+    #[ignore]
     /// This test is a utility for debugging a single test case from a run,
     /// by copying and pasting the line from the csv file.
     pub fn debug_one_test() -> anyhow::Result<()> {
@@ -67,6 +68,7 @@ pub mod test_collection {
     }
 
     #[test]
+    #[ignore]
     pub fn generate_and_run_setups_0() -> anyhow::Result<()> {
         ensure!(
             cfg!(feature = "early_quit"),

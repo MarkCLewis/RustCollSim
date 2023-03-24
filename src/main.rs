@@ -1,45 +1,13 @@
-#![feature(portable_simd)]
-#![feature(hash_drain_filter)]
-
-mod debug;
-mod hills_force;
-mod impact_vel_tracker;
-mod kd_tree;
-mod no_explode;
-mod particle;
-mod soft_collision_queue;
-mod system;
-mod tests;
-mod util;
-mod vectors;
-
 use std::{f64::consts::PI, fs::File, time::Instant};
 
-use crate::{particle::Particle, system::KDTreeSystem, vectors::Vector};
-
 use clap::Parser;
-
-#[derive(Parser, Debug)]
-pub struct Opts {
-    /// number of particles
-    #[clap(short, long, default_value_t = 100)]
-    particles: usize,
-    /// prevents printing warnings about small dt (for speed / keeping output clean)
-    #[clap(short, long, default_value_t = false)]
-    no_warnings: bool,
-    /// prevents serializing for movie plotting (for speed)
-    #[clap(long, default_value_t = false)]
-    no_serialize: bool,
-    /// RNG seed
-    #[clap(long, default_value_t = 42)]
-    seed: u64,
-    /// number of steps in 2PI
-    #[clap(long, default_value_t = 1000)]
-    steps_in_2pi: usize,
-    /// number of big time steps
-    #[clap(long, default_value_t = 1000)]
-    big_steps: usize,
-}
+use rust_coll_sim::{
+    debugln, hills_force,
+    particle::{self, Particle},
+    system::KDTreeSystem,
+    vectors::Vector,
+    Opts,
+};
 
 fn main() {
     println!("Hello, collisional simulations!");
@@ -115,7 +83,7 @@ fn demo_big_sim_hills_sliding_brick(opts: Opts) {
 
         let v = Vector::new(0., -1.5 * p.x(), 0.);
 
-        let particle = particle::Particle::new(p, v, r, rho);
+        let particle = Particle::new(p, v, r, rho);
         pop.push(particle);
     }
 

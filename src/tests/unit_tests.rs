@@ -209,12 +209,11 @@ mod tests {
             None::<fn(KDTreeSystem) -> KDTreeSystem>,
         )?;
 
-        ensure!(false, "test is ok");
-
         Ok(())
     }
 
     #[test]
+    #[ignore]
     /// to check collisions
     /// this test is invoked by analysis/STEP.py, its not meant to pass
     /// it is meant to collect debug information
@@ -246,6 +245,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_2_bodies_variations_of_dt() -> Result<()> {
         let r = 1e-7;
         let rho = 0.88;
