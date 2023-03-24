@@ -1,6 +1,7 @@
 use std::{cell::RefCell, fs::File, io::Write};
 
 use crate::{
+    debug_tools::{ChangeInspector, VelocityInspector},
     debugln,
     hills_force::{HillsForce, SlidingBrickBoundary},
     kd_tree::{self, Interaction},
@@ -101,9 +102,13 @@ impl KDTreeSystem {
         println!("Running for time {}", steps as f64 * self.time_step);
 
         for i in 0 as usize..steps {
+            let mut change_inspector = VelocityInspector::before(&self.pop, 10.);
+
             if let Some(hills_force) = &self.hills_force {
-                hills_force.apply_delta_velocity(&mut self.pop.borrow_mut(), self.current_time);
+                hills_force.apply_delta_velocity(&mut self.pop.borrow_mut(), self.time_step);
             }
+
+            change_inspector.after(&self.pop);
 
             // println!("step: {}", i);
             let relative_speed_estimate = self.apply_forces(i);

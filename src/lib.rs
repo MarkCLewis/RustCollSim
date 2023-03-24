@@ -4,6 +4,7 @@
 use clap::Parser;
 
 pub mod debug;
+pub mod debug_tools;
 pub mod hills_force;
 pub mod impact_vel_tracker;
 pub mod kd_tree;

@@ -219,3 +219,53 @@ impl Neg for Vector {
         self * -1.
     }
 }
+
+#[cfg(test)]
+mod vector_tests {
+    use super::*;
+    #[test]
+    fn basics() {
+        // test Vector struct
+        let v = Vector([1., 2., 3.]);
+        assert_eq!(v.x(), 1.);
+        assert_eq!(v.y(), 2.);
+        assert_eq!(v.z(), 3.);
+        assert_eq!(v.mag(), (14f64).sqrt());
+        assert_eq!(v.mag_sq(), 14.);
+        assert_eq!(v.unit_vector(), Vector([1., 2., 3.]) / (14f64).sqrt());
+
+        let x = Vector::X_HAT;
+        assert!(x.is_finite());
+        assert_eq!(x.mag(), 1.);
+        assert_eq!(x.mag_sq(), 1.);
+        assert_eq!(x.unit_vector(), Vector::X_HAT);
+        assert_eq!(x.x(), 1.);
+
+        let y = Vector::Y_HAT;
+        assert!(y.is_finite());
+        assert_eq!(y.mag(), 1.);
+        assert_eq!(y.mag_sq(), 1.);
+        assert_eq!(y.unit_vector(), Vector::Y_HAT);
+        assert_eq!(y.y(), 1.);
+
+        let z = Vector::Z_HAT;
+        assert!(z.is_finite());
+        assert_eq!(z.mag(), 1.);
+        assert_eq!(z.mag_sq(), 1.);
+        assert_eq!(z.unit_vector(), Vector::Z_HAT);
+        assert_eq!(z.z(), 1.);
+
+        // test Vector operations
+        let v1 = Vector([1., 2., 3.]);
+        let v2 = Vector([4., 5., 6.]);
+        assert_eq!(v1 + v2, Vector([5., 7., 9.]));
+        assert_eq!(v1 - v2, Vector([-3., -3., -3.]));
+        assert_eq!(v1 * 2., Vector([2., 4., 6.]));
+        assert_eq!(v1 / 2., Vector([0.5, 1., 1.5]));
+        assert_eq!(v1.dot(&v2), 32.);
+
+        assert_eq!(x.dot(&y), 0.);
+        assert_eq!(x.dot(&z), 0.);
+        assert_eq!(y.dot(&z), 0.);
+    }
+}
