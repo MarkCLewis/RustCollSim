@@ -54,6 +54,11 @@ impl Particle {
     }
 
     #[allow(dead_code)]
+    pub fn momentum(&self) -> Vector {
+        self.v * self.m
+    }
+
+    #[allow(dead_code)]
     pub fn is_colliding(&self, other: &Self) -> bool {
         (self.p - other.p).mag() < self.r + other.r
     }

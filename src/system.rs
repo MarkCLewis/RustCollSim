@@ -29,19 +29,31 @@ impl KDTreeSystem {
         time_step: f64,
         desired_collision_step_count: usize,
         desired_coefficient_of_restitution: f64,
+        opts: Option<&crate::Opts>,
     ) -> Self {
         let default_pen_fraction = 0.02;
         let size = pop.len();
+
+        //no_small_dt_warn
+
+        let mut pq = SoftSphereForce::new(
+            time_step,
+            desired_collision_step_count,
+            no_explode::Rotter::new(desired_coefficient_of_restitution, default_pen_fraction),
+        );
+
+        if let Some(opts) = opts {
+            if opts.no_warnings {
+                pq.no_small_dt_warn();
+            }
+        }
+
         Self {
             tree: kd_tree::KDTree::new(pop.len()),
             pop: RefCell::new(pop),
             time_step,
             current_time: 0.,
-            pq: RefCell::new(SoftSphereForce::new(
-                time_step,
-                desired_collision_step_count,
-                no_explode::Rotter::new(desired_coefficient_of_restitution, default_pen_fraction),
-            )),
+            pq: RefCell::new(pq),
             dv_tmp: {
                 let mut v = Vec::new();
                 v.resize(size, Vector::ZERO);
@@ -63,8 +75,8 @@ impl KDTreeSystem {
         self
     }
 
-    pub fn set_serialize_run(mut self: Self, serialize_run_file: File) -> Self {
-        self.serialize_run = Some(serialize_run_file);
+    pub fn set_serialize_run(mut self: Self, serialize_run_file: Option<File>) -> Self {
+        self.serialize_run = serialize_run_file;
         self
     }
 
@@ -77,6 +89,7 @@ impl KDTreeSystem {
         )
     }
 
+    /// main simulation loop
     pub fn run_with_quit_option(
         &mut self,
         steps: usize,
@@ -84,15 +97,19 @@ impl KDTreeSystem {
     ) -> ExitReason {
         self.attempt_serialize(0);
 
+        println!("Running for {} steps", steps);
+        println!("Running for time {}", steps as f64 * self.time_step);
+
         for i in 0 as usize..steps {
             if let Some(hills_force) = &self.hills_force {
                 hills_force.apply_delta_velocity(&mut self.pop.borrow_mut(), self.current_time);
             }
 
             // println!("step: {}", i);
-            self.apply_forces(i);
+            let relative_speed_estimate = self.apply_forces(i);
             let exit_reason = self.end_step(
                 i,
+                relative_speed_estimate,
                 #[cfg(feature = "early_quit")]
                 check_early_quit,
             );
@@ -131,8 +148,15 @@ impl KDTreeSystem {
         ExitReason::NormalEnd
     }
 
-    pub fn apply_forces(&mut self, step_num: usize) {
+    pub fn apply_forces(&mut self, step_num: usize) -> f64 {
         self.tree.rebuild_kdtree(&self.pop.borrow());
+
+        let relative_speed_estimate = self
+            .tree
+            .global_relative_speed_estimate_max(&self.pop.borrow())
+            * 2.0;
+
+        // global_relative_speed_estimate_rms
 
         let borrow_dv = &self.dv_tmp;
 
@@ -150,6 +174,7 @@ impl KDTreeSystem {
                     step_num,
                     next_sync_step,
                     self.current_time,
+                    relative_speed_estimate,
                 );
 
                 let mut mut_dv = borrow_dv.borrow_mut();
@@ -191,11 +216,14 @@ impl KDTreeSystem {
         for dv in dv_ref.iter_mut() {
             *dv = Vector::ZERO;
         }
+
+        return relative_speed_estimate;
     }
 
     pub fn end_step(
         &mut self,
         step_count: usize,
+        relative_speed_estimate: f64,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) -> ExitReason {
         let next_time = self.current_time + self.time_step;
@@ -204,6 +232,7 @@ impl KDTreeSystem {
         let exit_reason = self.pq.borrow_mut().do_one_step(
             &mut pop_ref,
             next_time,
+            relative_speed_estimate,
             step_count,
             #[cfg(feature = "early_quit")]
             check_early_quit,

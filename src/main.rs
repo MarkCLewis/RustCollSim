@@ -17,8 +17,25 @@ use std::{f64::consts::PI, fs::File, time::Instant};
 
 use crate::{particle::Particle, system::KDTreeSystem, vectors::Vector};
 
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+pub struct Opts {
+    /// number of particles
+    #[clap(short, long, default_value_t = 100)]
+    particles: usize,
+    /// prevents printing warnings about small dt (for speed / keeping output clean)
+    #[clap(short, long, default_value_t = false)]
+    no_warnings: bool,
+    /// prevents serializing for movie plotting (for speed)
+    #[clap(long, default_value_t = false)]
+    no_serialize: bool,
+}
+
 fn main() {
     println!("Hello, collisional simulations!");
+    let opts = Opts::parse();
+
     if cfg!(feature = "no_gravity") {
         eprintln!("Running with feature: no_gravity");
     }
@@ -27,7 +44,7 @@ fn main() {
         eprintln!("Running with feature: early_quit");
     }
 
-    demo_big_sim_hills_sliding_brick();
+    demo_big_sim_hills_sliding_brick(opts);
     return;
 
     // let dt = 1e-3; // * 2.0 * std::f64::consts::PI;
@@ -53,7 +70,7 @@ fn main() {
     // }
 }
 
-fn demo_big_sim_hills_sliding_brick() {
+fn demo_big_sim_hills_sliding_brick(opts: Opts) {
     fastrand::seed(42);
 
     let dt = 2. * PI / 1000.;
@@ -68,7 +85,8 @@ fn demo_big_sim_hills_sliding_brick() {
 
     let mut pop: Vec<Particle> = Vec::new();
 
-    for _ in 0..100 {
+    // pop size here
+    for _ in 0..opts.particles {
         let mut p;
         loop {
             p = Vector::new(
@@ -94,12 +112,14 @@ fn demo_big_sim_hills_sliding_brick() {
 
     eprintln!("pop created: {}", pop.len());
 
-    let file = File::create("demo_big_sim_hills_sliding_brick.csv").unwrap();
-
-    let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5)
+    let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5, Some(&opts))
         .set_hills_force(hills_force::HillsForce::new())
         .set_sliding_brick(cell)
-        .set_serialize_run(file);
+        .set_serialize_run(if !opts.no_serialize {
+            Some(File::create("demo_big_sim_hills_sliding_brick.csv").unwrap())
+        } else {
+            None
+        });
 
     sys.run(1000); // 1000
 }
@@ -112,7 +132,7 @@ fn demo1() {
         let start = Instant::now();
 
         // let mut sys = KDTreeSystem::new(particle::circular_orbits(20001), dt);
-        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10, 0.5);
+        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10, 0.5, None);
 
         sys.run((2. * PI / dt) as usize);
 

@@ -53,7 +53,7 @@ impl Ord for ForceEvent {
 pub struct SoftSphereForce<S: SpringDerivation> {
     pub queue: BinaryHeap<ForceEvent>,
     desired_collision_step_count: usize,
-    minimum_time_step: f64, // print warn if dt < this
+    minimum_time_step: Option<f64>, // print warn if dt < this
     pub impact_vel: RefCell<ImpactVelocityTracker>,
     spring_derivation: S,
 }
@@ -81,10 +81,15 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         Self {
             queue: BinaryHeap::new(),
             desired_collision_step_count,
-            minimum_time_step: big_time_step / 100.,
+            minimum_time_step: Some(big_time_step / 1000.),
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),
             spring_derivation,
         }
+    }
+
+    pub fn no_small_dt_warn(&mut self) -> &mut Self {
+        self.minimum_time_step = None;
+        self
     }
 
     pub fn trim_impact_vel_tracker(&mut self, current_step: usize) {
@@ -109,12 +114,14 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
+        relative_speed_estimate: f64,
         step_count: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) -> ExitReason {
         let exit_reason = self.run_through_collision_pairs(
             particles,
             next_sync_step,
+            relative_speed_estimate,
             step_count,
             #[cfg(feature = "early_quit")]
             check_early_quit,
@@ -223,6 +230,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         k: f64,
         m: f64,
         b: f64,
+        relative_speed_estimate: f64,
     ) -> (f64, f64, PushPq) {
         use crate::no_explode::omega_l;
 
@@ -236,7 +244,8 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         let collision_time = std::f64::consts::PI / omega_l;
         let collision_time_dt = collision_time / self.desired_collision_step_count as f64;
 
-        let current_impact_speed = current_impact_vel.abs();
+        // NOTE: this right here injects relative_speed_estimate into the collision time calculation
+        let current_impact_speed = (current_impact_vel.abs()).max(relative_speed_estimate);
 
         // TODO: abstract out gravity forces
 
@@ -264,11 +273,13 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             );
         }
 
-        if dt < self.minimum_time_step {
-            eprintln!(
-                "WARN: time step too small: dt={}, event_time={}",
-                dt, event_time
-            );
+        if let Some(minimum_time_step) = self.minimum_time_step {
+            if dt < minimum_time_step {
+                eprintln!(
+                    "WARN: time step too small: dt={}, event_time={}",
+                    dt, event_time
+                );
+            }
         }
 
         if event_time + dt == event_time {
@@ -298,6 +309,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         step_num: usize,
         next_sync_step: f64,
         current_time: f64,
+        relative_speed_estimate: f64,
     ) -> (Vector, Vector) {
         let (acc1, acc2, info) = self.compute_acc((p1i, p1), (p2i, p2), step_num);
 
@@ -310,6 +322,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             info.k,
             info.reduced_mass,
             info.b,
+            relative_speed_estimate,
         );
 
         debugln!(
@@ -355,6 +368,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
+        relative_speed_estimate: f64,
         step_num: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) -> ExitReason {
@@ -372,6 +386,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
                     step_num,
                     next_sync_step,
                     event.time,
+                    relative_speed_estimate,
                 );
 
                 p1.apply_dv(dv1);

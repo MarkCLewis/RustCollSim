@@ -70,6 +70,7 @@ mod tests {
             dt,
             collision_step_count,
             default_coeff_of_res,
+            None,
         );
 
         let (pre1, pre2) = {
@@ -151,7 +152,7 @@ mod tests {
 
         let dt = 1e-3;
 
-        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10, 0.5);
+        let mut sys = KDTreeSystem::new(particle::two_bodies(), dt, 10, 0.5, None);
 
         let (sun, planet) = {
             let pop = sys.pop.borrow();
@@ -268,7 +269,8 @@ mod tests {
             t: 0.,
         });
 
-        let mut sys = KDTreeSystem::new(bodies, dt, collision_step_count, default_coeff_of_res);
+        let mut sys =
+            KDTreeSystem::new(bodies, dt, collision_step_count, default_coeff_of_res, None);
 
         let total_ke_before = {
             let (p1, p2, p3) = {
@@ -357,31 +359,46 @@ mod tests {
             t: 0.,
         });
 
-        let mut sys = KDTreeSystem::new(bodies, dt, collision_step_count, default_coeff_of_res);
+        let mut sys =
+            KDTreeSystem::new(bodies, dt, collision_step_count, default_coeff_of_res, None);
 
-        let total_ke_before = {
+        let (total_ke_before, total_momentum_before) = {
             let (p1, p2, p3) = {
                 let pop = sys.pop.borrow();
                 (pop[0], pop[1], pop[2])
             };
 
-            p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy()
+            (
+                p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy(),
+                p1.momentum() + p2.momentum() + p3.momentum(),
+            )
         };
 
         sys.run(steps);
 
-        let total_ke_after = {
+        let (total_ke_after, total_momentum_after) = {
             let (p1, p2, p3) = {
                 let pop = sys.pop.borrow();
                 (pop[0], pop[1], pop[2])
             };
 
-            p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy()
+            (
+                p1.kinetic_energy() + p2.kinetic_energy() + p3.kinetic_energy(),
+                p1.momentum() + p2.momentum() + p3.momentum(),
+            )
         };
 
         ensure!(
             total_ke_after < total_ke_before,
             "total_ke_after < total_ke_before"
+        );
+
+        let momentum_diff = (total_momentum_after - total_momentum_before).mag();
+
+        ensure!(
+            momentum_diff <= total_momentum_before.mag() * 1e-10,
+            "(total_momentum_after - total_momentum_before).mag() = {}",
+            momentum_diff
         );
 
         // let collision_step_count_actual = sys

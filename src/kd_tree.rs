@@ -56,6 +56,71 @@ impl KDTree {
         ret
     }
 
+    /// note: this will not catch particles in 2 different leaves moving towards each other
+    #[allow(dead_code)]
+    pub fn global_relative_speed_estimate_rms(&self, particles: &[Particle]) -> f64 {
+        fn recurse(nodes: &[KDTreeNode], particles: &[Particle], node_idx: usize) -> (f64, usize) {
+            let node = nodes[node_idx];
+            if node.is_leaf() {
+                let mut count = 0;
+
+                let mut rel_speed = 0.;
+
+                // this O(n^2) is ok since n is small, like max 7
+                for i in 0..node.num_parts {
+                    for j in i + 1..node.num_parts {
+                        let p1 = particles[node.particles[i]];
+                        let p2 = particles[node.particles[j]];
+
+                        rel_speed += (p1.v - p2.v).mag_sq();
+                        count += 1;
+                    }
+                }
+
+                (rel_speed, count)
+            } else {
+                let (right_rel_speed, right_count) = recurse(nodes, particles, node.right);
+                let (left_rel_speed, left_count) = recurse(nodes, particles, node.left);
+
+                (right_rel_speed + left_rel_speed, right_count + left_count)
+            }
+        }
+
+        let (rel_speed_sum, count) = recurse(&self.nodes, particles, 0);
+
+        (rel_speed_sum / count as f64).sqrt()
+    }
+
+    /// note: this will not catch particles in 2 different leaves moving towards each other
+    #[allow(dead_code)]
+    pub fn global_relative_speed_estimate_max(&self, particles: &[Particle]) -> f64 {
+        fn recurse(nodes: &[KDTreeNode], particles: &[Particle], node_idx: usize) -> f64 {
+            let node = nodes[node_idx];
+            if node.is_leaf() {
+                let mut rel_speed: f64 = 0.;
+
+                // this O(n^2) is ok since n is small, like max 7
+                for i in 0..node.num_parts {
+                    for j in i + 1..node.num_parts {
+                        let p1 = particles[node.particles[i]];
+                        let p2 = particles[node.particles[j]];
+
+                        rel_speed = rel_speed.max((p1.v - p2.v).mag());
+                    }
+                }
+
+                rel_speed
+            } else {
+                let right_rel_speed = recurse(nodes, particles, node.right);
+                let left_rel_speed = recurse(nodes, particles, node.left);
+
+                right_rel_speed.max(left_rel_speed)
+            }
+        }
+
+        recurse(&self.nodes, particles, 0)
+    }
+
     // Returns the index of the last Node used in the construction.
     fn build_tree(
         &mut self,
@@ -226,6 +291,10 @@ impl KDTreeNode {
             left: usize::MAX,
             right: usize::MAX,
         }
+    }
+
+    fn is_leaf(&self) -> bool {
+        self.num_parts > 0
     }
 }
 
