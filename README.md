@@ -121,3 +121,17 @@ write outline, put notes of everything I can think of and that is related
 write about pair-collision (it works well)
 issues of stability with 3+ particle
 -->
+
+## Notes - March 24
+- for various sim sizes
+- no pq for 10_000 - do not consider pq
+- pq for 1000
+- fixed amount of time
+- email all about timing
+- one orbit
+- Do 1M, 1k, 10k, 100k
+- for chapter: dumb all info in my head
+- writing notes:
+  - deadline: 13th
+  - other methods: find neighbors on big velocity change, memory overhead problem
+
