@@ -231,6 +231,8 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         m: f64,
         b: f64,
         relative_speed_estimate: f64,
+        r1: f64,
+        r2: f64,
     ) -> (f64, f64, PushPq) {
         use crate::no_explode::omega_l;
 
@@ -252,14 +254,20 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         let mut dt = if separation_distance < 0. {
             debugln!("colliding",);
             // colliding
-            // 1/(\omega_0 C), => C = step num
-            // 1. / (omega_l * self.desired_collision_step_count as f64)
-            collision_time_dt
+            let distance_estimate = f64::max(r1, r2) * self.spring_derivation.get_pen_fraction();
+            // impact_time_estimate is to ensure that if there is some fast moving particles around,
+            // dt will be small enough such that if one particle in this pair gets hit, this pair will get updated properly
+            let impact_time_estimate = distance_estimate / relative_speed_estimate;
+
+            collision_time_dt.min(impact_time_estimate)
         } else {
             // v * t = d
             let impact_time_dt = separation_distance / current_impact_speed;
             // max( dist/(2*v_normal) and 1/(\omega_0 C) )
 
+            // should this be min?
+            // No: otherwise we get a zeno's paradox
+            // the collision should be processed at steps of dt
             f64::max(
                 impact_time_dt.abs() / 2.,
                 collision_time_dt, // 1. / (omega_l * self.desired_collision_step_count as f64),
@@ -323,6 +331,8 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             info.reduced_mass,
             info.b,
             relative_speed_estimate,
+            p1.r,
+            p2.r,
         );
 
         debugln!(

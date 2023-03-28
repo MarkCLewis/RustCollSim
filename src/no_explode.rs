@@ -32,6 +32,7 @@ pub fn omega_l(k: f64, m: f64, b: f64) -> f64 {
 pub trait SpringDerivation {
     // pen fraction is the fraction of acceptable overlap, 0.02 is 2% overlap
     fn b_and_k(&self, v_0: f64, m: f64, radius: f64) -> (f64, f64);
+    fn get_pen_fraction(&self) -> f64;
 }
 
 // Rotter derivation
@@ -72,6 +73,10 @@ impl SpringDerivation for Rotter {
     fn b_and_k(&self, v_0: f64, m: f64, radius: f64) -> (f64, f64) {
         self.b_and_k2(v_0, m, radius * self.pen_fraction)
     }
+
+    fn get_pen_fraction(&self) -> f64 {
+        self.pen_fraction
+    }
 }
 
 impl Default for Rotter {
@@ -110,6 +115,10 @@ impl SpringDerivation for Lewis {
         let k = self.k(m, v_0, radius);
         let c = self.c(k, m).abs();
         (c, k)
+    }
+
+    fn get_pen_fraction(&self) -> f64 {
+        self.pen_fraction
     }
 }
 
@@ -153,6 +162,10 @@ impl SpringDerivation for Schwartz {
         let k = self.k(m, v_max, r * self.max_pen_ratio).abs();
         let c = self.c(k, m).abs();
         (c, k)
+    }
+
+    fn get_pen_fraction(&self) -> f64 {
+        self.max_pen_ratio
     }
 }
 
