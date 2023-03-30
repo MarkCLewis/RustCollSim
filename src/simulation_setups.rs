@@ -1,5 +1,7 @@
 use std::{f64::consts::PI, fs::File};
 
+use indicatif::ProgressBar;
+
 use crate::{
     debugln, hills_force, particle::Particle, system::KDTreeSystem, util::overlap_grid::generate,
     vectors::Vector, Opts,
@@ -15,7 +17,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_cell_size() {
-        assert_eq!(cell_size(1000, 1e13), 1e-5);
+        assert_eq!(cell_size(100, 1e12), 1e-5);
     }
 }
 
@@ -55,7 +57,9 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
 
     eprintln!("pop created: {}", pop.len());
 
-    println!("dt: {}", dt);
+    eprintln!("dt: {}", dt);
+
+    eprintln!("cell size: {}", cell_size);
 
     // this is only for plotting
     debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, 0, 0, 0, 0, 0);
@@ -63,11 +67,18 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
     let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5, Some(&opts))
         .set_hills_force(hills_force::HillsForce::new())
         .set_sliding_brick(cell)
-        .set_serialize_run(if !opts.no_serialize {
-            Some(File::create("demo_big_sim_hills_sliding_brick.csv").unwrap())
-        } else {
-            None
-        });
+        .set_serialize_run(match opts.particles_file.as_str().trim() {
+            "" => None,
+            file => Some(File::create(file).unwrap()),
+        })
+        .set_progress_bar(Some(ProgressBar::new(opts.big_steps as u64)));
 
     sys.run(opts.big_steps); // 1000
 }
+
+/*
+if !opts.no_serialize {
+            Some(File::create("demo_big_sim_hills_sliding_brick.csv").unwrap())
+        } else {
+            None
+        } */

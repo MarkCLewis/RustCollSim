@@ -22,6 +22,7 @@ pub struct KDTreeSystem {
     hills_force: Option<HillsForce>,
     sliding_brick: Option<SlidingBrickBoundary>,
     serialize_run: Option<File>,
+    progress_bar: Option<indicatif::ProgressBar>,
 }
 
 impl KDTreeSystem {
@@ -63,6 +64,7 @@ impl KDTreeSystem {
             hills_force: None,
             sliding_brick: None,
             serialize_run: None,
+            progress_bar: None,
         }
     }
 
@@ -78,6 +80,11 @@ impl KDTreeSystem {
 
     pub fn set_serialize_run(mut self: Self, serialize_run_file: Option<File>) -> Self {
         self.serialize_run = serialize_run_file;
+        self
+    }
+
+    pub fn set_progress_bar(mut self: Self, progress_bar: Option<indicatif::ProgressBar>) -> Self {
+        self.progress_bar = progress_bar;
         self
     }
 
@@ -98,17 +105,20 @@ impl KDTreeSystem {
     ) -> ExitReason {
         self.attempt_serialize(0);
 
-        println!("Running for {} steps", steps);
-        println!("Running for time {}", steps as f64 * self.time_step);
+        eprintln!("Running for {} steps", steps);
+        eprintln!("Running for time {}", steps as f64 * self.time_step);
 
         for i in 0 as usize..steps {
-            let mut change_inspector = VelocityInspector::before(&self.pop, 10.);
+            if let Some(pb) = &self.progress_bar {
+                pb.inc(1);
+            }
+            // let mut change_inspector = VelocityInspector::before(&self.pop, 10.);
 
             if let Some(hills_force) = &self.hills_force {
                 hills_force.apply_delta_velocity(&mut self.pop.borrow_mut(), self.time_step);
             }
 
-            change_inspector.after(&self.pop);
+            // change_inspector.after(&self.pop);
 
             // println!("step: {}", i);
             let relative_speed_estimate = self.apply_forces(i);
@@ -148,6 +158,10 @@ impl KDTreeSystem {
             }
 
             self.attempt_serialize(i + 1);
+        }
+
+        if let Some(pb) = &self.progress_bar {
+            pb.finish_with_message("done");
         }
 
         ExitReason::NormalEnd

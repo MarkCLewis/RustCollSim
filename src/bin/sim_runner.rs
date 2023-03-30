@@ -8,18 +8,17 @@ fn main() {
     let opts_gen = |particles| Opts {
         particles,
         no_warnings: false,
-        no_serialize: false,
         seed: 42,
         steps_in_2pi: 1000,
         big_steps: 1000,
-        cell_density: 1e13,
+        cell_density: 1e12,
+        particles_file: format!("data/big_sim_hills_sliding_brick_{}.csv", particles),
     };
 
-    let sim_sizes = [1000, 10000, 100000, 1000000];
+    let sim_sizes = [100000, 1000000]; //1000, 10000,
 
     for sim in sim_sizes {
         let opts = opts_gen(sim);
-        println!("Running sim with {} particles", opts.particles);
         demo_big_sim_hills_sliding_brick(opts);
     }
 }

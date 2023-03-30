@@ -24,6 +24,7 @@ fastrand = "1.4"
 anyhow = "1.0.66"
 csv = "1.1.6"
 clap = { version = "4.1.13", features = ["derive"] }
+indicatif = "0.17.3"
 
 
 # resvg = "0.23.0"
