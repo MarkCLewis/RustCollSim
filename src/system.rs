@@ -66,7 +66,7 @@ impl KDTreeSystem {
             sliding_brick: None,
             serialize_run: None,
             progress_bar: None,
-            disable_pq: true,
+            disable_pq: false,
         }
     }
 
