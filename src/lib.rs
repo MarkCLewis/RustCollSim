@@ -10,6 +10,7 @@ pub mod impact_vel_tracker;
 pub mod kd_tree;
 pub mod no_explode;
 pub mod particle;
+pub mod simulation_setups;
 pub mod soft_collision_queue;
 pub mod system;
 pub mod tests;
@@ -36,4 +37,7 @@ pub struct Opts {
     /// number of big time steps
     #[clap(long, default_value_t = 1000)]
     pub big_steps: usize,
+    /// size of cell for sliding brick
+    #[clap(long, default_value_t = 1e13)]
+    pub cell_density: f64,
 }
