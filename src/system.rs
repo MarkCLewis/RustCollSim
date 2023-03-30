@@ -23,6 +23,7 @@ pub struct KDTreeSystem {
     sliding_brick: Option<SlidingBrickBoundary>,
     serialize_run: Option<File>,
     progress_bar: Option<indicatif::ProgressBar>,
+    disable_pq: bool,
 }
 
 impl KDTreeSystem {
@@ -65,6 +66,7 @@ impl KDTreeSystem {
             sliding_brick: None,
             serialize_run: None,
             progress_bar: None,
+            disable_pq: true,
         }
     }
 
@@ -85,6 +87,12 @@ impl KDTreeSystem {
 
     pub fn set_progress_bar(mut self: Self, progress_bar: Option<indicatif::ProgressBar>) -> Self {
         self.progress_bar = progress_bar;
+        self
+    }
+
+    pub fn set_disable_pq(mut self: Self, disable_pq: bool) -> Self {
+        eprintln!("disable_pq: {}", disable_pq);
+        self.disable_pq = disable_pq;
         self
     }
 
@@ -194,6 +202,7 @@ impl KDTreeSystem {
                     next_sync_step,
                     self.current_time,
                     relative_speed_estimate,
+                    self.disable_pq,
                 );
 
                 let mut mut_dv = borrow_dv.borrow_mut();
@@ -252,6 +261,7 @@ impl KDTreeSystem {
             &mut pop_ref,
             next_time,
             relative_speed_estimate,
+            self.disable_pq,
             step_count,
             #[cfg(feature = "early_quit")]
             check_early_quit,

@@ -115,6 +115,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
         relative_speed_estimate: f64,
+        disable_pq: bool,
         step_count: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) -> ExitReason {
@@ -122,6 +123,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             particles,
             next_sync_step,
             relative_speed_estimate,
+            disable_pq,
             step_count,
             #[cfg(feature = "early_quit")]
             check_early_quit,
@@ -233,7 +235,12 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         relative_speed_estimate: f64,
         r1: f64,
         r2: f64,
+        disable_pq: bool,
     ) -> (f64, f64, PushPq) {
+        if disable_pq {
+            return (next_sync_step, next_sync_step - event_time, PushPq::NoPush);
+        }
+
         use crate::no_explode::omega_l;
 
         // let omega_0 = omega_0_from_k(k, m);
@@ -318,6 +325,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         next_sync_step: f64,
         current_time: f64,
         relative_speed_estimate: f64,
+        disable_pq: bool,
     ) -> (Vector, Vector) {
         let (acc1, acc2, info) = self.compute_acc((p1i, p1), (p2i, p2), step_num);
 
@@ -333,6 +341,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             relative_speed_estimate,
             p1.r,
             p2.r,
+            disable_pq,
         );
 
         debugln!(
@@ -379,6 +388,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
         relative_speed_estimate: f64,
+        disable_pq: bool,
         step_num: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) -> ExitReason {
@@ -397,6 +407,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
                     next_sync_step,
                     event.time,
                     relative_speed_estimate,
+                    disable_pq,
                 );
 
                 p1.apply_dv(dv1);

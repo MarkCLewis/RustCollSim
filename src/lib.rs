@@ -42,4 +42,6 @@ pub struct Opts {
     /// set empty string to prevent serializing (for speed)
     #[clap(long, default_value_t = ("demo_big_sim_hills_sliding_brick.csv".into()))]
     pub particles_file: String,
+    #[clap(long, default_value_t = false)]
+    pub disable_pq: bool,
 }
