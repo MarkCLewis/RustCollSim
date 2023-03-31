@@ -1,4 +1,5 @@
 pub mod overlap_grid;
+pub mod progress_tracker;
 
 use std::cmp::Ordering;
 

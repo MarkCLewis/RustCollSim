@@ -1,10 +1,14 @@
 use std::{f64::consts::PI, fs::File};
 
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::{
-    debugln, hills_force, particle::Particle, system::KDTreeSystem, util::overlap_grid::generate,
-    vectors::Vector, Opts,
+    debugln, hills_force,
+    particle::Particle,
+    system::KDTreeSystem,
+    util::{overlap_grid::generate, progress_tracker::TwoPartProgress},
+    vectors::Vector,
+    Opts,
 };
 
 fn cell_size(particles: usize, cell_density: f64) -> f64 {
@@ -64,6 +68,18 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
     // this is only for plotting
     debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, 0, 0, 0, 0, 0);
 
+    let progress_bar = ProgressBar::new(opts.big_steps as u64);
+    let main_sty =
+        ProgressStyle::with_template("[{elapsed_precise}] {wide_bar:.blue/white} {pos:>7}/{len:7}")
+            .unwrap();
+    progress_bar.set_style(main_sty);
+
+    let sub_sty = ProgressStyle::with_template("{wide_bar:.blue/white} {msg:30}").unwrap();
+    let sub_bar = ProgressBar::new(6);
+    sub_bar.set_style(sub_sty);
+
+    let bar = TwoPartProgress::double(progress_bar, sub_bar);
+
     let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5, Some(&opts))
         .set_hills_force(hills_force::HillsForce::new())
         .set_sliding_brick(cell)
@@ -71,7 +87,7 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
             "" => None,
             file => Some(File::create(file).unwrap()),
         })
-        .set_progress_bar(Some(ProgressBar::new(opts.big_steps as u64)))
+        .set_progress_bar(Some(bar))
         .set_disable_pq(opts.disable_pq);
 
     sys.run(opts.big_steps); // 1000

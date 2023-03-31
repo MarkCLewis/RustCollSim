@@ -1,14 +1,14 @@
 use std::{cell::RefCell, fs::File, io::Write};
 
 use crate::{
-    debug_tools::{ChangeInspector, VelocityInspector},
+    // debug_tools::{ChangeInspector, VelocityInspector},
     debugln,
     hills_force::{HillsForce, SlidingBrickBoundary},
     kd_tree::{self, Interaction},
     no_explode,
     particle::{Particle, ParticleIndex},
     soft_collision_queue::{ExitReason, SoftSphereForce},
-    util::borrow_two_elements,
+    util::{borrow_two_elements, progress_tracker::TwoPartProgress},
     vectors::Vector,
 };
 
@@ -22,7 +22,7 @@ pub struct KDTreeSystem {
     hills_force: Option<HillsForce>,
     sliding_brick: Option<SlidingBrickBoundary>,
     serialize_run: Option<File>,
-    progress_bar: Option<indicatif::ProgressBar>,
+    progress_bar: Option<TwoPartProgress>,
     disable_pq: bool,
 }
 
@@ -85,7 +85,7 @@ impl KDTreeSystem {
         self
     }
 
-    pub fn set_progress_bar(mut self: Self, progress_bar: Option<indicatif::ProgressBar>) -> Self {
+    pub fn set_progress_bar(mut self: Self, progress_bar: Option<TwoPartProgress>) -> Self {
         self.progress_bar = progress_bar;
         self
     }
@@ -118,7 +118,12 @@ impl KDTreeSystem {
 
         for i in 0 as usize..steps {
             if let Some(pb) = &self.progress_bar {
-                pb.inc(1);
+                pb.incr_main(1);
+                pb.sub_bar().map(|pb| {
+                    pb.set_length(6);
+                    pb.set_position(0);
+                });
+                pb.set_sub_message("Hills Force...");
             }
             // let mut change_inspector = VelocityInspector::before(&self.pop, 10.);
 
@@ -126,16 +131,31 @@ impl KDTreeSystem {
                 hills_force.apply_delta_velocity(&mut self.pop.borrow_mut(), self.time_step);
             }
 
+            if let Some(pb) = &self.progress_bar {
+                pb.incr_sub(1);
+                pb.set_sub_message("kD-tree walk...");
+            }
+
             // change_inspector.after(&self.pop);
 
-            // println!("step: {}", i);
             let relative_speed_estimate = self.apply_forces(i);
+
+            if let Some(pb) = &self.progress_bar {
+                pb.incr_sub(1);
+                pb.set_sub_message("Priority Queue...");
+            }
+
             let exit_reason = self.end_step(
                 i,
                 relative_speed_estimate,
                 #[cfg(feature = "early_quit")]
                 check_early_quit,
             );
+
+            if let Some(pb) = &self.progress_bar {
+                pb.incr_sub(1);
+                pb.set_sub_message("Sliding Brick...");
+            }
 
             #[allow(unused_variables)]
             for (p_idx, p) in self.pop.borrow().iter().enumerate() {
@@ -161,15 +181,30 @@ impl KDTreeSystem {
                 sliding_brick.apply(&mut self.pop.borrow_mut(), self.current_time);
             }
 
+            if let Some(pb) = &self.progress_bar {
+                pb.incr_sub(1);
+                pb.set_sub_message("Trimming impact v...");
+            }
+
             if i % 10 == 0 {
                 self.pq.borrow_mut().trim_impact_vel_tracker(i);
             }
 
+            if let Some(pb) = &self.progress_bar {
+                pb.incr_sub(1);
+                pb.set_sub_message("serializing...");
+            }
+
             self.attempt_serialize(i + 1);
+
+            if let Some(pb) = &self.progress_bar {
+                pb.incr_sub(1);
+                pb.set_sub_message("done");
+            }
         }
 
         if let Some(pb) = &self.progress_bar {
-            pb.finish_with_message("done");
+            pb.main_bar().finish();
         }
 
         ExitReason::NormalEnd

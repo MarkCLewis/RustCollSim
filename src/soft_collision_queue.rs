@@ -82,8 +82,8 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         Self {
             queue: BinaryHeap::new(),
             desired_collision_step_count,
-            minimum_time_step: Some(big_time_step / 1000.),
-            warn_minimum_time_step: Some(big_time_step / 100.),
+            minimum_time_step: Some(big_time_step / 100.),
+            warn_minimum_time_step: Some(big_time_step / 10.),
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),
             spring_derivation,
         }
@@ -307,6 +307,10 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             panic!(
                 "dt is so small its a rounding error.\nevent_time + dt == event_time. This should not happen and will create an infinite loop.\n separation distance: {}\n next_sync_step: {}\n current_impact_vel: {}\n event_time: {}\n k: {}\n m: {}\n b: {}\n",
                 separation_distance, next_sync_step, current_impact_vel, event_time, k, m, b)
+        }
+
+        if let Some(minimum_time_step) = self.minimum_time_step {
+            assert!(dt >= minimum_time_step);
         }
 
         let mut next_time = event_time + dt;
