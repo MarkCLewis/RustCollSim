@@ -53,7 +53,8 @@ impl Ord for ForceEvent {
 pub struct SoftSphereForce<S: SpringDerivation> {
     pub queue: BinaryHeap<ForceEvent>,
     desired_collision_step_count: usize,
-    minimum_time_step: Option<f64>, // print warn if dt < this
+    warn_minimum_time_step: Option<f64>, // print warn if dt < this
+    minimum_time_step: Option<f64>,      // a floor to how small dt can be
     pub impact_vel: RefCell<ImpactVelocityTracker>,
     spring_derivation: S,
 }
@@ -82,13 +83,14 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             queue: BinaryHeap::new(),
             desired_collision_step_count,
             minimum_time_step: Some(big_time_step / 1000.),
+            warn_minimum_time_step: Some(big_time_step / 100.),
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),
             spring_derivation,
         }
     }
 
     pub fn no_small_dt_warn(&mut self) -> &mut Self {
-        self.minimum_time_step = None;
+        self.warn_minimum_time_step = None;
         self
     }
 
@@ -281,20 +283,24 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             )
         };
 
-        if dt == 0. {
-            panic!(
-                "dt is 0. This should not happen and will create an infinite loop.\n separation distance: {}\n next_sync_step: {}\n current_impact_vel: {}\n event_time: {}\n k: {}\n m: {}\n b: {}\n",
-                separation_distance, next_sync_step, current_impact_vel, event_time, k, m, b
-            );
-        }
-
-        if let Some(minimum_time_step) = self.minimum_time_step {
-            if dt < minimum_time_step {
+        if let Some(warn_minimum_time_step) = self.warn_minimum_time_step {
+            if dt < warn_minimum_time_step {
                 eprintln!(
                     "WARN: time step too small: dt={}, event_time={}",
                     dt, event_time
                 );
             }
+        }
+
+        if let Some(minimum_time_step) = self.minimum_time_step {
+            dt = f64::max(dt, minimum_time_step);
+        }
+
+        if dt == 0. {
+            panic!(
+                "dt is 0. This should not happen and will create an infinite loop.\n separation distance: {}\n next_sync_step: {}\n current_impact_vel: {}\n event_time: {}\n k: {}\n m: {}\n b: {}\n",
+                separation_distance, next_sync_step, current_impact_vel, event_time, k, m, b
+            );
         }
 
         if event_time + dt == event_time {

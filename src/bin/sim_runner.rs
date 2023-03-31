@@ -9,17 +9,23 @@ fn main() {
         particles,
         no_warnings: false,
         seed: 42,
-        steps_in_2pi: 1000,
-        big_steps: 1000,
+        steps_in_2pi: if disable_pq { 10_000 } else { 1000 },
+        big_steps: if disable_pq { 10_000 } else { 1000 },
         cell_density: 1e12,
-        particles_file: format!("data/big_sim_hills_sliding_brick_{}.csv", particles),
+        particles_file: format!(
+            "data/big_sim_hills_sliding_brick_{}_disable_pq={disable_pq}.csv",
+            particles
+        ),
         disable_pq,
     };
 
-    let sim_sizes = [1000]; // [1000, 10000, 100000, 1000000];
+    let sim_sizes = [1_000]; // [1000, 10000, 100000, 1000000];
 
-    for sim in sim_sizes {
-        let opts = opts_gen(sim, false);
-        demo_big_sim_hills_sliding_brick(opts);
+    for disable_pq in [false, true] {
+        for sim in sim_sizes {
+            let opts = opts_gen(sim, disable_pq);
+            demo_big_sim_hills_sliding_brick(opts);
+            eprintln!(" ");
+        }
     }
 }
