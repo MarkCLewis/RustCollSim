@@ -1,11 +1,11 @@
-use rust_coll_sim::{simulation_setups::demo_big_sim_hills_sliding_brick, Opts};
+use rust_coll_sim::{simulation_setups::demo_big_sim_hills_sliding_brick, Opts, RingType};
 
 fn main() {
     //1M, 1k, 10k, 100k
     // no pq for 10_000 - do not consider pq
     // pq for 1000
 
-    let opts_gen = |particles, disable_pq| Opts {
+    let opts_gen = |particles, disable_pq, ring_type| Opts {
         particles,
         no_warnings: true,
         seed: 42, //43
@@ -17,15 +17,18 @@ fn main() {
             particles
         ),
         disable_pq,
+        ring_type,
     };
 
     let sim_sizes = [1_000]; // [1000, 10000, 100000, 1000000];
 
-    for disable_pq in [false, true] {
-        for sim in sim_sizes {
-            let opts = opts_gen(sim, disable_pq);
-            demo_big_sim_hills_sliding_brick(opts);
-            eprintln!(" ");
+    for ring_type in [RingType::A, RingType::B] {
+        for disable_pq in [false, true] {
+            for sim in sim_sizes {
+                let opts = opts_gen(sim, disable_pq, ring_type);
+                demo_big_sim_hills_sliding_brick(opts);
+                eprintln!(" ");
+            }
         }
     }
 }

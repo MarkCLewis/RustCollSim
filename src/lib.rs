@@ -2,6 +2,10 @@
 #![feature(portable_simd)]
 #![feature(hash_drain_filter)]
 
+use std::fmt::Display;
+use std::str::FromStr;
+
+
 use clap::Parser;
 
 pub mod debug;
@@ -17,6 +21,7 @@ pub mod system;
 pub mod tests;
 pub mod util;
 pub mod vectors;
+
 
 #[derive(Parser, Debug)]
 pub struct Opts {
@@ -44,4 +49,50 @@ pub struct Opts {
     pub particles_file: String,
     #[clap(long, default_value_t = false)]
     pub disable_pq: bool,
+    #[clap(long, default_value_t = RingType::default(), 
+        value_parser = clap::value_parser!(RingType))]
+    pub ring_type: RingType,
+}
+
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum RingType {
+    A,
+    B,
+}
+
+impl RingType {
+    pub fn get_rho(&self) -> f64 {
+        match self {
+            RingType::A => 1.9,
+            RingType::B => 0.88,
+        }
+    }
+}
+
+impl Default for RingType {
+    fn default() -> Self {
+        RingType::B
+    }
+}
+
+impl Display for RingType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RingType::A => write!(f, "A"),
+            RingType::B => write!(f, "B"),
+        }
+    }
+}
+
+impl FromStr for RingType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "A" => Ok(RingType::A),
+            "B" => Ok(RingType::B),
+            _ => Err(format!("{} is not a valid RingType", s)),
+        }
+    }
 }

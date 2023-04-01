@@ -41,7 +41,7 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
 
     let r = 1e-7;
     // 0.88 in B ring, 1.9 in A ring, causes clumping
-    let rho = 1.9; //0.88;
+    let rho = opts.ring_type.get_rho();
 
     // range -0.5..0.5
     let centered_rand = || fastrand::f64() - 0.5;
