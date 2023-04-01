@@ -215,7 +215,7 @@ impl KDTreeSystem {
 
         let relative_speed_estimate = self
             .tree
-            .global_relative_speed_estimate_max(&self.pop.borrow())
+            .global_relative_speed_estimate_rms(&self.pop.borrow())
             * 2.0;
 
         // global_relative_speed_estimate_rms
@@ -295,8 +295,13 @@ impl KDTreeSystem {
         let exit_reason = self.pq.borrow_mut().do_one_step(
             &mut pop_ref,
             next_time,
+            self.current_time,
             relative_speed_estimate,
             self.disable_pq,
+            match &self.progress_bar {
+                Some(pb) => pb.sub_sub_bar(),
+                None => None,
+            },
             step_count,
             #[cfg(feature = "early_quit")]
             check_early_quit,

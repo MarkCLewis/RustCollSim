@@ -1,5 +1,7 @@
 use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap};
 
+use indicatif::ProgressBar;
+
 use crate::{
     debugln,
     impact_vel_tracker::ImpactVelocityTracker,
@@ -116,16 +118,20 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
+        last_sync_step: f64,
         relative_speed_estimate: f64,
         disable_pq: bool,
+        progress_bar: Option<&ProgressBar>,
         step_count: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) -> ExitReason {
         let exit_reason = self.run_through_collision_pairs(
             particles,
             next_sync_step,
+            last_sync_step,
             relative_speed_estimate,
             disable_pq,
+            progress_bar,
             step_count,
             #[cfg(feature = "early_quit")]
             check_early_quit,
@@ -397,11 +403,20 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         &mut self,
         particles: &mut Vec<Particle>,
         next_sync_step: f64,
+        last_sync_step: f64,
         relative_speed_estimate: f64,
         disable_pq: bool,
+        progress_bar: Option<&ProgressBar>,
         step_num: usize,
         #[cfg(feature = "early_quit")] check_early_quit: &mut dyn FnMut(&[Particle]) -> bool,
     ) -> ExitReason {
+        if let Some(pb) = progress_bar {
+            pb.set_position(0);
+            pb.set_length(100);
+        }
+
+        let mut events_processed: u64 = 0;
+
         loop {
             if let Some(event) = self.queue.pop() {
                 // do stuff -> process collisions
@@ -422,6 +437,15 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
 
                 p1.apply_dv(dv1);
                 p2.apply_dv(dv2);
+
+                // update progress bar
+                events_processed += 1;
+                if let Some(pb) = progress_bar {
+                    let progress =
+                        (event.time - last_sync_step) / (next_sync_step - last_sync_step);
+                    pb.set_position((progress * 100.) as u64);
+                    pb.set_message(format!("{}", events_processed));
+                }
 
                 #[cfg(feature = "early_quit")]
                 if check_early_quit(particles) {

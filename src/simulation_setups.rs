@@ -40,7 +40,8 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
     let cell = hills_force::SlidingBrickBoundary::new(cell_size, cell_size);
 
     let r = 1e-7;
-    let rho = 0.88;
+    // 0.88 in B ring, 1.9 in A ring, causes clumping
+    let rho = 1.9; //0.88;
 
     // range -0.5..0.5
     let centered_rand = || fastrand::f64() - 0.5;
@@ -68,6 +69,7 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
     // this is only for plotting
     debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, 0, 0, 0, 0, 0);
 
+    // progress bar stuff
     let progress_bar = ProgressBar::new(opts.big_steps as u64);
     let main_sty =
         ProgressStyle::with_template("[{elapsed_precise}] {wide_bar:.blue/white} {pos:>7}/{len:7}")
@@ -78,7 +80,12 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
     let sub_bar = ProgressBar::new(6);
     sub_bar.set_style(sub_sty);
 
-    let bar = TwoPartProgress::double(progress_bar, sub_bar);
+    let sub_sub_sty =
+        ProgressStyle::with_template("{wide_bar:.blue/white} {msg:14} {pos:>7}/{len:7}").unwrap();
+    let sub_sub_bar = ProgressBar::new(0);
+    sub_sub_bar.set_style(sub_sub_sty);
+
+    let bar = TwoPartProgress::triple(progress_bar, sub_bar, sub_sub_bar);
 
     let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5, Some(&opts))
         .set_hills_force(hills_force::HillsForce::new())

@@ -2,6 +2,7 @@
 # Generated
 /target
 *.log
+.DS_Store
 
 # User specific settings
 .vscode/settings.json

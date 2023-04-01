@@ -8,7 +8,7 @@ fn main() {
     let opts_gen = |particles, disable_pq| Opts {
         particles,
         no_warnings: true,
-        seed: 42,
+        seed: 42, //43
         steps_in_2pi: if disable_pq { 10_000 } else { 1000 },
         big_steps: if disable_pq { 10_000 } else { 1000 },
         cell_density: 1e12,
@@ -19,7 +19,7 @@ fn main() {
         disable_pq,
     };
 
-    let sim_sizes = [100_000]; // [1000, 10000, 100000, 1000000];
+    let sim_sizes = [1_000]; // [1000, 10000, 100000, 1000000];
 
     for disable_pq in [false, true] {
         for sim in sim_sizes {

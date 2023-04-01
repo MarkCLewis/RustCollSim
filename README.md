@@ -135,3 +135,13 @@ issues of stability with 3+ particle
   - deadline: 13th
   - other methods: find neighbors on big velocity change, memory overhead problem
 
+## Notes - March 31
+- pq for 100
+- no pq for 1000
+- no serialize - performance only
+- boundary condition problems
+- could store overlap of particles info in impact_vel_tracker
+  - check if particles go from barely overlapping to rly overlapping in one step
+- low vs. high density
+  - table: performance
+
