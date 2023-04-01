@@ -85,7 +85,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             queue: BinaryHeap::new(),
             desired_collision_step_count,
             minimum_time_step: Some(big_time_step / 100.),
-            warn_minimum_time_step: Some(big_time_step / 10.),
+            warn_minimum_time_step: Some(big_time_step / 80.),
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),
             spring_derivation,
         }

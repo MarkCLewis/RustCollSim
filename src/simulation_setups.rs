@@ -66,6 +66,8 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
 
     eprintln!("cell size: {}", cell_size);
 
+    eprintln!("ring type: {}", opts.ring_type);
+
     // this is only for plotting
     debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, 0, 0, 0, 0, 0);
 
