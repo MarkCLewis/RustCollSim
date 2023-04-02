@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use rust_coll_sim::{simulation_setups::demo_big_sim_hills_sliding_brick, Opts, RingType};
 
 fn main() {
@@ -10,7 +12,7 @@ fn main() {
     let opts_gen = |particles, disable_pq, ring_type| Opts {
         particles,
         no_warnings: true,
-        seed: 43, //44 is good for B1k, B10k
+        seed: 44, //44 is good for B1k, B10k // 2 is bad for B1k
         steps_in_2pi: if disable_pq { 1_000 } else { 100 },
         big_steps: if disable_pq { 1_000 } else { 100 },
         cell_density: 1e12,
@@ -26,18 +28,21 @@ fn main() {
         ring_type,
     };
 
-    let sim_sizes = [1_000, 10_000, 100_000]; // [1000, 10000, 100000, 1000000];
+    let sim_sizes = [1_000, 10_000, 100_000, 1_000_000]; // [1000, 10000, 100000, 1000000];
 
-    for ring_type in [RingType::B] {
+    for ring_type in [RingType::B, RingType::A] {
         //RingType::A,
         for disable_pq in [false, true] {
-            if disable_pq {
-                continue;
-            } // FIXME: remove this
+            // if disable_pq {
+            //     continue;
+            // } // FIXME: remove this
 
             for sim in sim_sizes {
                 let opts = opts_gen(sim, disable_pq, ring_type);
+                let pre = Instant::now();
                 demo_big_sim_hills_sliding_brick(opts);
+                let post = Instant::now();
+                eprintln!("runtime = {}", (post - pre).as_secs_f64());
                 eprintln!(" ");
             }
         }

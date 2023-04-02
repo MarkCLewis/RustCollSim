@@ -60,12 +60,58 @@ impl Particle {
 
     #[allow(dead_code)]
     pub fn is_colliding(&self, other: &Self) -> bool {
-        (self.p - other.p).mag() < self.r + other.r
+        self.distance(other) < self.r + other.r
+    }
+
+    #[allow(dead_code)]
+    pub fn distance(&self, other: &Self) -> f64 {
+        (self.p - other.p).mag()
+    }
+
+    #[allow(dead_code)]
+    /// overlap = distance - sum of radii
+    /// if overlap > 0, no overlap, returns None
+    /// if overlap < 0, overlap, returns Some(abs(overlap) / sum of radii)
+    pub fn overlap_fraction(&self, other: &Self) -> Option<f64> {
+        let d = self.distance(other) - (self.r + other.r);
+        if d > 0.0 {
+            None
+        } else {
+            Some((d / (self.r + other.r)).abs())
+        }
     }
 
     #[allow(dead_code)]
     pub fn kinetic_energy(&self) -> f64 {
         self.v * self.v * self.m / 2.
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::vectors::Vector;
+
+    use super::Particle;
+
+    #[test]
+    fn test_overlap_fraction() {
+        let p1 = Particle::new(Vector::ZERO, Vector::ZERO, 1., 1.);
+        let p2 = Particle::new(Vector::X_HAT, Vector::ZERO, 1., 1.);
+
+        assert_eq!(p1.distance(&p2), 1.0);
+        assert_eq!(p1.overlap_fraction(&p2), Some(0.5));
+
+        let p1 = Particle::new(Vector::ZERO, Vector::ZERO, 1., 1.);
+        let p2 = Particle::new(Vector::X_HAT * 2., Vector::ZERO, 1., 1.);
+
+        assert_eq!(p1.distance(&p2), 2.0);
+        assert_eq!(p1.overlap_fraction(&p2), Some(0.0));
+
+        let p1 = Particle::new(Vector::ZERO, Vector::ZERO, 1., 1.);
+        let p2 = Particle::new(Vector::ZERO, Vector::ZERO, 1., 1.);
+
+        assert_eq!(p1.distance(&p2), 0.0);
+        assert_eq!(p1.overlap_fraction(&p2), Some(1.0));
     }
 }
 

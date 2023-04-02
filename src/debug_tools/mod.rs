@@ -1,5 +1,7 @@
 use std::cell::RefCell;
 
+pub mod overlap;
+
 use crate::{particle::Particle, vectors::Vector};
 
 pub trait ChangeInspector {
