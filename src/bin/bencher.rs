@@ -62,7 +62,13 @@ fn main() {
                 let pre = Instant::now();
                 demo_big_sim_hills_sliding_brick(opts); // demo_big_sim_hills_no_sliding_brick
                 let post = Instant::now();
-                eprintln!("runtime = {}", (post - pre).as_secs_f64());
+                eprintln!(
+                    "BENCH runtime = {}, ring = {}, pq = {}, size = {}",
+                    (post - pre).as_secs_f64(),
+                    ring_type,
+                    !disable_pq,
+                    sim
+                );
                 eprintln!(" ");
             }
         }

@@ -165,7 +165,7 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
             "" => None,
             file => Some(File::create(file).unwrap()),
         })
-        .set_progress_bar(Some(bar))
+        .set_progress_bar(/*Some(bar)*/ None)
         .set_disable_pq(opts.disable_pq);
 
     sys.run(opts.big_steps);
