@@ -1,6 +1,9 @@
 use std::time::Instant;
 
-use rust_coll_sim::{simulation_setups::demo_big_sim_hills_sliding_brick, Opts, RingType};
+use rust_coll_sim::{
+    simulation_setups::{demo_big_sim_hills_no_sliding_brick, demo_big_sim_hills_sliding_brick},
+    Opts, RingType,
+};
 
 fn main() {
     //1M, 1k, 10k, 100k
@@ -40,7 +43,7 @@ fn main() {
             for sim in sim_sizes {
                 let opts = opts_gen(sim, disable_pq, ring_type);
                 let pre = Instant::now();
-                demo_big_sim_hills_sliding_brick(opts);
+                demo_big_sim_hills_no_sliding_brick(opts); // demo_big_sim_hills_no_sliding_brick
                 let post = Instant::now();
                 eprintln!("runtime = {}", (post - pre).as_secs_f64());
                 eprintln!(" ");
