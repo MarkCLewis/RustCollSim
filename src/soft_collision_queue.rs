@@ -1,4 +1,4 @@
-use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap};
+use std::{cell::RefCell, cmp::Ordering, collections::BinaryHeap, intrinsics::breakpoint};
 
 use indicatif::ProgressBar;
 
@@ -164,6 +164,36 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         let separation_distance = x_len - p1.r - p2.r;
         let vji = p1.v - p2.v;
 
+        // if p1i.0 == 42 && p2i.0 == 283 && p1.p.y() > 0.00001153 && p1.p.x() < -5.79e-7 {
+        //     // && p1.p.x() > 0.000009 {
+        //     unsafe { breakpoint() }
+        // }
+
+        // if separation_distance < 0.
+        //     && (p1.p.x() == -0.0000005769515679736722 || p2.p.x() == -0.0000005769515679736722)
+        // {
+        //     unsafe { breakpoint() }
+        // }
+
+        if separation_distance < 0. && (separation_distance / (p1.r + p2.r)).abs() > 0.03 {
+            eprintln!(
+                "separation_distance = {:.2}%\t\tIndices: p1 = {}, p2 = {}",
+                (separation_distance / (p1.r + p2.r)).abs() * 100.,
+                p1i.0,
+                p2i.0
+            );
+
+            if (separation_distance / (p1.r + p2.r)).abs() > 0.1 {
+                panic!();
+            }
+        }
+
+        // for (idx, particle) in [(p1i.0, &p1), (p2i.0, &p2)] {
+        //     if idx == 42 || idx == 283 || idx == 94 {
+        //         eprintln!("P{} {} {}", idx, particle.p.x(), particle.p.y())
+        //     }
+        // }
+
         let impact_speed = if separation_distance < 0. {
             // colliding
             // look up impact velocity
@@ -220,6 +250,9 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
 
             (f_total / p1.m, -f_total / p2.m, info)
         } else {
+            self.impact_vel.borrow_mut().remove(p1i, p2i);
+            // idea:? when getting the impact vel, make sure its not too old, like only 1 step old max
+
             if cfg!(feature = "no_gravity") {
                 (Vector::ZERO, Vector::ZERO, info)
             } else {

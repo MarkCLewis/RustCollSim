@@ -215,7 +215,7 @@ impl KDTreeSystem {
 
         let relative_speed_estimate = self
             .tree
-            .global_relative_speed_estimate_rms(&self.pop.borrow())
+            .global_relative_speed_estimate_max(&self.pop.borrow())
             * 2.0;
 
         // global_relative_speed_estimate_rms

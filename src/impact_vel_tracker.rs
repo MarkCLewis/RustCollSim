@@ -146,6 +146,11 @@ impl ImpactVelocityTracker {
         self.data.get(&smaller_first(p1, p2)).copied()
     }
 
+    /// remove velocity entry, if it exists
+    pub fn remove(&mut self, p1: ParticleIndex, p2: ParticleIndex) -> Option<(f64, usize)> {
+        self.data.remove(&smaller_first(p1, p2))
+    }
+
     /// deletes all elements where the step < current_step
     pub fn trim(&mut self, current_step: usize) {
         self.data
