@@ -473,4 +473,119 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_3_bodies_asymmetric_overlap() -> Result<()> {
+        let r = 1e-7;
+        let rho = 0.88;
+        let init_impact_v = 2. * r;
+
+        use crate::system::KDTreeSystem;
+
+        let collision_step_count = 15;
+
+        let default_coeff_of_res = 0.5;
+
+        let dt = 0.1;
+        let steps = (0.25 / dt * 20.0) as usize;
+
+        let mut bodies = Vec::new();
+
+        debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, init_impact_v, sep_dis, dt, steps, collision_step_count);
+
+        // Asymmetric, only P1 moves initially
+        //       -x->
+        // -      |      +
+        // P1 ->  P2     P3
+        bodies.push(Particle {
+            p: Vector::X_HAT * (-0.99),
+            v: Vector::X_HAT * init_impact_v,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+        bodies.push(Particle {
+            p: Vector::ZERO,
+            v: Vector::ZERO,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+        bodies.push(Particle {
+            p: Vector::X_HAT * (1.5),
+            v: Vector::ZERO,
+            r,
+            m: Particle::mass_from_radius(r, rho),
+            t: 0.,
+        });
+
+        let mut sys =
+            KDTreeSystem::new(bodies, dt, collision_step_count, default_coeff_of_res, None);
+
+        let (total_e_before, total_momentum_before) = {
+            let (p1, p2, p3) = {
+                let pop = sys.pop.borrow();
+                (pop[0], pop[1], pop[2])
+            };
+
+            (
+                p1.kinetic_energy()
+                    + p2.kinetic_energy()
+                    + p3.kinetic_energy()
+                    + p1.potential_energy(&[p1, p2, p3])
+                    + p2.potential_energy(&[p1, p2, p3])
+                    + p3.potential_energy(&[p1, p2, p3]),
+                p1.momentum() + p2.momentum() + p3.momentum(),
+            )
+        };
+
+        sys.run(steps);
+
+        let (total_e_after, total_momentum_after) = {
+            let (p1, p2, p3) = {
+                let pop = sys.pop.borrow();
+                (pop[0], pop[1], pop[2])
+            };
+
+            (
+                p1.kinetic_energy()
+                    + p2.kinetic_energy()
+                    + p3.kinetic_energy()
+                    + p1.potential_energy(&[p1, p2, p3])
+                    + p2.potential_energy(&[p1, p2, p3])
+                    + p3.potential_energy(&[p1, p2, p3]),
+                p1.momentum() + p2.momentum() + p3.momentum(),
+            )
+        };
+
+        ensure!(
+            total_e_after <= total_e_before,
+            "Gained energy\ntotal_e_after  = {}\ntotal_e_before = {}",
+            total_e_after,
+            total_e_before
+        );
+
+        let momentum_diff = (total_momentum_after - total_momentum_before).mag();
+
+        ensure!(
+            momentum_diff <= total_momentum_before.mag() * 1e-10,
+            "(total_momentum_after - total_momentum_before).mag() = {}",
+            momentum_diff
+        );
+
+        // let collision_step_count_actual = sys
+        //     .pq
+        //     .borrow()
+        //     .impact_vel
+        //     .borrow()
+        //     .get_updated_count(ParticleIndex(0), ParticleIndex(1))
+        //     .unwrap_or(0);
+
+        // println!(
+        //     "collision_step_count_actual: {}",
+        //     collision_step_count_actual
+        // );
+
+        Ok(())
+    }
 }

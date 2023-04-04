@@ -85,6 +85,22 @@ impl Particle {
     pub fn kinetic_energy(&self) -> f64 {
         self.v * self.v * self.m / 2.
     }
+
+    #[allow(dead_code)]
+    pub fn potential_energy(&self, other: &[Self]) -> f64 {
+        // potential is -G m1 m2 / r -> G=1
+        // -(self.m * other.m) / (self.p - other.p).mag()
+        other
+            .iter()
+            .map(|p| {
+                if self.p == p.p {
+                    0. // same particle
+                } else {
+                    -(self.m * p.m) / (self.p - p.p).mag()
+                }
+            })
+            .sum::<f64>()
+    }
 }
 
 #[cfg(test)]

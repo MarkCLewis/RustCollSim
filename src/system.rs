@@ -186,9 +186,9 @@ impl KDTreeSystem {
                 pb.set_sub_message("Trimming impact v...");
             }
 
-            if i % 10 == 0 {
-                self.pq.borrow_mut().trim_impact_vel_tracker(i);
-            }
+            // if i % 10 == 0 {
+            //     self.pq.borrow_mut().trim_impact_vel_tracker(i);
+            // }
 
             if let Some(pb) = &self.progress_bar {
                 pb.incr_sub(1);
@@ -215,7 +215,7 @@ impl KDTreeSystem {
 
         let relative_speed_estimate = self
             .tree
-            .global_relative_speed_estimate_max(&self.pop.borrow())
+            .global_relative_speed_estimate_rms(&self.pop.borrow())
             * 2.0;
 
         // global_relative_speed_estimate_rms

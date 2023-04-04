@@ -164,9 +164,23 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         let separation_distance = x_len - p1.r - p2.r;
         let vji = p1.v - p2.v;
 
-        // if p1i.0 == 42 && p2i.0 == 283 && p1.p.y() > 0.00001153 && p1.p.x() < -5.79e-7 {
+        // if p1i.0 == 34 && p2i.0 == 210 && step_num >= 60 {
+        //     // && p1.p.y() > 0.00001153 && p1.p.x() < -5.79e-7
         //     // && p1.p.x() > 0.000009 {
-        //     unsafe { breakpoint() }
+        //     // unsafe { breakpoint() }
+        //     // eprintln!("P{} {} {}", p1i.0, p1.p.x(), p1.p.y());
+        //     // eprintln!("P{} {} {}", p2i.0, p2.p.x(), p2.p.y());
+
+        //     if step_num > 75 {
+        //         unsafe { breakpoint() }
+        //     }
+        // }
+
+        // if (p1i.0 == 34 || p2i.0 == 34 || p1i.0 == 210 || p2i.0 == 210)
+        //     && step_num >= 75
+        //     && separation_distance < 0.
+        // {
+        //     eprintln!("{} {}", p1i.0, p2i.0);
         // }
 
         // if separation_distance < 0.
@@ -175,18 +189,19 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         //     unsafe { breakpoint() }
         // }
 
-        if separation_distance < 0. && (separation_distance / (p1.r + p2.r)).abs() > 0.03 {
-            eprintln!(
-                "separation_distance = {:.2}%\t\tIndices: p1 = {}, p2 = {}",
-                (separation_distance / (p1.r + p2.r)).abs() * 100.,
-                p1i.0,
-                p2i.0
-            );
+        // if separation_distance < 0. && (separation_distance / (p1.r + p2.r)).abs() > 0.03 {
+        //     println!(
+        //         "WARN: separation_distance = {:.2}%\tIndices: p1 = {}, p2 = {}, step_num = {}",
+        //         (separation_distance / (p1.r + p2.r)).abs() * 100.,
+        //         p1i.0,
+        //         p2i.0,
+        //         step_num
+        //     );
 
-            if (separation_distance / (p1.r + p2.r)).abs() > 0.1 {
-                panic!();
-            }
-        }
+        //     if (separation_distance / (p1.r + p2.r)).abs() > 0.1 {
+        //         panic!();
+        //     }
+        // }
 
         // for (idx, particle) in [(p1i.0, &p1), (p2i.0, &p2)] {
         //     if idx == 42 || idx == 283 || idx == 94 {
@@ -295,32 +310,44 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         let collision_time_dt = collision_time / self.desired_collision_step_count as f64;
 
         // NOTE: this right here injects relative_speed_estimate into the collision time calculation
-        let current_impact_speed = (current_impact_vel.abs()).max(relative_speed_estimate);
+        let current_impact_speed = current_impact_vel.abs();
 
         // TODO: abstract out gravity forces
 
-        let mut dt = if separation_distance < 0. {
+        // how far two particles can intersect without things getting out of hand
+        let max_ok_pen_estimate = f64::max(r1, r2) * self.spring_derivation.get_pen_fraction();
+
+        let (mut dt, distance_for_global_speed_estimate) = if separation_distance < 0. {
             debugln!("colliding",);
             // colliding
-            let distance_estimate = f64::max(r1, r2) * self.spring_derivation.get_pen_fraction();
-            // impact_time_estimate is to ensure that if there is some fast moving particles around,
-            // dt will be small enough such that if one particle in this pair gets hit, this pair will get updated properly
-            let impact_time_estimate = distance_estimate / relative_speed_estimate;
 
-            collision_time_dt.min(impact_time_estimate)
+            (collision_time_dt, max_ok_pen_estimate)
         } else {
             // v * t = d
             let impact_time_dt = separation_distance / current_impact_speed;
+
             // max( dist/(2*v_normal) and 1/(\omega_0 C) )
 
             // should this be min?
             // No: otherwise we get a zeno's paradox
             // the collision should be processed at steps of dt
-            f64::max(
-                impact_time_dt.abs() / 2.,
-                collision_time_dt, // 1. / (omega_l * self.desired_collision_step_count as f64),
+            (
+                f64::max(
+                    impact_time_dt.abs() / 2.,
+                    collision_time_dt, // 1. / (omega_l * self.desired_collision_step_count as f64),
+                ),
+                f64::max(separation_distance, max_ok_pen_estimate),
             )
         };
+
+        // impact_time_estimate is to ensure that if there is some fast moving particles around,
+        // dt will be small enough such that if one particle in this pair gets hit, this pair will get updated properly
+        // this is if one of the fastest particles suddenly crashes into one of the pair of particles
+        // processed here and transfers all its speed
+        let impact_time_dt_from_speed_estimate =
+            distance_for_global_speed_estimate / relative_speed_estimate;
+
+        dt = f64::min(dt, impact_time_dt_from_speed_estimate);
 
         if let Some(warn_minimum_time_step) = self.warn_minimum_time_step {
             if dt < warn_minimum_time_step {
