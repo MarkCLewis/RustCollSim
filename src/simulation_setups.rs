@@ -42,7 +42,7 @@ mod tests {
     }
 }
 
-pub fn demo_big_sim_hills_no_sliding_brick(opts: Opts) {
+pub fn demo_big_sim_hills_no_sliding_brick(opts: Opts, do_bars: bool) {
     fastrand::seed(opts.seed);
 
     let dt = 2. * PI / opts.steps_in_2pi as f64;
@@ -104,7 +104,7 @@ pub fn demo_big_sim_hills_no_sliding_brick(opts: Opts) {
             "" => None,
             file => Some(File::create(file).unwrap()),
         })
-        .set_progress_bar(Some(bar))
+        .set_progress_bar(if do_bars { Some(bar) } else { None })
         .set_disable_pq(opts.disable_pq);
 
     sys.run(opts.big_steps); // 1000

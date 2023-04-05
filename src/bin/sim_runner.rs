@@ -15,7 +15,7 @@ fn main() {
     let opts_gen = |particles, disable_pq, ring_type| Opts {
         particles,
         no_warnings: true,
-        seed: 42, //44 is good for B1k, B10k // 2 is bad for B1k
+        seed: 42, //44 is good for B1k, B10k // 2 is bad for B1k // 42 is bad for A1k
         steps_in_2pi: if disable_pq { 1_000 } else { 100 },
         big_steps: if disable_pq { 1_000 } else { 100 },
         cell_density: 1e12,
@@ -31,22 +31,19 @@ fn main() {
         ring_type,
     };
 
-    let sim_sizes = [1_000];
+    let sim_sizes = [1_000, 10_000, 100_000, 1_000_000];
     //[1_000, 10_000, 100_000, 1_000_000]; // [1000, 10000, 100000, 1000000];
 
-    for ring_type in [RingType::A] {
+    for ring_type in [RingType::A, RingType::B] {
         //}, RingType::B] {
         //RingType::A,
         for disable_pq in [false] {
             //}, true] {
-            if disable_pq {
-                continue;
-            } // FIXME: remove this
 
             for sim in sim_sizes {
                 let opts = opts_gen(sim, disable_pq, ring_type);
                 let pre = Instant::now();
-                demo_big_sim_hills_no_sliding_brick(opts); // demo_big_sim_hills_no_sliding_brick
+                demo_big_sim_hills_no_sliding_brick(opts, false); // demo_big_sim_hills_no_sliding_brick
                 let post = Instant::now();
                 eprintln!("runtime = {}", (post - pre).as_secs_f64());
                 eprintln!(" ");

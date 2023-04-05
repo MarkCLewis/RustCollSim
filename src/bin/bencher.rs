@@ -1,6 +1,9 @@
 use std::time::Instant;
 
-use rust_coll_sim::{simulation_setups::demo_big_sim_hills_sliding_brick, Opts, RingType};
+use rust_coll_sim::{
+    simulation_setups::{demo_big_sim_hills_no_sliding_brick, demo_big_sim_hills_sliding_brick},
+    Opts, RingType,
+};
 
 fn opts_gen(
     particles: usize,
@@ -34,14 +37,16 @@ fn seed_picker(particles: usize, ring_type: RingType, disable_pq: bool) -> Optio
     //     return Some(42);
     // }
 
-    // finding non-exploding seeds
-    match (particles, ring_type) {
-        (1_000, RingType::B) => Some(44),
-        (10_000, RingType::B) => Some(44),
-        (1_000, RingType::A) => Some(47),
-        (10_000, RingType::A) => None, // 16,18,19,25,36,43,47 meh // 22 meh+
-        (_, _) => panic!("no seed for this combination: {} {}", particles, ring_type),
-    }
+    return Some(42);
+
+    // // finding non-exploding seeds
+    // match (particles, ring_type) {
+    //     (1_000, RingType::B) => Some(44),
+    //     (10_000, RingType::B) => Some(44),
+    //     (1_000, RingType::A) => Some(47),
+    //     (10_000, RingType::A) => None, // 16,18,19,25,36,43,47 meh // 22 meh+
+    //     (_, _) => panic!("no seed for this combination: {} {}", particles, ring_type),
+    // }
 }
 
 fn main() {
@@ -51,16 +56,16 @@ fn main() {
 
     let serialize = false;
 
-    let sim_sizes = [1_000, 10_000]; //[1_000, 10_000]; //, 100_000, 1_000_000]; // [1000, 10000, 100000, 1000000];
+    let sim_sizes = [1_000_000]; // [1_000, 10_000, 100_000, , 1_000_000];
 
-    for ring_type in [RingType::A, RingType::B] {
+    for sim in sim_sizes {
         for disable_pq in [false, true] {
-            for sim in sim_sizes {
+            for ring_type in [RingType::B, RingType::A] {
                 let Some(seed) = seed_picker(sim, ring_type, disable_pq) else { continue };
 
                 let opts = opts_gen(sim, disable_pq, ring_type, serialize, seed);
                 let pre = Instant::now();
-                demo_big_sim_hills_sliding_brick(opts); // demo_big_sim_hills_no_sliding_brick
+                demo_big_sim_hills_no_sliding_brick(opts, sim > 1_000); // demo_big_sim_hills_no_sliding_brick
                 let post = Instant::now();
                 eprintln!(
                     "BENCH runtime = {}, ring = {}, pq = {}, size = {}",
