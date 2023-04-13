@@ -12,10 +12,10 @@ help:
 
 # For generation the csv file of runs
 generate-results:
-	cargo test --features="no_gravity" --features="early_quit" -- generate_and_run_setups_0 --nocapture
+	cargo test --features="no_gravity" --features="early_quit" -- generate_and_run_setups_0 --nocapture --ignored
 
 generate-results-gravity:
-	cargo test --features="early_quit" -- generate_and_run_setups_0 --nocapture
+	cargo test --features="early_quit" -- generate_and_run_setups_0 --nocapture --ignored
 
 
 # Run the test useful for re-creating a single csv row, for debugging
