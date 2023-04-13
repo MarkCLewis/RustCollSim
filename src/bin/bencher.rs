@@ -59,7 +59,8 @@ fn main() {
     let sim_sizes = [1_000_000]; // [1_000, 10_000, 100_000, , 1_000_000];
 
     for sim in sim_sizes {
-        for disable_pq in [false, true] {
+        for disable_pq in [true] {
+            // false has been tested already
             for ring_type in [RingType::B, RingType::A] {
                 let Some(seed) = seed_picker(sim, ring_type, disable_pq) else { continue };
 

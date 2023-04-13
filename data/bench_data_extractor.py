@@ -51,8 +51,10 @@ if __name__ == '__main__':
         print(key, value)
 
     scaling = []
-    for s in (1_000, 10_000, 100_000):
+    for s in (1_000, 10_000, 100_000, 1_000_000):
         for ring in ('A', 'B'):
+            if ring == 'A' and s == 1_000_000:
+                continue
             key_pq = RunSetup(ring, True, s)
             key_npq = RunSetup(ring, False, s)
 
