@@ -12,3 +12,5 @@ __pycache__
 demo_big_sim_hills_sliding_brick.csv
 data/big_sim_*
 data/bench*.txt
+
+.vs/
