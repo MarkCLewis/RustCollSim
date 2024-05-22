@@ -156,7 +156,7 @@ pub fn demo_big_sim_hills_sliding_brick(opts: Opts) {
     // this is only for plotting
     debugln!("SETUP r0={}, r1={}, rho={}, init_impact_v={}, sep_dis={}, dt={}, steps={}, desired_steps={}", r, r, rho, 0, 0, 0, 0, 0);
 
-    let bar = get_progress_bar(&opts);
+    let _bar = get_progress_bar(&opts);
 
     let mut sys = KDTreeSystem::new(pop, dt, 15, 0.5, Some(&opts))
         .set_hills_force(hills_force::HillsForce::new())

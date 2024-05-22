@@ -122,11 +122,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core_simd"
-version = "0.1.0"
-source = "git+https://github.com/rust-lang/portable-simd#3125888c0aa39b955f371f51734ebe57a4d89fc6"
-
-[[package]]
 name = "csv"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -250,7 +245,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "core_simd",
  "csv",
  "fastrand",
  "indicatif",

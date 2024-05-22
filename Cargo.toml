@@ -19,7 +19,7 @@ debug_assertions = []
 early_quit = []
 
 [dependencies]
-core_simd = { git = "https://github.com/rust-lang/portable-simd" }
+# core_simd = { git = "https://github.com/rust-lang/portable-simd" }
 fastrand = "1.4"
 anyhow = "1.0.66"
 csv = "1.1.6"

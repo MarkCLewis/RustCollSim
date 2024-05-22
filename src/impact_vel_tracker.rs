@@ -154,7 +154,7 @@ impl ImpactVelocityTracker {
     /// deletes all elements where the step < current_step
     pub fn trim(&mut self, current_step: usize) {
         self.data
-            .drain_filter(|_, (_, us)| *us < current_step)
-            .count();
+            .retain(|_, (_, us)| *us >= current_step);
+        // TODO: Note that this used to be drain_filter. Double check for correctness.
     }
 }

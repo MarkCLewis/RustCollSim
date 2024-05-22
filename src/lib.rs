@@ -1,7 +1,7 @@
 #![allow(unused_parens)] // this is an issue with clap where removing the parens causes a macro issue
 #![feature(portable_simd)]
-#![feature(hash_drain_filter)]
-#![feature(core_intrinsics)]
+//#![feature(hash_drain_filter)]
+//#![feature(core_intrinsics)]
 
 use std::fmt::Display;
 use std::str::FromStr;
