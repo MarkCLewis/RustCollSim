@@ -16,8 +16,8 @@ fn opts_gen(
         particles,
         no_warnings: true,
         seed, //44 is good for B1k, B10k // 2 is bad for B1k
-        steps_in_2pi: if disable_pq { 1_000 } else { 100 },
-        big_steps: if disable_pq { 1_000 } else { 100 },
+        steps_in_2pi: if disable_pq { 10000 } else { 1000 },
+        big_steps: if disable_pq { 10000 } else { 1000 },
         cell_density: 1e12,
         particles_file: if serialize {
             format!(
@@ -56,10 +56,10 @@ fn main() {
 
     let serialize = false;
 
-    let sim_sizes = [1_000_000]; // [1_000, 10_000, 100_000, , 1_000_000];
+    let sim_sizes = [1_000, 10_000, 100_000, 1_000_000];
 
     for sim in sim_sizes {
-        for disable_pq in [true] {
+        for disable_pq in [false, true] {
             // false has been tested already
             for ring_type in [RingType::B, RingType::A] {
                 let Some(seed) = seed_picker(sim, ring_type, disable_pq) else { continue };
