@@ -90,7 +90,7 @@ impl KDTree {
         }
 
         let (rel_speed_sum, count) = recurse(&self.nodes, particles, 0);
-
+        println!("rel = {}, cnt = {}", rel_speed_sum, count);
         (rel_speed_sum / count as f64).sqrt()
     }
 

@@ -77,15 +77,15 @@ struct EventData {
 
 impl<S: SpringDerivation> SoftSphereForce<S> {
     pub fn new(
-        big_time_step: f64,
+        _big_time_step: f64,
         desired_collision_step_count: usize,
         spring_derivation: S,
     ) -> Self {
         Self {
             queue: BinaryHeap::new(),
             desired_collision_step_count,
-            minimum_time_step: Some(big_time_step / 100.),
-            warn_minimum_time_step: Some(big_time_step / 80.),
+            minimum_time_step: None, //Some(big_time_step / 10000.),
+            warn_minimum_time_step: None, //Some(big_time_step / 8000.),
             impact_vel: RefCell::new(ImpactVelocityTracker::new()),
             spring_derivation,
         }
@@ -308,14 +308,14 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         // Time of collision is T/2
         let collision_time = std::f64::consts::PI / omega_l;
         let collision_time_dt = collision_time / self.desired_collision_step_count as f64;
-
-        // NOTE: this right here injects relative_speed_estimate into the collision time calculation
-        let current_impact_speed = current_impact_vel.abs();
+        // println!("dt_a {}", collision_time_dt);
 
         // TODO: abstract out gravity forces
 
         // how far two particles can intersect without things getting out of hand
         let max_ok_pen_estimate = f64::max(r1, r2) * self.spring_derivation.get_pen_fraction();
+
+        // println!("sep_dist = {}, max_pen = {}",separation_distance, max_ok_pen_estimate);
 
         let (mut dt, distance_for_global_speed_estimate) = if separation_distance < 0. {
             debugln!("colliding",);
@@ -323,6 +323,9 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
 
             (collision_time_dt, max_ok_pen_estimate)
         } else {
+            // NOTE: this right here injects relative_speed_estimate into the collision time calculation
+            let current_impact_speed = current_impact_vel.abs();
+
             // v * t = d
             let impact_time_dt = separation_distance / current_impact_speed;
 
@@ -339,6 +342,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
                 f64::max(separation_distance, max_ok_pen_estimate),
             )
         };
+        // println!("dt_b = {}", dt);
 
         // impact_time_estimate is to ensure that if there is some fast moving particles around,
         // dt will be small enough such that if one particle in this pair gets hit, this pair will get updated properly
@@ -346,8 +350,10 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         // processed here and transfers all its speed
         let impact_time_dt_from_speed_estimate =
             distance_for_global_speed_estimate / relative_speed_estimate;
+        // println!("dist = {}, rel = {}", distance_for_global_speed_estimate, relative_speed_estimate);
 
         dt = f64::min(dt, impact_time_dt_from_speed_estimate);
+        // println!("dt_c = {}", dt);
 
         if let Some(warn_minimum_time_step) = self.warn_minimum_time_step {
             if dt < warn_minimum_time_step {
@@ -361,6 +367,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         if let Some(minimum_time_step) = self.minimum_time_step {
             dt = f64::max(dt, minimum_time_step);
         }
+        // println!("dt_d = {}", dt);
 
         if dt == 0. {
             panic!(
@@ -389,6 +396,8 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
         } else {
             PushPq::DoPush
         };
+        // println!("dt_e = {}, et = {}, nt = {}", dt, event_time, next_time);
+
 
         (next_time, dt, repush_to_pq)
     }
@@ -419,6 +428,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             p2.r,
             disable_pq,
         );
+        // println!("Times: {} {} {} {}", p1i.0, p2i.0, current_time, next_time);
 
         debugln!(
             "repush_to_pq={repush_to_pq:?} dt={dt} sep_dis={} impact_speed={}",
@@ -479,6 +489,15 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
 
         loop {
             if let Some(event) = self.queue.pop() {
+                println!("Event: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}", 
+                    event.p1.0, event.p2.0, event.time,
+                    particles[event.p1.0].p.x(), particles[event.p1.0].p.y(), particles[event.p1.0].p.z(), 
+                    particles[event.p1.0].v.x(), particles[event.p1.0].v.y(), particles[event.p1.0].v.z(),
+                    particles[event.p1.0].r, 
+                    particles[event.p2.0].p.x(), particles[event.p2.0].p.y(), particles[event.p2.0].p.z(), 
+                    particles[event.p2.0].v.x(), particles[event.p2.0].v.y(), particles[event.p2.0].v.z(), 
+                    particles[event.p2.0].r, 
+                );
                 // do stuff -> process collisions
                 let (p1, p2) = borrow_two_elements(particles, event.p1.0, event.p2.0);
 

@@ -46,7 +46,7 @@ pub struct Opts {
     pub cell_density: f64,
     /// file name to save particles for movie plotting
     /// set empty string to prevent serializing (for speed)
-    #[clap(long, default_value_t = ("demo_big_sim_hills_sliding_brick.csv".into()))]
+    #[clap(long, default_value_t = ("".into()))] //("demo_big_sim_hills_sliding_brick.csv".into()))]
     pub particles_file: String,
     #[clap(long, default_value_t = false)]
     pub disable_pq: bool,

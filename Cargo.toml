@@ -2,7 +2,7 @@
 name = "rust_coll_sim"
 version = "0.1.0"
 authors = ["Mark Lewis <mlewis@trinity.edu>"]
-edition = "2021"
+edition = "2024"
 
 default-run = "main"
 
@@ -25,6 +25,7 @@ anyhow = "1.0.66"
 csv = "1.1.6"
 clap = { version = "4.1.13", features = ["derive"] }
 indicatif = "0.17.3"
+rayon = "1.11.0"
 
 
 # resvg = "0.23.0"

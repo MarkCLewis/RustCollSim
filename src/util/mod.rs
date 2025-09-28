@@ -1,5 +1,6 @@
 pub mod overlap_grid;
 pub mod progress_tracker;
+pub mod parallel_subset_process;
 
 use std::cmp::Ordering;
 
