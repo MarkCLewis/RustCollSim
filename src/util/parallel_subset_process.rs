@@ -38,6 +38,43 @@ where
     ret
 }
 
+// We need a version that modifies the slice.
+pub fn parallel_subset_process_recur_mut<A, B, F>(slice: &[A], mut_slice: &mut [B], elements: &[usize], func: &F)
+where
+    A: Send + Sync,
+    B: Default + Send + Sync,
+    F: Fn(&A, &mut B) + Send + Sync,
+{
+    fn recurse<A, B, F>(slice: &[A], mut_slice: &mut [B], offset: usize, elements: &[usize], func: &F) 
+    where
+        A: Send + Sync,
+        B: Default + Send + Sync,
+        F: Fn(&A, &mut B) + Send + Sync
+    {
+        if elements.len() == 1 {
+            func(&slice[elements[0]], &mut mut_slice[elements[0] - offset]);
+        } else {
+            let mid = elements.len() / 2;
+            let (left, right) = elements.split_at(mid);
+            let mid_elem = elements[mid];
+            let (mut left_mut_slice, mut right_mut_slice) = mut_slice.split_at_mut(mid_elem - offset);
+            if elements.len() < 10 {
+                recurse(slice, left_mut_slice, offset, left, func);
+                recurse(slice, right_mut_slice, mid_elem,right, func);
+            } else {
+                join(
+                    || recurse(slice, left_mut_slice, offset, left, func),
+                    || recurse(slice, right_mut_slice, mid_elem, right, func),
+                );
+            }
+        }
+    }
+    recurse(slice, mut_slice, 0, elements, func);
+}
+
+// 0 1 | 2  | 3  4  | 5  6  7  8  9  | 10 11 12 13 14 15 16 17 18 19
+// 0 5 | 10 | 15 20 | 25 30 35 40 45 | 50 55 60 65 70 75 80 85 90 95
+
 // Another approach is to make a vector of slices that each begin with the one of the elements.
 pub fn vector_of_independent_slices<'a, E>(slice: &'a [E], elements: &[usize]) -> Vec<&'a [E]> {
     let mut result: Vec<&'a [E]> = Vec::new();
