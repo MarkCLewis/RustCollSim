@@ -21,6 +21,7 @@ pub mod soft_collision_queue;
 pub mod system;
 pub mod tests;
 pub mod util;
+pub mod design;
 pub mod vectors;
 
 

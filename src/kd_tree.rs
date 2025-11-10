@@ -80,7 +80,7 @@ impl KDTree {
 
                     (rel_speed, count)
                 }
-                KDTreeNode::Internal { m, cm, size, left, right, .. } => {
+                KDTreeNode::Internal { left, right, .. } => {
                     let (right_rel_speed, right_count) = recurse(nodes, particles, right);
                     let (left_rel_speed, left_count) = recurse(nodes, particles, left);
 
@@ -115,7 +115,7 @@ impl KDTree {
 
                     rel_speed
                 }
-                KDTreeNode::Internal { m, cm, size, left, right, .. } => {
+                KDTreeNode::Internal { left, right, .. } => {
                     let right_rel_speed = recurse(nodes, particles, right);
                     let left_rel_speed = recurse(nodes, particles, left);
 

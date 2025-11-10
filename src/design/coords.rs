@@ -1,9 +1,11 @@
-struct CartCoords {
+use crate::vectors::Vector;
+
+pub struct CartCoords {
   p: Vector,
   v: Vector
 }
 
-struct GCCoords {
+pub struct GCCoords {
   X: f64,
   Y: f64,
   e: f64,

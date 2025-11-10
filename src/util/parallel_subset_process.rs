@@ -57,7 +57,7 @@ where
             let mid = elements.len() / 2;
             let (left, right) = elements.split_at(mid);
             let mid_elem = elements[mid];
-            let (mut left_mut_slice, mut right_mut_slice) = mut_slice.split_at_mut(mid_elem - offset);
+            let (left_mut_slice, right_mut_slice) = mut_slice.split_at_mut(mid_elem - offset);
             if elements.len() < 10 {
                 recurse(slice, left_mut_slice, offset, left, func);
                 recurse(slice, right_mut_slice, mid_elem,right, func);

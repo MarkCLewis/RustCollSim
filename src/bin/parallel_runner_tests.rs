@@ -97,7 +97,6 @@ mod tests {
     use super::*;
     use test::Bencher;
     use rust_coll_sim::util::parallel_subset_process::{parallel_subset_process_recur, parallel_subset_process_recur_mut, vector_of_independent_slices};
-    use rayon::{prelude::*};
     use pretty_assertions::{assert_eq};
 
     #[test]
