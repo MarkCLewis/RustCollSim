@@ -1,13 +1,13 @@
 use crate::{design::{system::{BoundaryCondition, Population, Particle}}};
 
 
-pub struct BasicPopulation<BC: BoundaryCondition> {
+pub struct BasicPopulation<'a, BC: BoundaryCondition> {
   particles: Vec<Particle>,
-  boundary: BC,
+  boundary: &'a BC,
 }
 
-impl<BC: BoundaryCondition> BasicPopulation<BC> {
-  fn new(particles: Vec<Particle>, boundary: BC) -> Self {
+impl<'a, BC: BoundaryCondition> BasicPopulation<'a, BC> {
+  pub fn new(particles: Vec<Particle>, boundary: &'a BC) -> Self {
     Self {
       particles,
       boundary,
@@ -15,7 +15,7 @@ impl<BC: BoundaryCondition> BasicPopulation<BC> {
   }
 }
 
-impl<BC: BoundaryCondition> Population<BC> for BasicPopulation<BC> {
+impl<'a, BC: BoundaryCondition> Population for BasicPopulation<'a, BC> {
   fn particles(&self) -> &[Particle] {
     &self.particles[..]
   }

@@ -12,7 +12,7 @@ pub struct HillsForce {
 }
 
 impl HillsForce {
-  fn new(dt: f64) -> Self {
+  pub fn new(dt: f64) -> Self {
     Self {
       dt,
       n: 1.0,
@@ -21,7 +21,7 @@ impl HillsForce {
     }
   }
 
-  fn apply_for_one(&self, p: &mut Particle, dt: f64) {
+  pub fn apply_for_one(&self, p: &mut Particle, dt: f64) {
       let ax = 2. * self.n * p.v.y() - (self.kappa * self.kappa - 4. * self.n * self.n) * p.x.x();
       let ay = -2. * self.n * p.v.x();
       let az = -self.n_z * self.n_z * p.x.z();

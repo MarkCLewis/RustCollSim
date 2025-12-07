@@ -37,7 +37,7 @@ impl Particle {
 }
 
 
-pub trait Population<BC: BoundaryCondition> {
+pub trait Population {
   fn particles(&self) -> &[Particle];
   fn particles_mut(&mut self) -> &mut [Particle];
   fn end_step(&mut self, dt: f64);
@@ -55,35 +55,33 @@ pub trait BoundaryCondition {
 }
 
 pub trait Output {
-  fn output(&self, step: i64);
+  fn output<P: Population>(&self, step: i64, pop: &P);
 }
 
-pub struct System<P: Population<BC>, F: Force, BC: BoundaryCondition, Out: Output> {
+pub struct System<P: Population, F: Force, Out: Output> {
   pop: P,
   force: F,
-  boundary: BC,
   output: Out,
   dt: f64,
   step: i64,
 }
 
-impl<P: Population<BC>, F: Force, BC: BoundaryCondition, Out: Output> System<P, F, BC, Out> {
-  fn new(pop: P, force: F, boundary: BC, output: Out, dt: f64) -> Self {
+impl<P: Population, F: Force, Out: Output> System<P, F, Out> {
+  pub fn new(pop: P, force: F, output: Out, dt: f64) -> Self {
     Self {
       pop,
       force,
-      boundary,
       output,
       dt,
       step: 0,
     }
   }
 
-  fn advance(&mut self) {
+  pub fn advance(&mut self) {
     self.force.apply_force(&mut self.pop.particles_mut());
     self.pop.end_step(self.dt);
     self.pop.apply_boundary_condition();
-    self.output.output(self.step);
+    self.output.output(self.step, &self.pop);
     self.step += 1;
   }
 }
