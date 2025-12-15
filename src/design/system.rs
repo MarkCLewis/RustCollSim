@@ -34,8 +34,18 @@ impl Particle {
       time,
     }
   }
+  pub fn advance(&mut self, dt: f64) {
+    self.x += self.v * dt;
+    self.time += dt;
+  }
+  pub fn kick(&mut self, dv: &Vector) {
+    self.v += *dv;
+  }
+  pub fn finish_step(&mut self, dt: f64) {
+    self.advance(dt - self.time);
+    self.time = 0.0;
+  }
 }
-
 
 pub trait Population {
   fn particles(&self) -> &[Particle];
@@ -45,7 +55,7 @@ pub trait Population {
 }
 
 pub trait Force {
-  fn apply_force(&self, pop: &mut [Particle]);
+  fn apply_force(&mut self, pop: &mut [Particle]);
 }
 
 pub trait BoundaryCondition {

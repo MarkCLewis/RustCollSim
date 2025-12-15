@@ -33,7 +33,7 @@ impl HillsForce {
 
 
 impl Force for HillsForce {
-  fn apply_force(&self, pop: &mut [Particle]) {
+  fn apply_force(&mut self, pop: &mut [Particle]) {
     pop.par_iter_mut().for_each(|p| {
       self.apply_for_one(p, self.dt);
     });
