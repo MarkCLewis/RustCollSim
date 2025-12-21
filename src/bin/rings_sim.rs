@@ -1,12 +1,16 @@
+use rust_coll_sim::design::brute_force_particle_traversal::BruteForceParticleTraversal;
 use rust_coll_sim::design::coords::{
   CartCoords,
   GCCoords, gc_to_cart
 };
 
+use rust_coll_sim::design::event_force::SingleParticleEventForcing;
+use rust_coll_sim::design::gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce;
+use rust_coll_sim::design::heap_pq::HeapPQ;
 use rust_coll_sim::design::hills_force::HillsForce;
 use rust_coll_sim::design::sliding_brick_boundary::SlidingBrickBoundary;
 use rust_coll_sim::design::system::{
-  Output, Particle, System, Population
+  DoubleForce, Output, Particle, Population, System
 };
 
 use rust_coll_sim::design::basic_population::BasicPopulation;
@@ -32,9 +36,9 @@ fn main() {
   let sx = 2e-7;
   let sy = 2e-7;
   let bc = SlidingBrickBoundary::new(sx, sy);
-  let force = HillsForce::new(dt);
+  const NUM_BODIES: usize = 100;
   let mut parts = vec![];
-  for i in 0..100 {
+  for i in 0..NUM_BODIES {
     let gc = GCCoords {
       X: fastrand::f64() * sx - 0.5 * sx,
       Y: fastrand::f64() * sy - 0.5 * sy,
@@ -51,7 +55,17 @@ fn main() {
       r: 1e-8, 
       time: 0.0 });
   }
-  let pop = BasicPopulation::new(parts, &bc);
+  type Pop<'a> = BasicPopulation<'a, SlidingBrickBoundary>;
+  let mut pop = BasicPopulation::new(parts, &bc);
+  type Trav<'a> = BruteForceParticleTraversal;
+  let traverser = BruteForceParticleTraversal::new();
+  type GravEventForce = GravityAndSoftSphereEventForce;
+  let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES);
+  let queue = HeapPQ::new();
+  type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
+  let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
+  let hills_force = HillsForce::new(dt);
+  let force = DoubleForce::<HillsForce, GravForce>::new(hills_force, grav_coll_force);
   let output = TextPrintOutput{ interval: 10 };
   let mut sys = System::new(pop, force, output, dt);
 

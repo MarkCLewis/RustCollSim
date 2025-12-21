@@ -5,4 +5,5 @@ pub mod hills_force;
 pub mod sliding_brick_boundary;
 pub mod event_force;
 pub mod brute_force_particle_traversal;
-pub mod soft_sphere_and_gravity;
+pub mod gravity_and_soft_sphere_event_force;
+pub mod heap_pq;

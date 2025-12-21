@@ -58,6 +58,24 @@ pub trait Force {
   fn apply_force(&mut self, pop: &mut [Particle]);
 }
 
+pub struct DoubleForce<F1: Force, F2: Force> {
+  f1: F1,
+  f2: F2,
+}
+
+impl<F1: Force, F2: Force> DoubleForce<F1, F2> {
+  pub fn new<FA: Force, FB: Force>(f1: FA, f2: FB) -> DoubleForce<FA, FB>{
+    DoubleForce { f1, f2 }
+  }
+}
+
+impl<F1: Force, F2: Force> Force for DoubleForce<F1, F2> {
+  fn apply_force(&mut self, pop: &mut [Particle]) {
+    self.f1.apply_force(pop);
+    self.f2.apply_force(pop);
+  }
+}
+
 pub trait BoundaryCondition {
   fn simple_mirror_offsets(&self) -> Option<Vec<Vector>>;
   fn mirrors(&self, p: &Particle) -> impl Iterator<Item = Particle>;
