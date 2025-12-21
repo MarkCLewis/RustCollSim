@@ -20,7 +20,7 @@ impl Axis {
 }
 
 // x, y, z for all
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct Vector(pub [f64; 3]);
 
 impl fmt::Display for Vector {

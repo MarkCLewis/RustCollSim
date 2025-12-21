@@ -1,12 +1,16 @@
-use crate::design::event_force::{EventQueue, SingleParticleEvent};
+use std::collections::BinaryHeap;
+
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator};
+
+use crate::design::single_particle_event_force::{EventQueue, SingleParticleEvent};
 
 pub struct HeapPQ {
-
+  heap: BinaryHeap<SingleParticleEvent>,
 }
 
 impl HeapPQ {
   pub fn new() -> HeapPQ {
-    HeapPQ {}
+    HeapPQ { heap: BinaryHeap::new() }
   }
 }
 
@@ -16,18 +20,37 @@ impl EventQueue for HeapPQ {
   }
 
   fn enqueue_many(&mut self, items: impl IntoIterator<Item = SingleParticleEvent>) {
-
+    for item in items {
+      self.heap.push(item);
+    }
   }
 
   fn process_next(&mut self, f: impl FnMut(&SingleParticleEvent) -> Option<SingleParticleEvent>) {
     // TODO: Not used yet.
   }
 
-  fn process_batch(&mut self, f: impl FnMut(&SingleParticleEvent, f64) -> Option<SingleParticleEvent>) {
-    // TODO: Not used yet.
+  fn process_batch(&mut self, mut f: impl FnMut(&SingleParticleEvent, f64) -> Option<SingleParticleEvent>) {
+    let first_time = self.heap.peek().map(|spe| {spe.event_time}).unwrap_or(0.0);
+    let mut batch = vec![];
+    while let Some(spe) = self.heap.pop() && spe.half_step_time() < first_time {
+      batch.push(spe);
+    }
+    // let mut batch: Vec<_> = self.heap.iter().take_while(|spe| { spe.half_step_time() < first_time }).collect();
+    batch.iter().map( |spe| {
+      f(spe, first_time)
+    }).flatten().for_each(|event| { self.heap.push(event)});
   }
 
   fn is_empty(&self) -> bool {
-    true
+    self.heap.is_empty()
+  }
+
+  fn get_next_batch(&mut self) -> Vec<SingleParticleEvent> {
+    let first_time = self.heap.peek().map(|spe| {spe.event_time}).unwrap_or(0.0);
+    let mut batch = vec![];
+    while let Some(spe) = self.heap.pop() && spe.half_step_time() < first_time {
+      batch.push(spe);
+    };
+    batch
   }
 }

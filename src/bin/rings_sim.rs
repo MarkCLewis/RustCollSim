@@ -4,7 +4,7 @@ use rust_coll_sim::design::coords::{
   GCCoords, gc_to_cart
 };
 
-use rust_coll_sim::design::event_force::SingleParticleEventForcing;
+use rust_coll_sim::design::single_particle_event_force::SingleParticleEventForcing;
 use rust_coll_sim::design::gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce;
 use rust_coll_sim::design::heap_pq::HeapPQ;
 use rust_coll_sim::design::hills_force::HillsForce;

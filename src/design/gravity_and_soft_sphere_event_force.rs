@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::{design::{event_force::EventForce, system::Particle}, vectors::Vector};
+use crate::{design::{single_particle_event_force::EventForce, system::Particle}, vectors::Vector};
 
 pub struct GravityAndSoftSphereEventForce {
   collision_velocity: Vec<HashMap<usize, f64>>,
@@ -57,7 +57,10 @@ impl EventForce for GravityAndSoftSphereEventForce {
     (0.001, Vector::ZERO)
   }
 
-  fn particle_group(&self, i1: usize, p1: &Particle, g: &Vector, m: f64, dt: f64) -> (f64, Vector) {
-    (0.001, Vector::ZERO)
+  fn particle_group(&self, i1: usize, p1: &Particle, cm_x: &Vector, cm_m: f64, dt: f64) -> (f64, Vector) {
+    let dx = p1.x - *cm_x;
+    let dist = dx.mag();
+    let mag = p1.m * cm_m / (dist * dist * dist);
+    (dt, dx * mag)
   }
 }

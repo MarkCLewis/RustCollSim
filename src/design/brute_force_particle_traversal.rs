@@ -1,6 +1,6 @@
 // The goal of this component is to traverse through particles doing various work.
 
-use crate::{design::{event_force::{EventForce, Traverser}, system::{Particle, Population}}, vectors::Vector};
+use crate::{design::{single_particle_event_force::{EventForce, Traverser}, system::{Particle, Population}}, vectors::Vector};
 
 pub struct BruteForceParticleTraversal {
 }

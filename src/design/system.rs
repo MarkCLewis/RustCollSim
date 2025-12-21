@@ -16,6 +16,7 @@
 
 use crate::{design::coords::CartCoords, vectors::Vector};
 
+#[derive(Debug, Default)]
 pub struct Particle {
   pub x: Vector,
   pub v: Vector,

@@ -10,7 +10,7 @@
 // Traverse all pairs initially to get forces and add events to the queue.
 // Then process the queue
 
-use crate::{design::system::{Force, Particle}, vectors::Vector};
+use crate::{design::system::{Force, Particle}, util::parallel_subset_process::{parallel_subset_process_recur, parallel_subset_process_recur_mut, parallel_subset_process_recur_mut_res, parallel_subset_process_recur_mut1, parallel_subset_process_recur_mut2, parallel_subset_process_recur_mut2_res}, vectors::Vector};
 use rayon::{prelude::*};
 
 pub trait Traverser: Sync {
@@ -19,9 +19,26 @@ pub trait Traverser: Sync {
   fn for_one<F: EventForce>(&self, i1: usize, p1: &Particle, spd1: &mut F::SingleParticleData, force: &F, dt: f64, pop: &[Particle]) -> (f64, Vector);
 }
 
+#[derive(Debug, PartialEq, PartialOrd, Clone, Default)]
 pub struct SingleParticleEvent {
-  index: usize,
-  time: f64,
+  pub event_time: f64,
+  pub added_time: f64,
+  pub index: usize,
+}
+
+impl SingleParticleEvent {
+  pub fn half_step_time(&self) -> f64 {
+    0.5 * (self.event_time + self.added_time)
+  }
+}
+
+impl Eq for SingleParticleEvent {}
+
+impl Ord for SingleParticleEvent {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.event_time.total_cmp(&other.event_time)
+            .then(self.added_time.total_cmp(&other.added_time))
+    }
 }
 
 pub trait EventQueue {
@@ -29,18 +46,19 @@ pub trait EventQueue {
   fn enqueue_many(&mut self, items: impl IntoIterator<Item = SingleParticleEvent>);
   fn process_next(&mut self, f: impl FnMut(&SingleParticleEvent) -> Option<SingleParticleEvent>);
   fn process_batch(&mut self, f: impl FnMut(&SingleParticleEvent, f64) -> Option<SingleParticleEvent>);
+  fn get_next_batch(&mut self) -> Vec<SingleParticleEvent>;
   fn is_empty(&self) -> bool;
 }
 
 pub trait EventForce: Sync {
-  type SingleParticleData: Sync + Send;
+  type SingleParticleData: Sync + Send + Default;
   fn get_all_particle_data(&mut self) -> Vec<Self::SingleParticleData>;
   fn set_all_particle_data(&mut self, spds: Vec<Self::SingleParticleData>);
   fn get_one_particle_data(&mut self, index: usize) -> Self::SingleParticleData;
   fn set_one_particle_data(&mut self, index: usize, spd: Self::SingleParticleData);
   /// Calculates the force between two particles.
   fn particle_particle(&self, i1: usize, p1: &Particle, i2: usize, p2: &Particle, spd: &mut Self::SingleParticleData, dt: f64) -> (f64, Vector);
-  fn particle_group(&self, i1: usize, p1: &Particle, g: &Vector, m: f64, dt: f64) -> (f64, Vector);
+  fn particle_group(&self, i1: usize, p1: &Particle, cm_x: &Vector, cm_m: f64, dt: f64) -> (f64, Vector);
 }
 
 pub struct SingleParticleEventForcing<T: Traverser, F: EventForce, Q: EventQueue> {
@@ -63,8 +81,8 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       let mut spds = self.event_force.get_all_particle_data();
       let (delta_vs, events): (Vec<_>, Vec<_>) = pop.par_iter().zip(spds.par_iter_mut()).enumerate().map(|t| {
         let (i1, (p1, spd)) = t;
-        let (time, delta_v) = self.traverser.for_one(i1, p1, spd, &self.event_force, self.dt, pop);
-        (delta_v, SingleParticleEvent { index: i1, time: time })
+        let (event_time, delta_v) = self.traverser.for_one(i1, p1, spd, &self.event_force, self.dt, pop);
+        (delta_v, SingleParticleEvent { index: i1, added_time: 0.0, event_time })
       }).unzip();
       delta_vs.par_iter().zip(pop.par_iter_mut()).for_each(|t| {
         let (dv, p) = t;
@@ -74,21 +92,29 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       self.event_force.set_all_particle_data(spds);
     }
     while !self.queue.is_empty() {
-      self.queue.process_batch(|spe: &SingleParticleEvent, common_time: f64| {
-        let p = &mut pop[spe.index];
+      let batch = self.queue.get_next_batch();
+      println!("Batch size: {}", batch.len());
+      let common_time = batch.first().map(|spe| spe.event_time ).unwrap_or(self.dt);
+      let elements: Vec<usize> = batch.into_iter().map(|spe| spe.index ).collect();
+      let mut spds = self.event_force.get_all_particle_data();
+      parallel_subset_process_recur_mut1(pop, &elements[..], &|p| {
         p.advance(common_time - p.time);
-        let p = &pop[spe.index];
-          let mut spd = self.event_force.get_one_particle_data(spe.index);
-          let (time, delta_v) = self.traverser.for_one(spe.index, p, &mut spd, &self.event_force, self.dt, pop);
-          self.event_force.set_one_particle_data(spe.index, spd);
-          let p = &mut pop[spe.index];
-          p.kick(&delta_v);
-          if time + p.time <= self.dt {
-            Some(SingleParticleEvent { index: spe.index, time: common_time + time })
-          } else {
-            None
-          }
       });
+      let mut times_and_deltas = vec![(0.0, Vector::new(0.0, 0.0, 0.0)); elements.len()];
+      parallel_subset_process_recur_mut_res(pop, &mut spds[..], &elements[..], &mut times_and_deltas[..], &|index, p, spd| {
+        self.traverser.for_one(index, p, spd, &self.event_force, self.dt, pop)
+      });
+      let mut new_events: Vec<Option<SingleParticleEvent>> = vec![None; elements.len()];
+      parallel_subset_process_recur_mut_res(&times_and_deltas[..], pop, &elements[..], &mut new_events[..], &|index, td, p| {
+        let (time, delta_v) = td;
+        p.kick(&delta_v);
+        if time + p.time <= self.dt {
+          Some(SingleParticleEvent { index: index, added_time: p.time, event_time: common_time + time })
+        } else {
+          None
+        }
+      });
+      self.queue.enqueue_many(new_events.into_iter().flatten());
       pop.par_iter_mut().for_each(|p| {
         p.finish_step(self.dt);
       });
