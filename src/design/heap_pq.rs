@@ -47,8 +47,10 @@ impl EventQueue for HeapPQ {
 
   fn get_next_batch(&mut self) -> Vec<SingleParticleEvent> {
     let first_time = self.heap.peek().map(|spe| {spe.event_time}).unwrap_or(0.0);
+    println!("first_time = {}", first_time);
+    println!("half_step_time = {}", self.heap.peek().unwrap().half_step_time());
     let mut batch = vec![];
-    while let Some(spe) = self.heap.pop() && spe.half_step_time() < first_time {
+    while let Some(spe) = self.heap.pop() && spe.half_step_time() <= first_time {
       batch.push(spe);
     };
     batch

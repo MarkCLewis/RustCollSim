@@ -2,7 +2,7 @@
 
 use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
-use crate::{design::system::{Force, Particle}, vectors::Vector};
+use crate::{design::system::{Force, Particle, Population}, vectors::Vector};
 
 pub struct HillsForce {
   dt: f64,
@@ -33,8 +33,8 @@ impl HillsForce {
 
 
 impl Force for HillsForce {
-  fn apply_force(&mut self, pop: &mut [Particle]) {
-    pop.par_iter_mut().for_each(|p| {
+  fn apply_force(&mut self, pop: &mut impl Population) {
+    pop.particles_mut().par_iter_mut().for_each(|p| {
       self.apply_for_one(p, self.dt);
     });
   }

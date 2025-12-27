@@ -1,21 +1,24 @@
 use crate::{design::{system::{BoundaryCondition, Population, Particle}}};
 
 
-pub struct BasicPopulation<'a, BC: BoundaryCondition> {
+pub struct BasicPopulation<BC: BoundaryCondition> {
+  num_real: usize,
   particles: Vec<Particle>,
-  boundary: &'a BC,
+  boundary: BC,
 }
 
-impl<'a, BC: BoundaryCondition> BasicPopulation<'a, BC> {
-  pub fn new(particles: Vec<Particle>, boundary: &'a BC) -> Self {
+impl<BC: BoundaryCondition> BasicPopulation<BC> {
+  pub fn new(particles: Vec<Particle>, boundary: BC) -> Self {
     Self {
+      num_real: particles.len(),
       particles,
       boundary,
     }
   }
 }
 
-impl<'a, BC: BoundaryCondition> Population for BasicPopulation<'a, BC> {
+impl<BC: BoundaryCondition> Population for BasicPopulation<BC> {
+  type Boundary = BC;
   fn particles(&self) -> &[Particle] {
     &self.particles[..]
   }
@@ -37,5 +40,9 @@ impl<'a, BC: BoundaryCondition> Population for BasicPopulation<'a, BC> {
     self.particles.iter_mut().for_each(|p| {
       self.boundary.apply(p);
     });
+  }
+
+  fn boundary_conditions(&self) -> &Self::Boundary {
+    &self.boundary
   }
 }

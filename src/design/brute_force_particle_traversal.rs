@@ -12,19 +12,24 @@ impl BruteForceParticleTraversal {
 }
 
 impl Traverser for BruteForceParticleTraversal {
-  fn setup(&mut self, parts: &[Particle]) {}
+  fn setup(&mut self, pop: &impl Population) {}
 
-  fn for_one<F: EventForce>(&self, i1: usize, p1: &Particle, spd1: &mut F::SingleParticleData, force: &F, dt: f64, parts: &[Particle]) -> (f64, Vector) {
-    let mut min_time = 1e100;
-    let mut dv = Vector ([0.0, 0.0, 0.0]);
-    parts.iter().enumerate().for_each(|t| {
+  fn for_one<F: EventForce>(&self, i1: usize, p1: &Particle, spd1: &mut F::SingleParticleData, force: &F, dt: f64, pop: &impl Population) -> (f64, Vector) {
+    let mut min_time_delta = 1e100;
+    let mut acc_sum = Vector ([0.0, 0.0, 0.0]);
+    pop.particles().iter().enumerate().for_each(|t| {
       let (i2, p2) = t;
       if i2 != i1 {
-        let (t, delta_v) = force.particle_particle(i1, p1, i2, p2, spd1, dt);
-        min_time = f64::min(min_time, t);
-        dv += delta_v;
+        let (t, acc) = force.particle_particle(i1, p1, i2, p2, spd1, dt);
+        min_time_delta = f64::min(min_time_delta, t);
+        acc_sum += acc;
       }
     });
-    (min_time, dv)
+    println!("Check time: {} {} {}", min_time_delta, p1.time, dt);
+    if min_time_delta + p1.time > dt {
+      min_time_delta = dt - p1.time;
+    }
+    println!("for-one i1 = {}, {} {}", i1, min_time_delta, acc_sum);
+    (min_time_delta, acc_sum * min_time_delta)
   }
 }

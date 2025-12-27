@@ -48,15 +48,17 @@ impl Particle {
   }
 }
 
-pub trait Population {
+pub trait Population: Sync + Send {
+  type Boundary: BoundaryCondition;
   fn particles(&self) -> &[Particle];
   fn particles_mut(&mut self) -> &mut [Particle];
   fn end_step(&mut self, dt: f64);
   fn apply_boundary_condition(&mut self);
+  fn boundary_conditions(&self) -> &Self::Boundary;
 }
 
 pub trait Force {
-  fn apply_force(&mut self, pop: &mut [Particle]);
+  fn apply_force(&mut self, pop: &mut impl Population);
 }
 
 pub struct DoubleForce<F1: Force, F2: Force> {
@@ -71,20 +73,20 @@ impl<F1: Force, F2: Force> DoubleForce<F1, F2> {
 }
 
 impl<F1: Force, F2: Force> Force for DoubleForce<F1, F2> {
-  fn apply_force(&mut self, pop: &mut [Particle]) {
+  fn apply_force(&mut self, pop: &mut impl Population) {
     self.f1.apply_force(pop);
     self.f2.apply_force(pop);
   }
 }
 
-pub trait BoundaryCondition {
+pub trait BoundaryCondition: Sync + Send {
   fn simple_mirror_offsets(&self) -> Option<Vec<Vector>>;
   fn mirrors(&self, p: &Particle) -> impl Iterator<Item = Particle>;
   fn apply(&self, p: &mut Particle);
 }
 
 pub trait Output {
-  fn output<P: Population>(&self, step: i64, pop: &P);
+  fn output<P: Population>(&mut self, step: i64, pop: &P);
 }
 
 pub struct System<P: Population, F: Force, Out: Output> {
@@ -97,20 +99,36 @@ pub struct System<P: Population, F: Force, Out: Output> {
 
 impl<P: Population, F: Force, Out: Output> System<P, F, Out> {
   pub fn new(pop: P, force: F, output: Out, dt: f64) -> Self {
-    Self {
+    let mut ret = Self {
       pop,
       force,
       output,
       dt,
       step: 0,
+    };
+    ret.output.output(ret.step, &ret.pop);
+    ret
+  }
+
+  pub fn kinetic_energy(&self) -> f64 {
+    let mut e_k = 0.0;
+    for p in self.pop.particles() {
+      let v_sqr = p.v.mag_sq();
+      e_k += 0.5*v_sqr;
     }
+    e_k
+  }
+
+  pub fn potential_energy(&self) -> f64 {
+    0.0
   }
 
   pub fn advance(&mut self) {
-    self.force.apply_force(&mut self.pop.particles_mut());
+    self.force.apply_force(&mut self.pop);
     self.pop.end_step(self.dt);
     self.pop.apply_boundary_condition();
-    self.output.output(self.step, &self.pop);
     self.step += 1;
+    self.output.output(self.step, &self.pop);
+    println!("v_k = {:e}", self.kinetic_energy());
   }
 }
