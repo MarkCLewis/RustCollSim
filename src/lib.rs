@@ -22,6 +22,7 @@ pub mod system;
 pub mod tests;
 pub mod util;
 pub mod design;
+pub mod boundary_conditions;
 pub mod vectors;
 
 

@@ -16,7 +16,7 @@
 
 use crate::{design::coords::CartCoords, vectors::Vector};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Particle {
   pub x: Vector,
   pub v: Vector,
@@ -39,11 +39,15 @@ impl Particle {
     self.x += self.v * dt;
     self.time += dt;
   }
+  pub fn advance_to(&mut self, time: f64) {
+    self.x += self.v * (time - self.time);
+    self.time = time;
+  }
   pub fn kick(&mut self, dv: &Vector) {
     self.v += *dv;
   }
   pub fn finish_step(&mut self, dt: f64) {
-    self.advance(dt - self.time);
+    self.x += self.v * (dt - self.time);
     self.time = 0.0;
   }
 }
@@ -80,9 +84,10 @@ impl<F1: Force, F2: Force> Force for DoubleForce<F1, F2> {
 }
 
 pub trait BoundaryCondition: Sync + Send {
-  fn simple_mirror_offsets(&self) -> Option<Vec<Vector>>;
+  fn simple_mirror_offsets(&self) -> Option<Vec<(Vector, Vector)>>;
   fn mirrors(&self, p: &Particle) -> impl Iterator<Item = Particle>;
   fn apply(&self, p: &mut Particle);
+  fn update(&mut self);
 }
 
 pub trait Output {

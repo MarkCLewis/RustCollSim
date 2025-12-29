@@ -1,3 +1,4 @@
+use rust_coll_sim::boundary_conditions::azimuthal_only::AzimuthalOnly;
 use rust_coll_sim::design::brute_force_particle_traversal::BruteForceParticleTraversal;
 use rust_coll_sim::design::coords::{
   CartCoords,
@@ -8,7 +9,7 @@ use rust_coll_sim::design::single_particle_event_force::SingleParticleEventForci
 use rust_coll_sim::design::gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce;
 use rust_coll_sim::design::heap_pq::HeapPQ;
 use rust_coll_sim::design::hills_force::HillsForce;
-use rust_coll_sim::design::sliding_brick_boundary::SlidingBrickBoundary;
+use rust_coll_sim::boundary_conditions::sliding_brick_boundary::SlidingBrickBoundary;
 use rust_coll_sim::design::system::{
   DoubleForce, Output, Particle, Population, System
 };
@@ -17,6 +18,7 @@ use rust_coll_sim::design::basic_population::BasicPopulation;
 use rust_coll_sim::no_explode::{Lewis, Rotter};
 use rust_coll_sim::vectors::Vector;
 
+use std::f64;
 use std::fs::File;
 use std::io::Write;
 
@@ -37,12 +39,17 @@ impl Output for TextFileOutput {
 
 
 fn main() {
+  const NUM_BODIES: usize = 10000;
   let dt = 0.001 * 2.0 * std::f64::consts::PI;
   let sx = 2e-7;
   let sy = 2e-7;
   let rad = 1e-9;
-  let bc = SlidingBrickBoundary::new(sx, sy);
-  const NUM_BODIES: usize = 1000;
+  const CENTRAL_MASS: f64 = 5.683e26; // kg
+  const R0: f64 = 1.33e8; // m
+  const RHO: f64 = 500.0; // kg/m^3
+  let density = RHO * R0 * R0 * R0 / CENTRAL_MASS;
+  // let bc = SlidingBrickBoundary::new(sx, sy, dt);
+  let bc = AzimuthalOnly::new(sx, sy);
   let mut parts: Vec<Particle> = vec![];
   let mut hard_code = vec![];
   //   Particle {
@@ -60,6 +67,7 @@ fn main() {
   //     time: 0.0,
   //   }
   // ];
+  fastrand::seed(123);
   while parts.len() < NUM_BODIES {
     let i = parts.len();
     if !hard_code.is_empty() {
@@ -77,7 +85,7 @@ fn main() {
         X: fastrand::f64() * sx - 0.5 * sx,
         Y: fastrand::f64() * sy - 0.5 * sy,
         e: fastrand::f64() * 1e-8,
-        i: fastrand::f64() * 1e-9,
+        i: fastrand::f64() * 3e-9,
         phi: fastrand::f64() * 2.0 * std::f64::consts::PI,
         zeta: fastrand::f64() * 2.0 * std::f64::consts::PI
       };
@@ -98,7 +106,7 @@ fn main() {
         parts.push(Particle { 
           x: cc.p, 
           v: cc.v, 
-          m: 1e-100, 
+          m: 1.3333333 * f64::consts::PI * rad * rad * rad * density, 
           r: rad,
           time: 0.0 });
       }
@@ -109,17 +117,17 @@ fn main() {
   type Trav<'a> = BruteForceParticleTraversal;
   let traverser = BruteForceParticleTraversal::new();
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
-  let spring = Rotter::new(0.5, 0.1);
+  let spring = Rotter::new(0.5, 0.02);
   let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
   let hills_force = HillsForce::new(dt);
   let force = DoubleForce::<HillsForce, GravForce>::new(hills_force, grav_coll_force);
-  let output = TextFileOutput{ interval: 1, file: File::create("data.txt").unwrap() };
+  let output = TextFileOutput{ interval: 20, file: File::create("data.txt").unwrap() };
   let mut sys = System::new(pop, force, output, dt);
 
-  for i in 0..2000 {
+  for i in 0..10000 {
     println!("Step {}", i);
     sys.advance();
   }

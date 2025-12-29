@@ -52,7 +52,7 @@ where
             func(&mut mut_slice[elements[0] - offset]);
         } else {
             let mid = elements.len() / 2;
-            println!("elements len = {}, mid = {}", elements.len(), mid);
+            // println!("elements len = {}, mid = {}", elements.len(), mid);
             let (left, right) = elements.split_at(mid);
             let mid_elem = elements[mid];
             let (left_mut_slice, right_mut_slice) = mut_slice.split_at_mut(mid_elem - offset);
@@ -67,7 +67,7 @@ where
             }
         }
     }
-    println!("parallel_subset_process_recur_mut1");
+    // println!("parallel_subset_process_recur_mut1");
     recurse(mut_slice, 0, elements, func);
 }
 
@@ -126,7 +126,7 @@ where
             let (left, right) = elements.split_at(mid);
             let (left_results, right_results) = results.split_at_mut(mid);
             let mid_elem = elements[mid];
-            println!("elements len = {}, mid = {}, mid_elem = {}", elements.len(), mid, mid_elem);
+            // println!("elements len = {}, mid = {}, mid_elem = {}", elements.len(), mid, mid_elem);
             let (left_mut_slice, right_mut_slice) = mut_slice.split_at_mut(mid_elem - offset);
             if elements.len() < 10 {
                 recurse(slice, left_mut_slice, offset, left, left_results, func);
@@ -139,7 +139,7 @@ where
             }
         }
     }
-    println!("parallel_subset_process_recur_mut_res");
+    // println!("parallel_subset_process_recur_mut_res");
     recurse(slice, mut_slice, 0, elements, results, func);
 }
 
@@ -165,7 +165,7 @@ where
             let (left_data, right_data) = data.split_at(mid);
             let (left_results, right_results) = results.split_at_mut(mid);
             let mid_elem = elements[mid];
-            println!("{} {}", mid, mid_elem);
+            // println!("{} {}", mid, mid_elem);
             let (left_mut_slice, right_mut_slice) = mut_slice.split_at_mut(mid_elem - offset);
             if elements.len() < 10 {
                 recurse(left_mut_slice, offset, left, left_data, left_results, func);
@@ -178,7 +178,7 @@ where
             }
         }
     }
-    println!("parallel_subset_process_recur_mut1_data_res");
+    // println!("parallel_subset_process_recur_mut1_data_res");
     recurse(mut_slice, 0, elements, data, results, func);
 }
 

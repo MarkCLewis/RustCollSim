@@ -1,7 +1,7 @@
 use crate::vectors::Vector;
 
-const A0: f64 = 0.75;
-const BETA: f64 = 2.0;
+pub const A0: f64 = 0.75;
+pub const BETA: f64 = 2.0;
 
 pub struct CartCoords {
   pub p: Vector,

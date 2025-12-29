@@ -4,17 +4,12 @@ pub struct SlidingBrickBoundary {
     pub sx: f64,
     pub sy: f64,
     y_offset: f64,
+    dt: f64,
 }
 
 impl SlidingBrickBoundary {
-    pub fn new(sx: f64, sy: f64) -> Self {
-        Self { sx, sy, y_offset: 0.0 }
-    }
-
-    pub fn apply(&self, particles: &mut Vec<Particle>) {
-        for p in particles.iter_mut() {
-            self.apply_for_one(p);
-        }
+    pub fn new(sx: f64, sy: f64, dt: f64) -> Self {
+        Self { sx, sy, y_offset: 0.0 , dt }
     }
 
     fn apply_for_one(&self, p: &mut Particle) {
@@ -25,12 +20,25 @@ impl SlidingBrickBoundary {
         } else if p.x.y() > by {
             p.x[Axis::Y] -= self.sy;
         }
-        // TODO: update y_offset
         if p.x.x() < -bx {
             p.x[Axis::X] += self.sx;
+            p.x[Axis::Y] += self.y_offset;
+            while p.x[Axis::Y] > self.sy * 0.5 {
+              p.x[Axis::Y] -= self.sy;
+            }
+            while p.x[Axis::Y] < -self.sy * 0.5 {
+              p.x[Axis::Y] += self.sy;
+            }
             p.v[Axis::Y] -= 1.5 * self.sx;
         } else if p.x.x() > bx {
             p.x[Axis::X] -= self.sx;
+            p.x[Axis::Y] -= self.y_offset;
+            while p.x[Axis::Y] > self.sy * 0.5 {
+              p.x[Axis::Y] -= self.sy;
+            }
+            while p.x[Axis::Y] < -self.sy * 0.5 {
+              p.x[Axis::Y] += self.sy;
+            }
             p.v[Axis::Y] += 1.5 * self.sx;
         }
     }
@@ -45,17 +53,18 @@ impl SlidingBrickBoundary {
 }
 
 impl BoundaryCondition for SlidingBrickBoundary {
-    fn simple_mirror_offsets(&self) -> Option<Vec<Vector>> {
+    fn simple_mirror_offsets(&self) -> Option<Vec<(Vector, Vector)>> {
       let base_y_offset = self.base_y_offset();
       Some(vec![
-        Vector::new(0.0, self.sy, 0.0),
-        Vector::new(0.0, -self.sy, 0.0),
-        Vector::new(self.sx, base_y_offset, 0.0),
-        Vector::new(self.sx, base_y_offset + self.sy, 0.0),
-        Vector::new(self.sx, base_y_offset + 2.0 * self.sy, 0.0),
-        Vector::new(-self.sx, base_y_offset, 0.0),
-        Vector::new(-self.sx, base_y_offset + self.sy, 0.0),
-        Vector::new(-self.sx, base_y_offset + 2.0 * self.sy, 0.0),
+        (Vector::new(0.0, 0.0, 0.0), Vector::new(0.0, 0.0, 0.0)),
+        (Vector::new(0.0, self.sy, 0.0), Vector::new(0.0, 0.0, 0.0)),
+        (Vector::new(0.0, -self.sy, 0.0), Vector::new(0.0, 0.0, 0.0)),
+        (Vector::new(self.sx, base_y_offset, 0.0), Vector::new(0.0, -1.5 * self.sx, 0.0)),
+        (Vector::new(self.sx, base_y_offset + self.sy, 0.0), Vector::new(0.0, -1.5 * self.sx, 0.0)),
+        (Vector::new(self.sx, base_y_offset + 2.0 * self.sy, 0.0), Vector::new(0.0, -1.5 * self.sx, 0.0)),
+        (Vector::new(-self.sx, -base_y_offset, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
+        (Vector::new(-self.sx, -base_y_offset + self.sy, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
+        (Vector::new(-self.sx, -base_y_offset + 2.0 * self.sy, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
       ])
     }
 
@@ -65,6 +74,14 @@ impl BoundaryCondition for SlidingBrickBoundary {
 
     fn apply(&self, p: &mut Particle) {
         self.apply_for_one(p);
+    }
+
+    fn update(&mut self) {
+      self.y_offset -= 1.5 * self.sx * self.dt;
+      while self.y_offset < -0.5 * self.sy {
+        self.y_offset += self.sy;
+      }
+      println!("y_offset for sliding brick is {:e}", self.y_offset);
     }
 }
 
@@ -95,6 +112,18 @@ impl<'a, 'b> Iterator for SlidingBrickIterator<'a, 'b> {
     let p = self.particle;
 
     return match self.state {
+      1 => {
+        // Original
+        Some(
+          Particle::new(
+            p.x,
+            p.v,
+            p.m,
+            p.r,
+            p.time,
+          )
+        )
+      }
       1 => {
         // Mirror in Y
         Some(

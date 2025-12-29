@@ -1,3 +1,5 @@
+use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
+
 use crate::{design::{system::{BoundaryCondition, Population, Particle}}};
 
 
@@ -28,7 +30,7 @@ impl<BC: BoundaryCondition> Population for BasicPopulation<BC> {
   }
 
   fn end_step(&mut self, dt: f64) {
-    self.particles.iter_mut().for_each(|p| {
+    self.particles.par_iter_mut().for_each(|p| {
       if p.time < dt {
         p.x += p.v * (dt - p.time);
       }
@@ -37,7 +39,8 @@ impl<BC: BoundaryCondition> Population for BasicPopulation<BC> {
   }
 
   fn apply_boundary_condition(&mut self) {
-    self.particles.iter_mut().for_each(|p| {
+    self.boundary.update();
+    self.particles.par_iter_mut().for_each(|p| {
       self.boundary.apply(p);
     });
   }

@@ -20,6 +20,8 @@ impl<SD: SpringDerivation + Sync + Send> GravityAndSoftSphereEventForce<SD> {
 
   fn get_next_time(
       &self,
+      i1: usize,
+      i2: usize,
       separation_distance: f64,
       current_impact_vel: f64,
       k: f64,
@@ -49,6 +51,10 @@ impl<SD: SpringDerivation + Sync + Send> GravityAndSoftSphereEventForce<SD> {
       let max_ok_pen_estimate = f64::max(r1, r2) * self.spring_derivation.get_pen_fraction();
 
       // println!("sep_dist = {:e}, max_pen = {:e}",separation_distance, max_ok_pen_estimate);
+
+      if separation_distance < -10.0*max_ok_pen_estimate {
+        println!("!!!Bad overlap!!! ratio: {} for {} and {}", separation_distance / max_ok_pen_estimate, i1, i2);
+      }
 
       let (mut dt, distance_for_global_speed_estimate) = if separation_distance < 0. {
           debugln!("colliding",);
@@ -128,9 +134,12 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     let separation_distance = dist - (p1.r + p2.r);
     let vel = dv.mag();
     let impact_vel = f64::max(vel, *spd.get(&i2).unwrap_or(&0.0));
+    if separation_distance < -10.0* p1.r * self.spring_derivation.get_pen_fraction() {
+      println!("Bad Data i1={}, i2={}, x1={}, x2={}, dx={}, dist={:e}, sep={:e}", i1, i2, p1.x, p2.x, dx, dist, separation_distance);
+    }
     let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
     let (b, k) = self.spring_derivation.b_and_k(impact_vel, reduced_mass, f64::max(p1.r, p2.r));
-    let impact_time_interval = self.get_next_time(separation_distance, impact_vel, k, reduced_mass, b, vel, p1.r, p2.r);
+    let impact_time_interval = self.get_next_time(i1, i2, separation_distance, impact_vel, k, reduced_mass, b, vel, p1.r, p2.r);
     // println!("p:p i1:{} i2:{} dx:{} dist:{:e} dv:{} sep_dist:{:e} vel:{:e} impact_vel: {:e} time_int:{}", i1, i2, dx, dist, dv, separation_distance, vel, impact_vel, impact_time_interval);
     if separation_distance > 0.0 {
       // Calculate gravity
