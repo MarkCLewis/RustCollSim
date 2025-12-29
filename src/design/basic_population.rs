@@ -4,7 +4,6 @@ use crate::{design::{system::{BoundaryCondition, Population, Particle}}};
 
 
 pub struct BasicPopulation<BC: BoundaryCondition> {
-  num_real: usize,
   particles: Vec<Particle>,
   boundary: BC,
 }
@@ -12,7 +11,6 @@ pub struct BasicPopulation<BC: BoundaryCondition> {
 impl<BC: BoundaryCondition> BasicPopulation<BC> {
   pub fn new(particles: Vec<Particle>, boundary: BC) -> Self {
     Self {
-      num_real: particles.len(),
       particles,
       boundary,
     }

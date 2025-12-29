@@ -2,6 +2,34 @@
 
 This repository holds a version of my simulation code written in Rust since I'm tired of trying to maintain old C++ code.
 
+## TODOs
+
+- Refactor the "design" work into proper structure.
+- Implement the final version of the kD-tree.
+- Implement a bucket priority queue for soft-sphere approach.
+- Needs rigorous validity testing (I still don't completely trust soft-sphere to not gain energy)
+  - 2 particle sampling
+  - 3+ particle tests
+  - The above need to look at coefficient of restitution, maximum overlap, and number of steps overlapping.
+  - Central force, pile of particles
+  - Particles of different sizes
+- Lots of little things I have in the C++ code that are good for ring simulation
+  - Population creation
+    - Generators for spatial distributions
+    - Generators for particle sizes
+    - Handling of population by optical depth/surface density
+  - Boundary conditions
+    - Perturbed boundary conditions
+    - Open boundary conditions
+    - Work on issues with sliding brick wrapping in X.
+  - Forcing
+    - Moon force
+    - Central force for testing
+  - Outputs
+    - CartAndRad
+    - FixedBinned
+  - etc.
+
 ## Outline
 
 - System (global config)
