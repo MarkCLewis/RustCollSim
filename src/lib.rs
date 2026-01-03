@@ -14,7 +14,6 @@ pub mod debug_tools;
 pub mod hills_force;
 pub mod impact_vel_tracker;
 pub mod kd_tree;
-pub mod no_explode;
 pub mod particle;
 pub mod simulation_setups;
 pub mod soft_collision_queue;
@@ -24,6 +23,8 @@ pub mod util;
 pub mod design;
 pub mod boundary_conditions;
 pub mod vectors;
+pub mod forces;
+pub mod outputs;
 
 
 #[derive(Parser, Debug)]

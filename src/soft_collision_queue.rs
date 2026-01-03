@@ -5,7 +5,7 @@ use indicatif::ProgressBar;
 use crate::{
     debugln,
     impact_vel_tracker::ImpactVelocityTracker,
-    no_explode::SpringDerivation,
+    forces::no_explode::SpringDerivation,
     particle::{calc_pp_accel, Particle, ParticleIndex},
     util::borrow_two_elements,
     vectors::Vector,
@@ -297,7 +297,7 @@ impl<S: SpringDerivation> SoftSphereForce<S> {
             return (next_sync_step, next_sync_step - event_time, PushPq::NoPush);
         }
 
-        use crate::no_explode::omega_l;
+        use crate::forces::no_explode::omega_l;
 
         // let omega_0 = omega_0_from_k(k, m);
         // assert!(omega_0 >= 0.);

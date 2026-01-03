@@ -21,12 +21,14 @@ use rust_coll_sim::vectors::Vector;
 
 use std::f64;
 use std::fs::File;
+use std::io::Write;
+
 
 fn main() {
-  const NUM_BODIES: usize = 100;
+  const NUM_BODIES: usize = 10000;
   let dt = 0.001 * 2.0 * std::f64::consts::PI;
-  let sx = 2e-8;
-  let sy = 2e-8;
+  let sx = 2e-7;
+  let sy = 2e-7;
   let rad = 1e-9;
   const CENTRAL_MASS: f64 = 5.683e26; // kg
   const R0: f64 = 1.33e8; // m
@@ -108,10 +110,10 @@ fn main() {
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
   let hills_force = HillsForce::new(dt);
   let force = DoubleForce::<HillsForce, GravForce>::new(hills_force, grav_coll_force);
-  let output = TextFileOutput::new( 1, "data.txt");
+  let output = TextFileOutput::new( 20, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
-  for i in 0..100 {
+  for i in 0..10000 {
     println!("Step {}", i);
     sys.advance();
   }

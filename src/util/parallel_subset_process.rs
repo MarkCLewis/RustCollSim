@@ -119,6 +119,7 @@ where
         C: Send + Sync,
         F: Fn(usize, &A, &mut B) -> C + Send + Sync
     {
+        println!("recur {} {} {}", mut_slice.len(), elements.len(), offset);
         if elements.len() == 1 {
             results[0] = func(elements[0], &slice[elements[0]], &mut mut_slice[elements[0] - offset]);
         } else {
@@ -139,7 +140,7 @@ where
             }
         }
     }
-    // println!("parallel_subset_process_recur_mut_res");
+    println!("parallel_subset_process_recur_mut_res {} {} {} {:?}", slice.len(), mut_slice.len(), elements.len(), elements);
     recurse(slice, mut_slice, 0, elements, results, func);
 }
 

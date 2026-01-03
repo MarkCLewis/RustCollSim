@@ -2,7 +2,7 @@ use std::collections::BinaryHeap;
 
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator};
 
-use crate::design::single_particle_event_force::{EventQueue, SingleParticleEvent};
+use crate::forces::single_particle_event_force::{EventQueue, SingleParticleEvent};
 
 pub struct HeapPQ {
   heap: BinaryHeap<SingleParticleEvent>,
@@ -39,6 +39,10 @@ impl EventQueue for HeapPQ {
     batch.iter().map( |spe| {
       f(spe, first_time)
     }).flatten().for_each(|event| { self.heap.push(event)});
+  }
+
+  fn next_time(&self) -> Option<f64> {
+    self.heap.peek().map(|spe| {spe.event_time})
   }
 
   fn is_empty(&self) -> bool {

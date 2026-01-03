@@ -5,7 +5,7 @@ use crate::{
     debugln,
     hills_force::{HillsForce, SlidingBrickBoundary},
     kd_tree::{self, Interaction},
-    no_explode,
+    forces::no_explode,
     particle::{Particle, ParticleIndex},
     soft_collision_queue::{ExitReason, SoftSphereForce},
     util::{borrow_two_elements, progress_tracker::TwoPartProgress},

@@ -1,8 +1,3 @@
 pub mod coords;
 pub mod system;
 pub mod basic_population;
-pub mod hills_force;
-pub mod single_particle_event_force;
-pub mod brute_force_particle_traversal;
-pub mod gravity_and_soft_sphere_event_force;
-pub mod heap_pq;
