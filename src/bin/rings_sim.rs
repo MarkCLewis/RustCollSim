@@ -20,7 +20,6 @@ use rust_coll_sim::outputs::text_file_output::TextFileOutput;
 use rust_coll_sim::vectors::Vector;
 
 use std::f64;
-use std::fs::File;
 
 fn main() {
   const NUM_BODIES: usize = 100;
@@ -101,7 +100,7 @@ fn main() {
   type Trav<'a> = BruteForceParticleTraversal;
   let traverser = BruteForceParticleTraversal::new();
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
-  let spring = Rotter::new(0.5, 0.02);
+  let spring = Rotter::new(0.75, 0.02);
   let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
@@ -111,7 +110,7 @@ fn main() {
   let output = TextFileOutput::new( 1, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
-  for i in 0..100 {
+  for i in 0..1000 {
     println!("Step {}", i);
     sys.advance();
   }

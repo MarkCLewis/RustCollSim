@@ -25,6 +25,14 @@ impl EventQueue for HeapPQ {
     }
   }
 
+  fn enqueue_many_optional(&mut self, items: impl IntoIterator<Item = Option<SingleParticleEvent>>) {
+    for item in items {
+      if let Some(item) = item {
+        self.heap.push(item);
+      }
+    }
+  }
+
   fn process_next(&mut self, f: impl FnMut(&SingleParticleEvent) -> Option<SingleParticleEvent>) {
     // TODO: Not used yet.
   }

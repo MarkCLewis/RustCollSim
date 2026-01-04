@@ -119,7 +119,7 @@ where
         C: Send + Sync,
         F: Fn(usize, &A, &mut B) -> C + Send + Sync
     {
-        println!("recur {} {} {}", mut_slice.len(), elements.len(), offset);
+        // println!("recur {} {} {}", mut_slice.len(), elements.len(), offset);
         if elements.len() == 1 {
             results[0] = func(elements[0], &slice[elements[0]], &mut mut_slice[elements[0] - offset]);
         } else {
@@ -140,9 +140,46 @@ where
             }
         }
     }
-    println!("parallel_subset_process_recur_mut_res {} {} {} {:?}", slice.len(), mut_slice.len(), elements.len(), elements);
+    // println!("parallel_subset_process_recur_mut_res {} {} {} {:?}", slice.len(), mut_slice.len(), elements.len(), elements);
     recurse(slice, mut_slice, 0, elements, results, func);
 }
+
+pub fn parallel_subset_process_recur_mut1_data<A, B, F>(mut_slice: &mut [A], elements: &[usize], data: &[B], func: &F)
+where
+    A: Send + Sync,
+    B: Send + Sync,
+    F: Fn(usize, &mut A, &B) + Send + Sync,
+{
+    fn recurse<A, B, F>(mut_slice: &mut [A], offset: usize, elements: &[usize], data: &[B], func: &F) 
+    where
+        A: Send + Sync,
+        B: Send + Sync,
+        F: Fn(usize, &mut A, &B) + Send + Sync
+    {
+        if elements.len() == 1 {
+            func(elements[0], &mut mut_slice[elements[0] - offset], &data[0]);
+        } else {
+            let mid = elements.len() / 2;
+            let (left, right) = elements.split_at(mid);
+            let (left_data, right_data) = data.split_at(mid);
+            let mid_elem = elements[mid];
+            // println!("{} {}", mid, mid_elem);
+            let (left_mut_slice, right_mut_slice) = mut_slice.split_at_mut(mid_elem - offset);
+            if elements.len() < 10 {
+                recurse(left_mut_slice, offset, left, left_data, func);
+                recurse(right_mut_slice, mid_elem,right, right_data, func);
+            } else {
+                join(
+                    || recurse(left_mut_slice, offset, left, left_data, func),
+                    || recurse(right_mut_slice, mid_elem, right, right_data, func),
+                );
+            }
+        }
+    }
+    // println!("parallel_subset_process_recur_mut1_data_res");
+    recurse(mut_slice, 0, elements, data, func);
+}
+
 
 pub fn parallel_subset_process_recur_mut1_data_res<A, B, C, F>(mut_slice: &mut [A], elements: &[usize], data: &[B], results: &mut [C], func: &F)
 where
