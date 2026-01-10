@@ -151,13 +151,13 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
   type SingleParticleData = HashMap<(usize, usize), f64>;
 
   fn get_all_particle_data(&mut self) -> Vec<Self::SingleParticleData> {
-    println!("Get SPD: {:?}", self.collision_velocity);
+    //println!("Get SPD: {:?}", self.collision_velocity);
     std::mem::replace(&mut self.collision_velocity, vec![])
   }
 
   fn set_all_particle_data(&mut self, spds: Vec<Self::SingleParticleData>) {
     self.collision_velocity = spds;
-    println!("Set SPD: {:?}", self.collision_velocity);
+    //println!("Set SPD: {:?}", self.collision_velocity);
   }
 
   fn check_data_for_events(&self, next_time: f64) -> Vec<SingleParticleEvent> {

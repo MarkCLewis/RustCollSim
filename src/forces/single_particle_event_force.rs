@@ -82,7 +82,7 @@ pub struct SingleParticleEventForcing<T: Traverser, F: EventForce, Q: EventQueue
 }
 
 fn check_time_step(mut time_step: f64, current_time: f64, dt: f64) -> f64 {
-  println!("Check time: {} {} {}", time_step, current_time, dt);
+//  println!("Check time: {} {} {}", time_step, current_time, dt);
   if time_step + current_time > dt {
     time_step = dt - current_time;
   }
@@ -125,7 +125,7 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
     self.event_force.set_all_particle_data(spds);
     while !self.queue.is_empty() {
       let batch = self.queue.get_next_batch();
-      println!("Batch: {}, {:?}", batch.len(), batch);
+      println!("Batch: {}", batch.len()); //, batch);
       let common_time = batch.first().map(|spe| spe.event_time ).unwrap_or(self.dt);
       println!("Common time: {}", common_time);
       let mut elements: Vec<usize> = batch.into_iter().map(|spe| spe.index ).collect();

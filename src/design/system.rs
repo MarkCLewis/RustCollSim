@@ -43,7 +43,7 @@ impl Particle {
   pub fn advance_to(&mut self, time: f64) {
     self.x += self.v * (time - self.time);
     self.time = time;
-    println!("Advance to {} x:{}", time, self.x);
+//    println!("Advance to {} x:{}", time, self.x);
   }
   pub fn kick(&mut self, dv: &Vector) {
     self.v += *dv;
