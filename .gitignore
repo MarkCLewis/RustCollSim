@@ -1,4 +1,5 @@
 *.txt
+*.svf
 
 # Generated
 /target
