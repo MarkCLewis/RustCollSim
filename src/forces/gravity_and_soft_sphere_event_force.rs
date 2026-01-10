@@ -119,6 +119,13 @@ impl<SD: SpringDerivation + Sync + Send> GravityAndSoftSphereEventForce<SD> {
     collision_time / self.desired_collision_step_count as f64
   }
 
+  fn safe_collision_time_step(&self, vel: f64, acc: f64, r1: f64, r2: f64) -> f64 {
+    let max_ok_pen_estimate = f64::max(r1, r2) * self.spring_derivation.get_pen_fraction() / self.desired_collision_step_count as f64;
+    let root = vel * vel - 4.0 * acc * -(max_ok_pen_estimate * 2.0);
+    // The positive root is >0.0, so that is the one we want.
+    (-vel + f64::sqrt(root)) / (2.0 * acc)
+  }
+
   fn gravity_time_step(&self, separation_distance: f64, vel: f64, acc: f64) -> f64 {
     // Velocity, acceleration, and distance are always positive (magnitudes). So the root is always positive.
     let root = vel * vel - 4.0 * acc * -separation_distance;
@@ -127,14 +134,15 @@ impl<SD: SpringDerivation + Sync + Send> GravityAndSoftSphereEventForce<SD> {
     collision_time / 2.0
   }
 
-  fn safe_motion_time_step(&self, separation_distance: f64, relative_speed_estimate: f64, r1: f64, r2: f64) -> f64 {
+  fn safe_motion_time_step(&self, separation_distance: f64, relative_speed_estimate: f64, acc: f64, r1: f64, r2: f64) -> f64 {
     // how far two particles can intersect without things getting out of hand
     let max_ok_pen_estimate = f64::max(r1, r2) * self.spring_derivation.get_pen_fraction() / self.desired_collision_step_count as f64;
-    if separation_distance < -3.0*max_ok_pen_estimate {
-      println!("!!!Bad overlap!!! ratio: {}", separation_distance / max_ok_pen_estimate);
-    }
     let distance_for_global_speed_estimate = f64::max(separation_distance, max_ok_pen_estimate);
-    distance_for_global_speed_estimate / relative_speed_estimate
+    // Velocity, acceleration, and distance are always positive (magnitudes). So the root is always positive.
+    let root = relative_speed_estimate * relative_speed_estimate - 4.0 * acc * -distance_for_global_speed_estimate;
+    // The positive root is >0.0, so that is the one we want.
+    let collision_time = (-relative_speed_estimate + f64::sqrt(root)) / (2.0 * acc);
+    collision_time / 2.0
   }
 
 }
@@ -185,7 +193,7 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
       // Clear impact velocity if it exists
       spd.remove(&(i2, mirror_num));
       // Calculate event time delta
-      if close_print { println!("gravity {}", dx*mag); }
+      // if close_print { println!("gravity {}", dx*mag); }
       dx * mag
     } else {
       let vel = dv.mag();
@@ -193,14 +201,14 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
       let impact_vel = f64::max(vel, last_impact_vel);
       let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
       let (b, k) = self.spring_derivation.b_and_k(impact_vel, reduced_mass, f64::max(p1.r, p2.r));
-      println!("Colliding, i1:{}, i2:{}, dist = {:e}, k={:e}, b={:e}", i1, i2, dist, k, b);
+      // println!("Colliding, i1:{}, i2:{}, dist = {:e}, k={:e}, b={:e}", i1, i2, dist, k, b);
       // Calculate collision force
       let f_spring = (dx / dist) * k * separation_distance;
       let f_damp = dv * b * dv.dot(&dx).abs()/vel/dist;
-      println!("spring {:e} {:e} {} {} {}", k, b, f_spring, f_damp, (f_spring + f_damp) / p1.m);
+      // println!("spring {:e} {:e} {} {} {}", k, b, f_spring, f_damp, (f_spring + f_damp) / p1.m);
       // Set impact velocity
       spd.insert((i2, mirror_num), impact_vel);
-      println!("SPD {:?}, {:p}", spd, spd);
+      // println!("SPD {:?}, {:p}", spd, spd);
 
       (f_spring + f_damp) / p1.m
     }
@@ -212,28 +220,30 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     let dist = dx.mag();
     let dv = p2.v - p1.v;
     let separation_distance = dist - (p1.r + p2.r);
-    // let close_print = separation_distance < 0.2 * f64::min(p1.r, p2.r);
+    let close_print = separation_distance < 0.2 * f64::min(p1.r, p2.r);
     let vel = dv.mag();
     let last_impact_vel = *spd.get(&(i2, mirror_num)).unwrap_or(&0.0);
     let impact_vel = f64::max(vel, last_impact_vel);
-    if separation_distance < -10.0* p1.r * self.spring_derivation.get_pen_fraction() {
-      println!("Bad Data i1={}, i2={}, x1={}, x2={}, dx={}, dist={:e}, sep={:e}", i1, i2, p1.x, p2.x, dx, dist, separation_distance);
-    }
     let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
     let (b, k) = self.spring_derivation.b_and_k(impact_vel, reduced_mass, f64::max(p1.r, p2.r));
-    // if close_print {
-    //   println!("p:p i1:{} i2:{} dx:{} dist:{:e} dv:{} sep_dist:{:e} vel:{:e} impact_vel: {:e} last_impact_vel:{:e} time_int:{}", i1, i2, dx, dist, dv, separation_distance, vel, impact_vel, last_impact_vel, impact_time_interval);
-    // }
     let collision_time_step = self.collision_time_step(k, reduced_mass, b);
+    let acc = (accels[i1] - accels[i2]).mag();
+    // if close_print {
+    //   println!("p:p i1:{} i2:{} dx:{} dist:{:e} dv:{} sep_dist:{:e} vel:{:e} impact_vel: {:e} last_impact_vel:{:e} collision_step_time:{} ratio:{}", i1, i2, dx, dist, dv, separation_distance, vel, impact_vel, last_impact_vel, collision_time_step, separation_distance / (f64::max(p1.r, p2.r) * self.spring_derivation.get_pen_fraction()));
+    // }
     if separation_distance > 0.0 {
       // Calculate gravity
-      let acc = (accels[i1] - accels[i2]).mag();
       let gravity_time_step = self.gravity_time_step(separation_distance, vel, acc);
       let relative_speed_estimate = 3.0 * (p1.r + p2.r);
-      let safe_motion_time_step = self.safe_motion_time_step(separation_distance, relative_speed_estimate, p1.r, p2.r);
+      let safe_motion_time_step = self.safe_motion_time_step(separation_distance, relative_speed_estimate, acc, p1.r, p2.r);
+      // if close_print {
+      //   println!("acc:{:e} gravity_time_step:{} safe_motion_time_step:{}", acc, gravity_time_step, safe_motion_time_step);
+      // }
       f64::min(safe_motion_time_step, f64::max(collision_time_step, gravity_time_step))
     } else {
-      collision_time_step
+      let safe_collision_time_step = self.safe_collision_time_step(vel, acc, p1.r, p2.r);
+      // println!("i1:{} i2:{} safe_collision_time_step:{}", i1, i2, safe_collision_time_step);
+      f64::min(collision_time_step, safe_collision_time_step)
     }
   }
 
@@ -259,7 +269,7 @@ mod test {
 
     let expected_coll_time = 3.6275987284684357 / 20.0;
     let expected_gravity_time = 0.5 * (-1.0 + f64::sqrt(1.0 + 4.0)) / 2.0;
-    let expected_safe_time = 1.0 / 1.5;
+    let expected_safe_time = 1.0 / 1.5; // TODO: put root formula here
 
     let check_time_separate = force.collision_time_step(k, m, b);
     assert_eq!(check_time_separate, expected_coll_time);
@@ -267,7 +277,7 @@ mod test {
     let check_time_overlap = force.gravity_time_step(1.0, 1.0, 1.0);
     assert_eq!(check_time_overlap, expected_gravity_time);
 
-    let check_time_overlap = force.safe_motion_time_step(1.0, 1.5, 1.0, 1.0);
+    let check_time_overlap = force.safe_motion_time_step(1.0, 1.5, 1.0, 1.0, 1.0);
     assert_eq!(check_time_overlap, expected_safe_time);
   }
 

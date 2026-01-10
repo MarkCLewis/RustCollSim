@@ -87,7 +87,7 @@ fn check_time_step(mut time_step: f64, current_time: f64, dt: f64) -> f64 {
     time_step = dt - current_time;
   }
   if time_step < 1e-12 * dt {
-    println!("Warning! Changing step size to {:e} from {:e}", time_step, 1e-12 * dt);
+    println!("Warning! Changing step size from {:e} to {:e}", time_step, 1e-12 * dt);
     time_step = 1e-12 * dt;
   }
   time_step
@@ -112,7 +112,7 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       let (i1, (p1, spd)) = t;
       let time_step = self.traverser.time_step_for_one(i1, p1, spd, &self.event_force, pop, &accels);
       let time_step = check_time_step(time_step, 0.0, self.dt);
-      //   println!("first kick {} {} {}", i1, delta_v, p1.v);
+      // println!("first time i1:{} {} {} {}", i1, accels[i1], p1.v, time_step);
       (accels[i1] * time_step, if time_step < self.dt { Some(SingleParticleEvent::new(time_step, 0.0, i1))} else { None })
     }).unzip();
     pop.particles_mut().par_iter_mut().zip(delta_vs.par_iter()).for_each(|t| {
@@ -164,7 +164,7 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       parallel_subset_process_recur_mut1_data(pop.particles_mut(), &elements[..], &dvs_and_events[..], &|index, p, td| {
         let (delta_v,_) = td;
         p.kick(&delta_v);
-        println!("post-kick {} {} {}", index, delta_v, p.v);
+        // println!("post-kick {} {} {}", index, delta_v, p.v);
       });
       self.queue.enqueue_many_optional(dvs_and_events.into_iter().map(|t| {
         let (_, event) = t;

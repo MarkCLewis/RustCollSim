@@ -40,7 +40,7 @@ impl Traverser for BruteForceParticleTraversal {
         }
       });
     }
-    println!("for-one accel i1:{}, {}", i1, acc_sum);
+    // println!("for-one accel i1:{}, {}", i1, acc_sum);
     acc_sum
   }
 
@@ -70,7 +70,7 @@ impl Traverser for BruteForceParticleTraversal {
         }
       });
     }
-    println!("for-one time i1:{}, {}", i1, min_time_delta);
+    // println!("for-one time i1:{}, {}", i1, min_time_delta);
     min_time_delta
   }
 }
