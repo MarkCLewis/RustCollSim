@@ -198,7 +198,7 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     } else {
       let vel = dv.mag();
       let last_impact_vel = *spd.get(&(i2, mirror_num)).unwrap_or(&0.0);
-      let impact_vel = f64::max(vel, last_impact_vel);
+      let impact_vel = if last_impact_vel == 0.0 { vel } else { last_impact_vel };
       let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
       let (b, k) = self.spring_derivation.b_and_k(impact_vel, reduced_mass, f64::max(p1.r, p2.r));
       // println!("Colliding, i1:{}, i2:{}, dist = {:e}, k={:e}, b={:e}", i1, i2, dist, k, b);
@@ -206,8 +206,10 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
       let f_spring = (dx / dist) * k * separation_distance;
       let f_damp = dv * b * dv.dot(&dx).abs()/vel/dist;
       // println!("spring {:e} {:e} {} {} {}", k, b, f_spring, f_damp, (f_spring + f_damp) / p1.m);
-      // Set impact velocity
-      spd.insert((i2, mirror_num), impact_vel);
+      // Set impact velocity if not previously set
+      if last_impact_vel == 0.0 {
+        spd.insert((i2, mirror_num), impact_vel);
+      }
       // println!("SPD {:?}, {:p}", spd, spd);
 
       (f_spring + f_damp) / p1.m
@@ -222,8 +224,8 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     let separation_distance = dist - (p1.r + p2.r);
     let close_print = separation_distance < 0.2 * f64::min(p1.r, p2.r);
     let vel = dv.mag();
-    let last_impact_vel = *spd.get(&(i2, mirror_num)).unwrap_or(&0.0);
-    let impact_vel = f64::max(vel, last_impact_vel);
+    let impact_vel = *spd.get(&(i2, mirror_num)).unwrap_or(&vel);
+    // let impact_vel = if last_impact_vel == 0.0 { vel } else { last_impact_vel };
     let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
     let (b, k) = self.spring_derivation.b_and_k(impact_vel, reduced_mass, f64::max(p1.r, p2.r));
     let collision_time_step = self.collision_time_step(k, reduced_mass, b);

@@ -22,7 +22,7 @@ use rust_coll_sim::vectors::Vector;
 use std::f64;
 
 fn main() {
-  const NUM_BODIES: usize = 10000;
+  const NUM_BODIES: usize = 5000;
   let dt = 0.001 * 2.0 * std::f64::consts::PI;
   let sx = 2e-7;
   let sy = 2e-7;
