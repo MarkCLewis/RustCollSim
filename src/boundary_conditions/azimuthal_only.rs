@@ -1,17 +1,15 @@
 use crate::{design::system::{BoundaryCondition, Particle}, vectors::{Axis, Vector}};
 
 pub struct AzimuthalOnly {
-    pub sx: f64,
     pub sy: f64,
 }
 
 impl AzimuthalOnly {
-    pub fn new(sx: f64, sy: f64) -> Self {
-        Self { sx, sy }
+    pub fn new(sy: f64) -> Self {
+        Self { sy }
     }
 
     fn apply_for_one(&self, p: &mut Particle) {
-        let bx = self.sx * 0.5;
         let by = self.sy * 0.5;
         if p.x.y() < -by {
             p.x[Axis::Y] += self.sy;

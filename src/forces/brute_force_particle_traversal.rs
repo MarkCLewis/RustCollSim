@@ -17,27 +17,33 @@ impl Traverser for BruteForceParticleTraversal {
   fn accel_for_one<F: EventForce>(&self, i1: usize, p1: &Particle, spd1: &mut F::SingleParticleData, force: &F, pop: &impl Population) -> Vector {
     let mut acc_sum = Vector ([0.0, 0.0, 0.0]);
     if let Some(mirror_offsets) = pop.boundary_conditions().simple_mirror_offsets() {
-      for (mirror_num, (offset_x, offset_v)) in mirror_offsets.iter().enumerate() {
-        pop.particles().iter().enumerate().for_each(|t| {
-          let (i2, p2_ref) = t;
+      pop.particles().iter().enumerate().for_each(|t| {
+        let (i2, p2_ref) = t;
+        let mut total_impact_vel: Option<F::ParticlePairData> = None;
+        for (mirror_num, (offset_x, offset_v)) in mirror_offsets.iter().enumerate() {
           let mut p2 = p2_ref.clone();
           p2.x += *offset_x;
           p2.v += *offset_v;
           if i2 != i1 {
-            let acc = force.particle_particle_accel(i1, p1, i2, &p2, spd1, mirror_num);
+            let (acc, impact_vel) = force.particle_particle_accel(i1, p1, i2, &p2, spd1, mirror_num);
             acc_sum += acc;
+            total_impact_vel = force.combine_particle_pair_data(total_impact_vel, impact_vel);
           }
-        });
-      }
+        }
+        force.update_particle_pair_data(i1, i2, spd1, total_impact_vel);
+      });
     } else {
       pop.particles().iter().enumerate().for_each(|t| {
         let (i2, p2_ref) = t;
+        let mut total_impact_vel: Option<F::ParticlePairData> = None;
         for (mirror_num, p2) in pop.boundary_conditions().mirrors(p2_ref).enumerate() {
           if i2 != i1 {
-            let acc = force.particle_particle_accel(i1, p1, i2, &p2, spd1, mirror_num);
+            let (acc, impact_vel) = force.particle_particle_accel(i1, p1, i2, &p2, spd1, mirror_num);
             acc_sum += acc;
+            total_impact_vel = force.combine_particle_pair_data(total_impact_vel, impact_vel);
           }
         }
+        force.update_particle_pair_data(i1, i2, spd1, total_impact_vel);
       });
     }
     // println!("for-one accel i1:{}, {}", i1, acc_sum);

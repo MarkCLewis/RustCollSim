@@ -9,12 +9,12 @@ use crate::{debugln, design::system::Particle, forces::{ no_explode::SpringDeriv
 pub struct GravityAndSoftSphereEventForce<SD: SpringDerivation + Sync + Send> {
   spring_derivation: SD,
   desired_collision_step_count: i32,
-  collision_velocity: Vec<HashMap<(usize, usize), f64>>,
+  collision_velocity: Vec<HashMap<usize, f64>>,
 }
 
 impl<SD: SpringDerivation + Sync + Send> GravityAndSoftSphereEventForce<SD> {
   pub fn new(n: usize, spring_derivation: SD, desired_collision_step_count: i32) -> GravityAndSoftSphereEventForce<SD> {
-    let collision_velocity = vec![HashMap::<(usize, usize), f64>::new(); n];
+    let collision_velocity = vec![HashMap::<usize, f64>::new(); n];
     GravityAndSoftSphereEventForce { spring_derivation, desired_collision_step_count, collision_velocity }
   }
 
@@ -148,7 +148,8 @@ impl<SD: SpringDerivation + Sync + Send> GravityAndSoftSphereEventForce<SD> {
 }
 
 impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEventForce<SD> {
-  type SingleParticleData = HashMap<(usize, usize), f64>;
+  type SingleParticleData = HashMap<usize, f64>;
+  type ParticlePairData = f64;
 
   fn get_all_particle_data(&mut self) -> Vec<Self::SingleParticleData> {
     //println!("Get SPD: {:?}", self.collision_velocity);
@@ -160,13 +161,21 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     //println!("Set SPD: {:?}", self.collision_velocity);
   }
 
+  // TODO: pass in batch so we only check the particles that could have changed.
   fn check_data_for_events(&self, next_time: f64) -> Vec<SingleParticleEvent> {
     // TODO: Change this to run in parallel is a Crossbeam queue for the events.
     let mut events = vec![];
     self.collision_velocity.iter().enumerate().for_each(|t| {
       let (i1, v) = t;
-      for ((i2, _), _) in v {
-        if let None = self.collision_velocity[*i2].get(&(i1, 0)) {
+      for (i2, _) in v {
+        let mut matched = false;
+        for (i1_back, _) in &self.collision_velocity[*i2] {
+          if *i1_back == i1 {
+            matched = true;
+            break;
+          }
+        }
+        if !matched {
           println!("No match! {} {}", i1, i2);
           events.push(SingleParticleEvent { event_time: next_time, added_time: next_time, index: *i2 });
         }
@@ -175,44 +184,71 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     events
   }
 
-  fn particle_particle_accel(&self, i1: usize, p1: &Particle, i2: usize, p2: &Particle, spd: &mut Self::SingleParticleData, mirror_num: usize) -> Vector {
+  fn update_particle_pair_data(&self, i1:usize, i2: usize, spd: &mut Self::SingleParticleData, ppd: Option<Self::ParticlePairData>) {
+     match ppd {
+      Some(vel) => {
+        match spd.get(&i2) {
+          Some(_) => {}
+          None => {
+            spd.insert(i2, vel);
+          }
+        }
+      }
+      None => {}
+    };
+  }
+
+  fn combine_particle_pair_data(&self, ppd1: Option<Self::ParticlePairData>, ppd2: Option<Self::ParticlePairData>) -> Option<Self::ParticlePairData> {
+    match ppd1 {
+      Some(v1) =>
+        match ppd2 {
+          Some(v2) => Some(f64::max(v1, v2)),
+          None => ppd1
+        },
+      None => ppd2
+    }
+  }
+
+
+  fn particle_particle_accel(&self, i1: usize, p1: &Particle, i2: usize, p2: &Particle, spd: &mut Self::SingleParticleData, mirror_num: usize) -> (Vector, Option<Self::ParticlePairData>) {
     let dx = p2.x - p1.x;
     let dist = dx.mag();
-    let dv = p2.v - p1.v;
     let separation_distance = dist - (p1.r + p2.r);
-    let close_print = separation_distance < 0.2 * f64::min(p1.r, p2.r);
-    if separation_distance < -3.0* p1.r * self.spring_derivation.get_pen_fraction() {
-      println!("Bad Data i1={}, i2={}, x1={}, x2={}, dx={}, dist={:e}, sep={:e}", i1, i2, p1.x, p2.x, dx, dist, separation_distance);
-    }
-    // if close_print {
-    //   println!("p:p i1:{} i2:{} dx:{} dist:{:e} dv:{} sep_dist:{:e} vel:{:e} impact_vel: {:e} last_impact_vel:{:e} time_int:{}", i1, i2, dx, dist, dv, separation_distance, vel, impact_vel, last_impact_vel, impact_time_interval);
+    let close_print = i1 == 83 && i2 == 73 && separation_distance < 0.2 * f64::min(p1.r, p2.r);
+    // if separation_distance < -10.0* p1.r * self.spring_derivation.get_pen_fraction() {
+    //   println!("Bad Data i1={}, i2={}, mirror={}, x1={}, x2={}, dx={}, dist={:e}, sep={:e}", i1, i2, mirror_num, p1.x, p2.x, dx, dist, separation_distance);
     // }
+    if close_print {
+      println!("p:p i1:{} i2:{} mirror:{} dx:{} dist:{:e} sep_dist:{:e}", i1, i2, mirror_num, dx, dist, separation_distance);
+    }
     if separation_distance > 0.0 {
       // Calculate gravity
       let mag = p2.m / (dist * dist * dist);
       // Clear impact velocity if it exists
-      spd.remove(&(i2, mirror_num));
+      //spd.remove(&(i2, mirror_num));
       // Calculate event time delta
-      // if close_print { println!("gravity {}", dx*mag); }
-      dx * mag
+      if close_print { println!("gravity {}", dx*mag); }
+      (dx * mag, None)
     } else {
+      let dv = p2.v - p1.v;
       let vel = dv.mag();
-      let last_impact_vel = *spd.get(&(i2, mirror_num)).unwrap_or(&0.0);
+      let last_impact_vel = *spd.get(&i2).unwrap_or(&0.0);
       let impact_vel = if last_impact_vel == 0.0 { vel } else { last_impact_vel };
+      // TODO: consider a minimum velocity if things get too squishy.
       let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
       let (b, k) = self.spring_derivation.b_and_k(impact_vel, reduced_mass, f64::max(p1.r, p2.r));
-      // println!("Colliding, i1:{}, i2:{}, dist = {:e}, k={:e}, b={:e}", i1, i2, dist, k, b);
+      if close_print { println!("Colliding, i1:{}, i2:{}, dist = {:e}, k={:e}, b={:e}", i1, i2, dist, k, b); }
       // Calculate collision force
       let f_spring = (dx / dist) * k * separation_distance;
       let f_damp = dv * b * dv.dot(&dx).abs()/vel/dist;
-      // println!("spring {:e} {:e} {} {} {}", k, b, f_spring, f_damp, (f_spring + f_damp) / p1.m);
+      if close_print { println!("spring {:e} {:e} {} {} {}", k, b, f_spring, f_damp, (f_spring + f_damp) / p1.m); }
       // Set impact velocity if not previously set
-      if last_impact_vel == 0.0 {
-        spd.insert((i2, mirror_num), impact_vel);
-      }
+      // if last_impact_vel == 0.0 {
+      //   spd.insert((i2, mirror_num), impact_vel);
+      // }
       // println!("SPD {:?}, {:p}", spd, spd);
 
-      (f_spring + f_damp) / p1.m
+      ((f_spring + f_damp) / p1.m, Some(impact_vel))
     }
   }
 
@@ -222,29 +258,29 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     let dist = dx.mag();
     let dv = p2.v - p1.v;
     let separation_distance = dist - (p1.r + p2.r);
-    let close_print = separation_distance < 0.2 * f64::min(p1.r, p2.r);
+    let close_print = i1 == 83 && i2 == 73 && separation_distance < 0.2 * f64::min(p1.r, p2.r);
     let vel = dv.mag();
-    let impact_vel = *spd.get(&(i2, mirror_num)).unwrap_or(&vel);
+    let impact_vel = *spd.get(&i2).unwrap_or(&vel);
     // let impact_vel = if last_impact_vel == 0.0 { vel } else { last_impact_vel };
     let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
     let (b, k) = self.spring_derivation.b_and_k(impact_vel, reduced_mass, f64::max(p1.r, p2.r));
     let collision_time_step = self.collision_time_step(k, reduced_mass, b);
     let acc = (accels[i1] - accels[i2]).mag();
-    // if close_print {
-    //   println!("p:p i1:{} i2:{} dx:{} dist:{:e} dv:{} sep_dist:{:e} vel:{:e} impact_vel: {:e} last_impact_vel:{:e} collision_step_time:{} ratio:{}", i1, i2, dx, dist, dv, separation_distance, vel, impact_vel, last_impact_vel, collision_time_step, separation_distance / (f64::max(p1.r, p2.r) * self.spring_derivation.get_pen_fraction()));
-    // }
+    if close_print {
+      println!("p:p i1:{} i2:{} mirror:{} dx:{} dist:{:e} dv:{} sep_dist:{:e} vel:{:e} impact_vel: {:e} collision_step_time:{} ratio:{}", i1, i2, mirror_num, dx, dist, dv, separation_distance, vel, impact_vel, collision_time_step, separation_distance / (f64::max(p1.r, p2.r) * self.spring_derivation.get_pen_fraction()));
+    }
     if separation_distance > 0.0 {
       // Calculate gravity
       let gravity_time_step = self.gravity_time_step(separation_distance, vel, acc);
       let relative_speed_estimate = 3.0 * (p1.r + p2.r);
       let safe_motion_time_step = self.safe_motion_time_step(separation_distance, relative_speed_estimate, acc, p1.r, p2.r);
-      // if close_print {
-      //   println!("acc:{:e} gravity_time_step:{} safe_motion_time_step:{}", acc, gravity_time_step, safe_motion_time_step);
-      // }
+      if close_print {
+        println!("acc:{:e} gravity_time_step:{} safe_motion_time_step:{}", acc, gravity_time_step, safe_motion_time_step);
+      }
       f64::min(safe_motion_time_step, f64::max(collision_time_step, gravity_time_step))
     } else {
       let safe_collision_time_step = self.safe_collision_time_step(vel, acc, p1.r, p2.r);
-      // println!("i1:{} i2:{} safe_collision_time_step:{}", i1, i2, safe_collision_time_step);
+      if close_print { println!("i1:{} i2:{} safe_collision_time_step:{}", i1, i2, safe_collision_time_step); }
       f64::min(collision_time_step, safe_collision_time_step)
     }
   }

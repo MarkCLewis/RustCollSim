@@ -1,10 +1,12 @@
 use rust_coll_sim::boundary_conditions::azimuthal_only::AzimuthalOnly;
+use rust_coll_sim::boundary_conditions::open_boundaries::OpenBoundary;
 use rust_coll_sim::forces::brute_force_particle_traversal::BruteForceParticleTraversal;
 use rust_coll_sim::design::coords::{
   CartCoords,
   GCCoords, gc_to_cart
 };
 
+use rust_coll_sim::forces::central_force::CentralForce;
 use rust_coll_sim::forces::single_particle_event_force::SingleParticleEventForcing;
 use rust_coll_sim::forces::gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce;
 use rust_coll_sim::forces::heap_pq::HeapPQ;
@@ -20,22 +22,16 @@ use rust_coll_sim::outputs::text_file_output::TextFileOutput;
 use rust_coll_sim::vectors::Vector;
 
 use std::f64;
-use std::fs::File;
-use std::io::Write;
-
 
 fn main() {
-  const NUM_BODIES: usize = 10000;
+  const NUM_BODIES: usize = 1000;
   let dt = 0.001 * 2.0 * std::f64::consts::PI;
-  let sx = 2e-7;
-  let sy = 2e-7;
-  let rad = 1e-9;
-  const CENTRAL_MASS: f64 = 5.683e26; // kg
-  const R0: f64 = 1.33e8; // m
-  const RHO: f64 = 500.0; // kg/m^3
-  let density = RHO * R0 * R0 * R0 / CENTRAL_MASS;
-  // let bc = SlidingBrickBoundary::new(sx, sy, dt);
-  let bc = AzimuthalOnly::new(sx, sy);
+  let sx = 2.0;
+  let sy = 2.0;
+  let sz = 2.0;
+  let rad = 1e-2;
+  let density = 1000.0;
+  let bc = OpenBoundary {};
   let mut parts: Vec<Particle> = vec![];
   let mut hard_code = vec![];
   //   Particle {
@@ -59,14 +55,6 @@ fn main() {
     if !hard_code.is_empty() {
       parts.push(hard_code.pop().unwrap());
     } else {
-      // let gc = GCCoords {
-      //   X: 1e-9 * i as f64,
-      //   Y: 2e-9 * i as f64,
-      //   e: 0.0,
-      //   i: 0.0,
-      //   phi: 0.0,
-      //   zeta: 0.0
-      // };
       let gc = GCCoords {
         X: fastrand::f64() * sx - 0.5 * sx,
         Y: fastrand::f64() * sy - 0.5 * sy,
@@ -75,14 +63,25 @@ fn main() {
         phi: fastrand::f64() * 2.0 * std::f64::consts::PI,
         zeta: fastrand::f64() * 2.0 * std::f64::consts::PI
       };
-      let cc = gc_to_cart(&gc);
+      let cc = CartCoords {
+        p: Vector::new(
+          fastrand::f64() * sx - 0.5 * sx,
+          fastrand::f64() * sy - 0.5 * sy,
+          fastrand::f64() * sz - 0.5 * sz,
+        ),
+        v: Vector::new(
+          0.0,
+          0.0,
+          0.0,
+        ),
+      };
       let mut safe = true;
       if cc.p.x() < -sx * 0.5 + rad || cc.p.x() > sx * 0.5 - rad ||
           cc.p.y() < -sx * 0.5 + rad || cc.p.y() > sx * 0.5 - rad {
             safe = false;
       } else {
         for p in parts.iter() {
-          if (p.x - cc.p).mag() < p.r + 1.2e-9 {
+          if (p.x - cc.p).mag() < 2.1 * rad {
             safe = false;
             break;
           }
@@ -108,9 +107,9 @@ fn main() {
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
-  let hills_force = HillsForce::new(dt);
-  let force = DoubleForce::<HillsForce, GravForce>::new(hills_force, grav_coll_force);
-  let output = TextFileOutput::new( 20, "data.txt");
+  let central_force = CentralForce::new(dt);
+  let force = DoubleForce::<HillsForce, GravForce>::new(central_force, grav_coll_force);
+  let output = TextFileOutput::new( 1, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
   for i in 0..10000 {

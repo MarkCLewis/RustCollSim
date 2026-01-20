@@ -66,10 +66,13 @@ pub trait EventQueue {
 
 pub trait EventForce: Sync {
   type SingleParticleData: Sync + Send + Default + Debug;
+  type ParticlePairData: Sync + Send + Default + Debug;
   fn get_all_particle_data(&mut self) -> Vec<Self::SingleParticleData>;
   fn set_all_particle_data(&mut self, spds: Vec<Self::SingleParticleData>);
   fn check_data_for_events(&self, next_time: f64) -> Vec<SingleParticleEvent>;
-  fn particle_particle_accel(&self, i1: usize, p1: &Particle, i2: usize, p2: &Particle, spd: &mut Self::SingleParticleData, mirror_num: usize) -> Vector;
+  fn update_particle_pair_data(&self, i1:usize, i2: usize, spd: &mut Self::SingleParticleData, ppd: Option<Self::ParticlePairData>);
+  fn combine_particle_pair_data(&self, ppd1: Option<Self::ParticlePairData>, ppd2: Option<Self::ParticlePairData>) -> Option<Self::ParticlePairData>;
+  fn particle_particle_accel(&self, i1: usize, p1: &Particle, i2: usize, p2: &Particle, spd: &mut Self::SingleParticleData, mirror_num: usize) -> (Vector, Option<Self::ParticlePairData>);
   fn particle_particle_time_step(&self, i1: usize, p1: &Particle, i2: usize, p2: &Particle, spd: &Self::SingleParticleData, accels: &Vec<Vector>, mirror_num: usize) -> f64;
   fn particle_group_accel(&self, i1: usize, p1: &Particle, cm_x: &Vector, cm_m: f64, dt: f64) -> Vector;
 }
@@ -171,9 +174,10 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
         event
       }));
       let next_time = self.queue.next_time();
-      if let Some(next_time) = next_time {
-        self.queue.enqueue_many(self.event_force.check_data_for_events(next_time));
-      }
+      // TODO: Put this back, but handle accelerations diferently. Don't kick until dequeue.
+      // if let Some(next_time) = next_time {
+      //   self.queue.enqueue_many(self.event_force.check_data_for_events(next_time));
+      // }
     }
   }
 }

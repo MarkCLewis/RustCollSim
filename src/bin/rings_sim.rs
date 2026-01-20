@@ -32,7 +32,7 @@ fn main() {
   const RHO: f64 = 500.0; // kg/m^3
   let density = RHO * R0 * R0 * R0 / CENTRAL_MASS;
   // let bc = SlidingBrickBoundary::new(sx, sy, dt);
-  let bc = AzimuthalOnly::new(sx, sy);
+  let bc = AzimuthalOnly::new(sy);
   let mut parts: Vec<Particle> = vec![];
   let mut hard_code = vec![];
   //   Particle {
@@ -100,7 +100,7 @@ fn main() {
   type Trav<'a> = BruteForceParticleTraversal;
   let traverser = BruteForceParticleTraversal::new();
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
-  let spring = Rotter::new(0.5, 0.02);
+  let spring = Rotter::new(0.5, 0.1);
   let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
