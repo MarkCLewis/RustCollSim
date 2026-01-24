@@ -23,20 +23,20 @@ impl SlidingBrickBoundary {
         if p.x.x() < -bx {
             p.x[Axis::X] += self.sx;
             p.x[Axis::Y] += self.y_offset;
-            while p.x[Axis::Y] > self.sy * 0.5 {
+            while p.x[Axis::Y] > by {
               p.x[Axis::Y] -= self.sy;
             }
-            while p.x[Axis::Y] < -self.sy * 0.5 {
+            while p.x[Axis::Y] < -by {
               p.x[Axis::Y] += self.sy;
             }
             p.v[Axis::Y] -= 1.5 * self.sx;
         } else if p.x.x() > bx {
             p.x[Axis::X] -= self.sx;
             p.x[Axis::Y] -= self.y_offset;
-            while p.x[Axis::Y] > self.sy * 0.5 {
+            while p.x[Axis::Y] > by {
               p.x[Axis::Y] -= self.sy;
             }
-            while p.x[Axis::Y] < -self.sy * 0.5 {
+            while p.x[Axis::Y] < -by {
               p.x[Axis::Y] += self.sy;
             }
             p.v[Axis::Y] += 1.5 * self.sx;
@@ -63,8 +63,8 @@ impl BoundaryCondition for SlidingBrickBoundary {
         (Vector::new(self.sx, base_y_offset + self.sy, 0.0), Vector::new(0.0, -1.5 * self.sx, 0.0)),
         (Vector::new(self.sx, base_y_offset + 2.0 * self.sy, 0.0), Vector::new(0.0, -1.5 * self.sx, 0.0)),
         (Vector::new(-self.sx, -base_y_offset, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
-        (Vector::new(-self.sx, -base_y_offset + self.sy, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
-        (Vector::new(-self.sx, -base_y_offset + 2.0 * self.sy, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
+        (Vector::new(-self.sx, -base_y_offset - self.sy, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
+        (Vector::new(-self.sx, -base_y_offset - 2.0 * self.sy, 0.0), Vector::new(0.0, 1.5 * self.sx, 0.0)),
       ])
     }
 
@@ -200,7 +200,7 @@ impl<'a, 'b> Iterator for SlidingBrickIterator<'a, 'b> {
         // Second mirror in -X
         Some(
           Particle::new(
-            p.x - Vector::new(self.boundary.sx, self.base_y_offset + self.boundary.sy, 0.0),
+            p.x - Vector::new(self.boundary.sx, self.base_y_offset - self.boundary.sy, 0.0),
             p.v + Vector::new(0.0, 1.5 * self.boundary.sx, 0.0),
             p.m,
             p.r,
@@ -212,7 +212,7 @@ impl<'a, 'b> Iterator for SlidingBrickIterator<'a, 'b> {
         // Third mirror in -X
         Some(
           Particle::new(
-            p.x - Vector::new(self.boundary.sx, self.base_y_offset + 2.0 * self.boundary.sy, 0.0),
+            p.x - Vector::new(self.boundary.sx, self.base_y_offset - 2.0 * self.boundary.sy, 0.0),
             p.v + Vector::new(0.0, 1.5 * self.boundary.sx, 0.0),
             p.m,
             p.r,

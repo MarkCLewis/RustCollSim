@@ -168,13 +168,7 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     self.collision_velocity.iter().enumerate().for_each(|t| {
       let (i1, v) = t;
       for (i2, _) in v {
-        let mut matched = false;
-        for (i1_back, _) in &self.collision_velocity[*i2] {
-          if *i1_back == i1 {
-            matched = true;
-            break;
-          }
-        }
+        let matched = self.collision_velocity[*i2].contains_key(&i1);
         if !matched {
           println!("No match! {} {}", i1, i2);
           events.push(SingleParticleEvent { event_time: next_time, added_time: next_time, index: *i2 });

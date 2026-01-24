@@ -35,22 +35,21 @@ impl Particle {
       time,
     }
   }
-  // pub fn advance(&mut self, dt: f64) {
-  //   self.x += self.v * dt;
-  //   self.time += dt;
-  //   println!("Advance by {} x:{} time:{}", dt, self.x, self.time);
+
+  // pub fn advance_to(&mut self, time: f64) {
+  //   self.x += self.v * (time - self.time);
+  //   self.time = time;
   // }
-  pub fn advance_to(&mut self, time: f64) {
-    self.x += self.v * (time - self.time);
+
+  pub fn advance_to_with_acc(&mut self, acc: &Vector, time: f64) {
+    let delta_t = time - self.time;
+    self.v += *acc * delta_t;
+    self.x += self.v * delta_t;
     self.time = time;
-//    println!("Advance to {} x:{}", time, self.x);
   }
-  pub fn kick(&mut self, dv: &Vector) {
-    self.v += *dv;
-  }
-  // pub fn finish_step(&mut self, dt: f64) {
-  //   self.x += self.v * (dt - self.time);
-  //   self.time = 0.0;
+
+  // pub fn kick(&mut self, dv: &Vector) {
+  //   self.v += *dv;
   // }
 }
 

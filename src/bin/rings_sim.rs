@@ -22,17 +22,17 @@ use rust_coll_sim::vectors::Vector;
 use std::f64;
 
 fn main() {
-  const NUM_BODIES: usize = 5000;
+  const NUM_BODIES: usize = 100;
   let dt = 0.001 * 2.0 * std::f64::consts::PI;
-  let sx = 2e-7;
-  let sy = 2e-7;
+  let sx = 2e-8;
+  let sy = 2e-8;
   let rad = 1e-9;
   const CENTRAL_MASS: f64 = 5.683e26; // kg
   const R0: f64 = 1.33e8; // m
   const RHO: f64 = 500.0; // kg/m^3
   let density = RHO * R0 * R0 * R0 / CENTRAL_MASS;
-  // let bc = SlidingBrickBoundary::new(sx, sy, dt);
-  let bc = AzimuthalOnly::new(sy);
+  let bc = SlidingBrickBoundary::new(sx, sy, dt);
+  // let bc = AzimuthalOnly::new(sy);
   let mut parts: Vec<Particle> = vec![];
   let mut hard_code = vec![];
   //   Particle {
@@ -100,14 +100,14 @@ fn main() {
   type Trav<'a> = BruteForceParticleTraversal;
   let traverser = BruteForceParticleTraversal::new();
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
-  let spring = Rotter::new(0.5, 0.1);
+  let spring = Rotter::new(0.5, 0.02);
   let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
   let hills_force = HillsForce::new(dt);
   let force = DoubleForce::<HillsForce, GravForce>::new(hills_force, grav_coll_force);
-  let output = TextFileOutput::new(20, "data.txt");
+  let output = TextFileOutput::new(1, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
   for i in 0..10000 {

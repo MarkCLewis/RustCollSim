@@ -118,10 +118,6 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       // println!("first time i1:{} {} {} {}", i1, accels[i1], p1.v, time_step);
       (accels[i1] * time_step, if time_step < self.dt { Some(SingleParticleEvent::new(time_step, 0.0, i1))} else { None })
     }).unzip();
-    pop.particles_mut().par_iter_mut().zip(delta_vs.par_iter()).for_each(|t| {
-      let (p1, dv) = t;
-      p1.kick(&dv);
-    });
     // println!("Enqueue {} events", events.len());
     self.queue.enqueue_many_optional(events);
     // println!("pop size {}, spds size {}", pop.particles().len(), spds.len());
@@ -134,8 +130,9 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       let mut elements: Vec<usize> = batch.into_iter().map(|spe| spe.index ).collect();
       elements.sort();
       elements.dedup();
-      pop.particles_mut().par_iter_mut().for_each(|p| {
-        p.advance_to(common_time);
+      pop.particles_mut().par_iter_mut().enumerate().for_each(|t| {
+        let (i, p) = t;
+        p.advance_to_with_acc(&accels[i], common_time);
         assert_eq!(common_time, p.time);
       });
       let mut spds = self.event_force.get_all_particle_data();
@@ -146,39 +143,30 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       for i in 0..elements.len() {
         accels[elements[i]] = accels_small[i];
       }
-      let mut dvs_and_events: Vec<(Vector, Option<SingleParticleEvent>)> = vec![(Vector::new(0.0, 0.0, 0.0), None); elements.len()];
-      // parallel_subset_process_recur_mut1_data_res(pop.particles_mut(), &elements[..], &accels[..], &mut new_events[..], &|index, p, td| {
-      //   let (delta_t, delta_v) = td;
-      parallel_subset_process_recur_mut_res(pop.particles(), &mut spds[..], &elements[..], &mut dvs_and_events[..], &|index, p, spd| {
+      let mut events: Vec<Option<SingleParticleEvent>> = vec![None; elements.len()];
+      parallel_subset_process_recur_mut_res(pop.particles(), &mut spds[..], &elements[..], &mut events[..], &|index, p, spd| {
         let time_step = self.traverser.time_step_for_one(index, p, spd, &self.event_force, pop, &accels);
         let time_step = check_time_step(time_step, p.time, self.dt);
-        let dv = accels[index] * time_step;
-        // p.kick(&dv);
-        // println!("post-kick {} {} {} {} {:e}", index, dv, p.v, common_time, time_step);
         assert_eq!(common_time, p.time);
         assert!(time_step > 0.0);
-        (dv, if time_step + common_time < self.dt - 1e-12 * self.dt {  // Account for epsilon in float error.
+        if time_step + common_time < self.dt - 1e-12 * self.dt {  // Account for epsilon in float error.
           Some(SingleParticleEvent::new(common_time + time_step, common_time, index))
         } else {
           None
-        })
+        }
       });
       self.event_force.set_all_particle_data(spds);
-      parallel_subset_process_recur_mut1_data(pop.particles_mut(), &elements[..], &dvs_and_events[..], &|index, p, td| {
-        let (delta_v,_) = td;
-        p.kick(&delta_v);
-        // println!("post-kick {} {} {}", index, delta_v, p.v);
-      });
-      self.queue.enqueue_many_optional(dvs_and_events.into_iter().map(|t| {
-        let (_, event) = t;
-        event
-      }));
+      self.queue.enqueue_many_optional(events);
       let next_time = self.queue.next_time();
       // TODO: Put this back, but handle accelerations diferently. Don't kick until dequeue.
-      // if let Some(next_time) = next_time {
-      //   self.queue.enqueue_many(self.event_force.check_data_for_events(next_time));
-      // }
+      if let Some(next_time) = next_time {
+        self.queue.enqueue_many(self.event_force.check_data_for_events(next_time));
+      }
     }
+    pop.particles_mut().par_iter_mut().enumerate().for_each(|t| {
+      let (i, p) = t;
+      p.advance_to_with_acc(&accels[i], self.dt);
+    });
   }
 }
 
