@@ -1,6 +1,6 @@
 use rust_coll_sim::boundary_conditions::azimuthal_only::AzimuthalOnly;
 use rust_coll_sim::boundary_conditions::open_boundaries::OpenBoundary;
-use rust_coll_sim::forces::brute_force_particle_traversal::BruteForceParticleTraversal;
+use rust_coll_sim::forces::brute_force_particle_traverser::BruteForceParticleTraverser;
 use rust_coll_sim::design::coords::{
   CartCoords,
   GCCoords, gc_to_cart
@@ -99,8 +99,8 @@ fn main() {
   }
   type Pop = BasicPopulation<SlidingBrickBoundary>;
   let pop = BasicPopulation::new(parts, bc);
-  type Trav<'a> = BruteForceParticleTraversal;
-  let traverser = BruteForceParticleTraversal::new();
+  type Trav<'a> = BruteForceParticleTraverser;
+  let traverser = BruteForceParticleTraverser::new();
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
   let spring = Rotter::new(0.5, 0.02);
   let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);

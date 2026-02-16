@@ -2,16 +2,20 @@
 
 use crate::{forces::{single_particle_event_force::{EventForce, Traverser}}, design::system::{BoundaryCondition, Particle, Population}, vectors::Vector};
 
-pub struct BruteForceParticleTraversal {
+pub struct BruteForceParticleTraverser {
 }
 
-impl BruteForceParticleTraversal {
-  pub fn new() -> BruteForceParticleTraversal {
-    BruteForceParticleTraversal { }
+impl BruteForceParticleTraverser {
+  pub fn new() -> BruteForceParticleTraverser {
+    BruteForceParticleTraverser { }
   }
 }
 
-impl Traverser for BruteForceParticleTraversal {
+impl Traverser for BruteForceParticleTraverser {
+  fn advance_all_on_substep() -> bool {
+    true
+  }
+
   fn setup(&mut self, pop: &impl Population) {}
 
   fn accel_for_one<F: EventForce>(&self, i1: usize, p1: &Particle, spd1: &mut F::SingleParticleData, force: &F, pop: &impl Population) -> Vector {

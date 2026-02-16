@@ -1,10 +1,11 @@
 use rust_coll_sim::boundary_conditions::azimuthal_only::AzimuthalOnly;
-use rust_coll_sim::forces::brute_force_particle_traversal::BruteForceParticleTraversal;
+use rust_coll_sim::forces::brute_force_particle_traverser::BruteForceParticleTraverser;
 use rust_coll_sim::design::coords::{
   CartCoords,
   GCCoords, gc_to_cart
 };
 
+use rust_coll_sim::forces::kdtree_particle_traverser::KDTreeParticleTraverser;
 use rust_coll_sim::forces::single_particle_event_force::SingleParticleEventForcing;
 use rust_coll_sim::forces::gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce;
 use rust_coll_sim::forces::heap_pq::HeapPQ;
@@ -31,8 +32,8 @@ fn main() {
   const R0: f64 = 1.33e8; // m
   const RHO: f64 = 500.0; // kg/m^3
   let density = RHO * R0 * R0 * R0 / CENTRAL_MASS;
-  let bc = SlidingBrickBoundary::new(sx, sy, dt);
-  // let bc = AzimuthalOnly::new(sy);
+  // let bc = SlidingBrickBoundary::new(sx, sy, dt);
+  let bc = AzimuthalOnly::new(sy);
   let mut parts: Vec<Particle> = vec![];
   let mut hard_code = vec![];
   //   Particle {
@@ -97,8 +98,8 @@ fn main() {
   }
   type Pop = BasicPopulation<SlidingBrickBoundary>;
   let pop = BasicPopulation::new(parts, bc);
-  type Trav<'a> = BruteForceParticleTraversal;
-  let traverser = BruteForceParticleTraversal::new();
+  type Trav<'a> = KDTreeParticleTraverser;
+  let traverser = KDTreeParticleTraverser::new(NUM_BODIES);
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
   let spring = Rotter::new(0.5, 0.02);
   let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);
