@@ -53,6 +53,44 @@ impl Particle {
   // }
 }
 
+pub fn two_bodies() -> Vec<Particle> {
+  let mut bodies = Vec::new();
+  bodies.push(Particle { x: Vector::new(0.0, 0.0, 0.0), 
+                         v: Vector::new(0.0, 0.0, 0.0), r: 1.0, m: 1.0, time: 0.0 });
+  bodies.push(Particle { x: Vector::new(1.0, 0.0, 0.0), 
+                         v: Vector::new(0.0, 1.0, 0.0), r: 1e-4, m: 1e-20, time: 0.0 });
+  bodies
+}
+
+pub fn circular_orbits(n: usize) -> Vec<Particle> {
+  let mut particle_buf = vec![];
+    particle_buf.push(Particle {
+      x: Vector::new(0.0, 0.0, 0.0),
+      v: Vector::new(0.0, 0.0, 0.0),
+      r: 0.00465047,
+      m: 1.0,
+      time: 0.0,
+    });
+
+    for i in 0..n {
+        let d = 0.1 + ((i as f64) * 5.0 / (n as f64));
+        let v = f64::sqrt(1.0 / d);
+        let theta = fastrand::f64() * 6.28;
+        let x = d * f64::cos(theta);
+        let y = d * f64::sin(theta);
+        let vx = -v * f64::sin(theta);
+        let vy = v * f64::cos(theta);
+        particle_buf.push(Particle {
+            x: Vector::new(x, y, 0.0),
+            v: Vector::new(vx, vy, 0.0),
+            m: 1e-14,
+            r: 1e-7,
+            time: 0.0,
+        });
+    }
+    particle_buf
+}
+
 pub trait Population: Sync + Send {
   type Boundary: BoundaryCondition;
   fn particles(&self) -> &[Particle];

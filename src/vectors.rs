@@ -1,5 +1,7 @@
 use core::fmt;
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, Neg, Sub, SubAssign};
+use std::{f64, ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, Neg, Sub, SubAssign}};
+
+use approx::{AbsDiffEq, RelativeEq};
 
 #[inline(always)]
 fn square(x: f64) -> f64 {

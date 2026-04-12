@@ -28,6 +28,8 @@ indicatif = "0.17.3"
 rayon = "1.11.0"
 num_cpus = "1.17.0"
 
+approx = "0.5"
+
 # resvg = "0.23.0"
 
 # piston = "0.53.0"

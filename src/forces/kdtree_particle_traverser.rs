@@ -1,3 +1,5 @@
+use std::ops::AddAssign;
+
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rayon::{join, prelude::*};
 
@@ -10,7 +12,7 @@ use crate::{
 };
 
 const MAX_PARTS: usize = 8;
-const THETA: f64 = 0.3;
+const THETA: f64 = 0.1;
 const NEGS: [usize; MAX_PARTS] = [usize::MAX; MAX_PARTS];
 
 #[derive(Clone, Copy, Debug)]
@@ -166,7 +168,7 @@ pub fn build_tree_par3_chunk(
             split_dim = Axis::Z
         }
         let size = max[split_dim] - min[split_dim];
-        // println!("size = {}, split_dim={:?}, min={}, max={}",size, split_dim, max[split_dim], min[split_dim]);
+        println!("cur_node = {}, size = {}, split_dim={:?}, min={}, max={}",cur_node, size, split_dim, max[split_dim], min[split_dim]);
 
         // Partition particles on split_dim
         let mid = indices.len() / 2;
@@ -259,12 +261,14 @@ impl KDTreeParticleTraverser {
         offset_x: &Vector,
         offset_v: &Vector,
     ) -> Vector {
-        // println!("accel {}", cur_node);
+        let do_print = i1 == 704 || i1==584;
+        if do_print { println!("accel {} {}", i1, cur_node); }
         match self.nodes[cur_node] {
             KDTree::Leaf {
                 num_parts,
                 leaf_parts,
             } => {
+                if do_print { println!("leaf {} {:?}", num_parts, leaf_parts); }
                 let mut acc = Vector::new(0.0, 0.0, 0.0);
                 for i in 0..(num_parts) {
                     let i2 = leaf_parts[i];
@@ -278,6 +282,7 @@ impl KDTreeParticleTraverser {
                         ppd.iter().for_each(|ppd| ppds.push((i2, *ppd)));
                     }
                 }
+                if do_print { println!("leaf acc {}", acc); }
                 acc
             }
             KDTree::Internal {
@@ -289,13 +294,19 @@ impl KDTreeParticleTraverser {
                 right,
                 ..
             } => {
-                let cm = cmx + cmv * p1.time;
+                let offset_cmx = cmx + *offset_x;
+                let offset_cmv = cmv + *offset_v;
+                let cm = offset_cmx + offset_cmv * p1.time;
                 // println!("{} = {} + {} * {}", cm, cmx, cmv, p1.time);
                 let dx = p1.x - cm;
                 let dist_sqr = dx.mag_sq();
-                // println!("dist = {:e}, size = {:e}", dist_sqr, size * size);
+                if do_print { println!("dist = {:e}, size = {:e}", dist_sqr, size * size); }
                 if size * size < THETA * THETA * dist_sqr {
-                    force.particle_group_accel(i1, p1, &cm, m)
+                    let acc = force.particle_group_accel(i1, p1, &cm, m);
+                    if do_print { 
+                        println!("group acc {} {} {}", i1, cur_node, acc);
+                    }
+                    acc
                 } else {
                     let left_acc = self.accel_recur(
                         left, i1, p1, spd1, force, particles, ppds, mirror_num, offset_x, offset_v,
@@ -303,6 +314,9 @@ impl KDTreeParticleTraverser {
                     let right_acc = self.accel_recur(
                         right, i1, p1, spd1, force, particles, ppds, mirror_num, offset_x, offset_v,
                     );
+                    if do_print { 
+                        println!("children acc {} {} {}", cur_node, left_acc, right_acc);
+                    }
                     left_acc + right_acc
                 }
             }
@@ -322,7 +336,7 @@ impl KDTreeParticleTraverser {
         offset_x: &Vector,
         offset_v: &Vector,
     ) -> f64 {
-        println!("time {}", cur_node);
+        // println!("time {}", cur_node);
         match self.nodes[cur_node] {
             KDTree::Leaf {
                 num_parts,
@@ -338,7 +352,7 @@ impl KDTreeParticleTraverser {
                         let t = force
                             .particle_particle_time_step(i1, p1, i2, &p2, spd1, accs, mirror_num);
                         time = f64::min(t, time);
-                        println!("p:p time {} {} {:e}", i1, i2, time);
+                        // println!("p:p time {} {} {:e}", i1, i2, time);
                     }
                 }
                 time
@@ -365,7 +379,7 @@ impl KDTreeParticleTraverser {
                     let right_time = self.time_recur(
                         right, i1, p1, spd1, force, particles, accs, mirror_num, offset_x, offset_v,
                     );
-                    println!("Recur time {:e} {:e}", left_time, right_time);
+                    // println!("Recur time {:e} {:e}", left_time, right_time);
                     f64::min(left_time, right_time)
                 }
             }
@@ -382,7 +396,7 @@ impl Traverser for KDTreeParticleTraverser {
         // Build the tree
         let mut indices: Vec<usize> = (0..pop.particles().len()).collect();
         build_tree_par3_chunk(&mut indices, 0, pop.particles(), &mut self.nodes[..], 1);
-        println!("{:?}", self.nodes)
+        // println!("{:?}", self.nodes)
     }
 
     fn accel_for_one<F: EventForce>(
@@ -447,5 +461,265 @@ impl Traverser for KDTreeParticleTraverser {
             }
         }
         total_time
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use approx::assert_relative_eq;
+
+    use crate::boundary_conditions::open_boundaries::OpenBoundary;
+    use crate::design::basic_population::BasicPopulation;
+    use crate::design::system::{self, BoundaryCondition, Particle, Population};
+    use crate::forces::kdtree_particle_traverser;
+    use crate::forces::kdtree_particle_traverser::KDTreeParticleTraverser;
+    use crate::forces::single_particle_event_force::Traverser;
+    use crate::vectors::{Axis, Vector};
+
+    #[test]
+    fn single_node() {
+        let parts = system::two_bodies();
+        let bc = OpenBoundary::new();
+        let pop = BasicPopulation::new(parts, bc);
+        let mut trav = KDTreeParticleTraverser::new(pop.particles().len());
+        assert_eq!(trav.nodes.len(), 1);
+        trav.setup(&pop);
+        match trav.nodes[0] {
+            kdtree_particle_traverser::KDTree::Leaf { num_parts, .. } => {
+                assert_eq!(num_parts, pop.particles().len())
+            }
+            _ => assert!(false, "Root isn't leaf of right size when small."),
+        };
+    }
+
+    #[test]
+    fn two_leaves() {
+        let parts = system::circular_orbits(11);
+        let bc = OpenBoundary::new();
+        let pop = BasicPopulation::new(parts, bc);
+        let mut trav =
+            kdtree_particle_traverser::KDTreeParticleTraverser::new(pop.particles().len());
+        trav.setup(&pop);
+        recur_test_tree_struct(
+            0,
+            &trav.nodes,
+            pop.particles(),
+            Vector::new(-1e100, -1e100, -1e100),
+            Vector::new(1e100, 1e100, 1e100),
+        );
+        assert!(std::matches!(
+            trav.nodes[0],
+            kdtree_particle_traverser::KDTree::Internal { .. }
+        ));
+        match (trav.nodes[1], trav.nodes[2]) {
+            (
+                kdtree_particle_traverser::KDTree::Leaf { num_parts: n1, .. },
+                kdtree_particle_traverser::KDTree::Leaf { num_parts: n2, .. },
+            ) => {
+                assert_eq!(n1 + n2, 12);
+            }
+            _ => assert!(false, "Node vectors weren't leaves."),
+        }
+    }
+
+    #[test]
+    fn big_solar() {
+        let parts = system::circular_orbits(5000);
+        let bc = OpenBoundary::new();
+        let pop = BasicPopulation::new(parts, bc);
+        let mut trav =
+            kdtree_particle_traverser::KDTreeParticleTraverser::new(pop.particles().len());
+        trav.setup(&pop);
+        recur_test_tree_struct(
+            0,
+            &trav.nodes,
+            pop.particles(),
+            Vector::new(-1e100, -1e100, -1e100),
+            Vector::new(1e100, 1e100, 1e100),
+        );
+    }
+
+    fn simple_sim<BC: BoundaryCondition>(
+        pop: &BasicPopulation<BC>,
+        tree: &mut KDTreeParticleTraverser,
+        dt: f64,
+        steps: i64,
+    ) {
+        let mut acc = Vec::new();
+        for _ in 0..pop.particles().len() {
+            acc.push(Vector::new(0.0, 0.0, 0.0))
+        }
+        // let mut time = Instant::now();
+        for _step in 0..steps {
+            // if step % 100 == 0 {
+            //     let elapsed_secs = time.elapsed().as_nanos() as f64 / 1e9;
+            //     println!("Step = {}, duration = {}, n = {}, nodes = {}", step, elapsed_secs, bodies.len(), tree.len());
+            //     time = Instant::now();
+            // }
+            // for i in 0..bodies.len() {
+            //     indices[i] = i;
+            // }
+            // build_tree(&mut indices, 0, bodies.len(), bodies, 0, &mut tree);
+            tree.setup(pop);
+            // if step % 10 == 0 {
+            //     print_tree(step, &tree, &bodies);
+            // }
+            // acc.iter_mut().enumerate().for_each(|(i, acc)| {
+            //   let p1 = pop.particles()[i];
+            //   *acc = tree.accel_for_one(i, p1, &bodies, &tree)
+            // });
+
+            // pop.particles_mut().iter_mut().zip(&mut acc).for_each(|(b, a)| {
+            //     b.v += *a * dt;
+            //     b.x += b.v * dt;
+            //     *a = Vector::new(0.0, 0.0, 0.0);
+            // });
+        }
+    }
+
+    #[test]
+    fn big_solar_with_steps() {
+        let mut parts = system::circular_orbits(5000);
+        let bc = OpenBoundary::new();
+        let mut pop = BasicPopulation::new(parts, bc);
+        let mut trav =
+            kdtree_particle_traverser::KDTreeParticleTraverser::new(pop.particles().len());
+        simple_sim(&pop, &mut trav, 1e-3, 10);
+        trav.setup(&pop);
+        recur_test_tree_struct(
+            0,
+            &trav.nodes,
+            pop.particles(),
+            Vector::new(-1e100, -1e100, -1e100),
+            Vector::new(1e100, 1e100, 1e100),
+        );
+        recur_test_cm_values(0, &trav.nodes, pop.particles());
+    }
+
+    fn recur_test_tree_struct(
+        node: usize,
+        nodes: &Vec<kdtree_particle_traverser::KDTree>,
+        particles: &[system::Particle],
+        mut min: Vector,
+        mut max: Vector,
+    ) {
+        match nodes[node] {
+            kdtree_particle_traverser::KDTree::Leaf {
+                num_parts,
+                leaf_parts,
+            } => {
+                for index in 0..num_parts {
+                    let i = leaf_parts[index];
+                    for dim in Axis::iter() {
+                        assert!(
+                            particles[i].x[dim] >= min[dim],
+                            "Particle dim {:?} is below min. i={} p={} min={}",
+                            dim,
+                            i,
+                            particles[i].x[dim],
+                            min[dim]
+                        );
+                        assert!(
+                            particles[i].x[dim] < max[dim],
+                            "Particle dim {:?} is above max. i={} p={} max={}",
+                            dim,
+                            i,
+                            particles[i].x[dim],
+                            max[dim]
+                        );
+                    }
+                }
+            }
+            kdtree_particle_traverser::KDTree::Internal {
+                split_dim,
+                split_val,
+                left,
+                right,
+                ..
+            } => {
+                let split_dim = split_dim;
+                let tmin = min[split_dim];
+                let tmax = max[split_dim];
+                max[split_dim] = split_val;
+                recur_test_tree_struct(left, nodes, particles, min, max);
+                max[split_dim] = tmax;
+                min[split_dim] = split_val;
+                recur_test_tree_struct(right, nodes, particles, min, max);
+                min[split_dim] = tmin;
+            }
+        }
+    }
+
+    fn recur_test_cm_values(
+        node: usize,
+        nodes: &Vec<kdtree_particle_traverser::KDTree>,
+        particles: &[system::Particle],
+    ) {
+      match nodes[node] {
+            kdtree_particle_traverser::KDTree::Leaf {
+                num_parts,
+                leaf_parts,
+            } => {
+              // No action for a leaf.
+            }
+            kdtree_particle_traverser::KDTree::Internal {
+                m,
+                cmx,
+                cmv,
+                size,
+                split_dim,
+                split_val,
+                left,
+                right,
+            } => {
+                let recur_m = combine_below(node, nodes, particles, &|p| p.m , &|m1, m2| m1 + m2);
+                assert_relative_eq!(m, recur_m);
+                let recur_cmx = combine_below(node, nodes, particles, &|p| p.x * p.m , &|x1, x2| x1 + x2);
+                println!("{} == {} / {}", cmx, recur_cmx, m);
+                assert_relative_eq!(cmx.x(), (recur_cmx / m).x(), max_relative = 1e-10);
+                assert_relative_eq!(cmx.y(), (recur_cmx / m).y(), max_relative = 1e-10);
+                assert_relative_eq!(cmx.z(), (recur_cmx / m).z(), max_relative = 1e-10);
+                let recur_cmv = combine_below(node, nodes, particles, &|p| p.v * p.m , &|v1, v2| v1 + v2);
+                assert_relative_eq!(cmv.x(), (recur_cmv / m).x(), max_relative = 1e-10);
+                assert_relative_eq!(cmv.y(), (recur_cmv / m).y(), max_relative = 1e-10);
+                assert_relative_eq!(cmv.z(), (recur_cmv / m).z(), max_relative = 1e-10);
+                recur_test_cm_values(left, nodes, particles);
+                recur_test_cm_values(right, nodes, particles);
+            }
+        }
+    }
+
+    fn combine_below<E, F: Fn(&Particle) -> E, C: Fn(E, E) -> E>(
+        cur_node: usize,
+        nodes: &Vec<kdtree_particle_traverser::KDTree>,
+        particles: &[Particle],
+        f: &F,
+        combine: &C,
+    ) -> E {
+        match nodes[cur_node] {
+            kdtree_particle_traverser::KDTree::Leaf {
+                num_parts,
+                leaf_parts,
+            } => {
+                let mut sum = f(&particles[leaf_parts[0]]);
+                for i in 1..(num_parts) {
+                    let i2 = leaf_parts[i];
+                    sum = combine(sum, f(&particles[i2]));
+                }
+                sum
+            }
+            kdtree_particle_traverser::KDTree::Internal {
+                m,
+                cmx,
+                cmv,
+                size,
+                left,
+                right,
+                ..
+            } => combine(
+                combine_below(left, nodes, particles, f, combine),
+                combine_below(right, nodes, particles, f, combine),
+            ),
+        }
     }
 }

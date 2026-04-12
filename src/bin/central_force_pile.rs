@@ -7,6 +7,7 @@ use rust_coll_sim::design::coords::{
 };
 
 use rust_coll_sim::forces::central_force::CentralForce;
+use rust_coll_sim::forces::kdtree_particle_traverser::KDTreeParticleTraverser;
 use rust_coll_sim::forces::single_particle_event_force::SingleParticleEventForcing;
 use rust_coll_sim::forces::gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce;
 use rust_coll_sim::forces::heap_pq::HeapPQ;
@@ -25,7 +26,7 @@ use std::f64;
 
 fn main() {
   const NUM_BODIES: usize = 1000;
-  let dt = 0.001 * 2.0 * std::f64::consts::PI;
+  let dt = 0.0001 * 2.0 * std::f64::consts::PI;
   let sx = 2.0;
   let sy = 2.0;
   let sz = 2.0;
@@ -55,14 +56,14 @@ fn main() {
     if !hard_code.is_empty() {
       parts.push(hard_code.pop().unwrap());
     } else {
-      let gc = GCCoords {
-        X: fastrand::f64() * sx - 0.5 * sx,
-        Y: fastrand::f64() * sy - 0.5 * sy,
-        e: fastrand::f64() * 1e-8,
-        i: fastrand::f64() * 3e-9,
-        phi: fastrand::f64() * 2.0 * std::f64::consts::PI,
-        zeta: fastrand::f64() * 2.0 * std::f64::consts::PI
-      };
+      // let gc = GCCoords {
+      //   X: fastrand::f64() * sx - 0.5 * sx,
+      //   Y: fastrand::f64() * sy - 0.5 * sy,
+      //   e: fastrand::f64() * 1e-8,
+      //   i: fastrand::f64() * 3e-9,
+      //   phi: fastrand::f64() * 2.0 * std::f64::consts::PI,
+      //   zeta: fastrand::f64() * 2.0 * std::f64::consts::PI
+      // };
       let cc = CartCoords {
         p: Vector::new(
           fastrand::f64() * sx - 0.5 * sx,
@@ -99,8 +100,10 @@ fn main() {
   }
   type Pop = BasicPopulation<SlidingBrickBoundary>;
   let pop = BasicPopulation::new(parts, bc);
-  type Trav<'a> = BruteForceParticleTraverser;
-  let traverser = BruteForceParticleTraverser::new();
+  // type Trav<'a> = BruteForceParticleTraverser;
+  // let traverser = BruteForceParticleTraverser::new();
+  type Trav<'a> = KDTreeParticleTraverser;
+  let traverser = KDTreeParticleTraverser::new(NUM_BODIES);
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
   let spring = Rotter::new(0.5, 0.02);
   let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);
@@ -109,7 +112,7 @@ fn main() {
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
   let central_force = CentralForce::new(dt);
   let force = DoubleForce::<HillsForce, GravForce>::new(central_force, grav_coll_force);
-  let output = TextFileOutput::new( 1, "data.txt");
+  let output = TextFileOutput::new( 10, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
   for i in 0..10000 {

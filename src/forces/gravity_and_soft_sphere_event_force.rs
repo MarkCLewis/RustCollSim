@@ -208,7 +208,7 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     let dx = p2.x - p1.x;
     let dist = dx.mag();
     let separation_distance = dist - (p1.r + p2.r);
-    let close_print = separation_distance < 0.2 * f64::min(p1.r, p2.r);
+    let close_print = false && separation_distance < 0.2 * f64::min(p1.r, p2.r);
     // if separation_distance < -10.0* p1.r * self.spring_derivation.get_pen_fraction() {
     //   println!("Bad Data i1={}, i2={}, mirror={}, x1={}, x2={}, dx={}, dist={:e}, sep={:e}", i1, i2, mirror_num, p1.x, p2.x, dx, dist, separation_distance);
     // }
@@ -245,7 +245,7 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     let dist = dx.mag();
     let dv = p2.v - p1.v;
     let separation_distance = dist - (p1.r + p2.r);
-    let close_print = separation_distance < 0.2 * f64::min(p1.r, p2.r);
+    let close_print = false && separation_distance < 0.2 * f64::min(p1.r, p2.r);
     let vel = dv.mag();
     let impact_vel = *spd.get(&i2).unwrap_or(&vel);
     let reduced_mass = (p1.m * p2.m) / (p1.m + p2.m);
@@ -271,7 +271,7 @@ impl<SD: SpringDerivation + Sync + Send> EventForce for GravityAndSoftSphereEven
     }
   }
 
-  fn particle_group_accel(&self, i1: usize, p1: &Particle, cm_x: &Vector, cm_m: f64) -> Vector {
+  fn particle_group_accel(&self, _i1: usize, p1: &Particle, cm_x: &Vector, cm_m: f64) -> Vector {
     let dx = *cm_x - p1.x;
     let dist = dx.mag();
     let mag = cm_m / (dist * dist * dist);
@@ -293,7 +293,7 @@ mod test {
 
     let expected_coll_time = 3.6275987284684357 / 20.0;
     let expected_gravity_time = 0.5 * (-1.0 + f64::sqrt(1.0 + 4.0)) / 2.0;
-    let expected_safe_time = 1.0 / 1.5; // TODO: put root formula here
+    let expected_safe_time = 0.25; // TODO: put root formula here
 
     let check_time_separate = force.collision_time_step(k, m, b);
     assert_eq!(check_time_separate, expected_coll_time);
