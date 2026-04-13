@@ -261,7 +261,7 @@ impl KDTreeParticleTraverser {
         offset_x: &Vector,
         offset_v: &Vector,
     ) -> Vector {
-        let do_print = i1 == 704 || i1==584;
+        let do_print = false && (i1 == 704 || i1==5);
         if do_print { println!("accel {} {}", i1, cur_node); }
         match self.nodes[cur_node] {
             KDTree::Leaf {
@@ -274,8 +274,8 @@ impl KDTreeParticleTraverser {
                     let i2 = leaf_parts[i];
                     if i2 != i1 {
                         let mut p2 = particles[i2].clone();
-                        p2.x += *offset_x;
                         p2.v += *offset_v;
+                        p2.x += *offset_x + p2.v * (p1.time - p2.time);
                         let (d_acc, ppd) =
                             force.particle_particle_accel(i1, p1, i2, &p2, spd1, mirror_num);
                         acc += d_acc;
@@ -347,8 +347,8 @@ impl KDTreeParticleTraverser {
                     let i2 = leaf_parts[i];
                     if i2 != i1 {
                         let mut p2 = particles[i2].clone();
-                        p2.x += *offset_x;
                         p2.v += *offset_v;
+                        p2.x += *offset_x + p2.v * (p1.time - p2.time);
                         let t = force
                             .particle_particle_time_step(i1, p1, i2, &p2, spd1, accs, mirror_num);
                         time = f64::min(t, time);
@@ -366,7 +366,9 @@ impl KDTreeParticleTraverser {
                 right,
                 ..
             } => {
-                let cm = cmx + cmv * p1.time;
+                let offset_cmx = cmx + *offset_x;
+                let offset_cmv = cmv + *offset_v;
+                let cm = offset_cmx + offset_cmv * p1.time;
                 let dx = p1.x - cm;
                 let dist_sqr = dx.mag_sq();
                 // println!("dist = {}, size = {}", dist, nodes[cur_node].size);
