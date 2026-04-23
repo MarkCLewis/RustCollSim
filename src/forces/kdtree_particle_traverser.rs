@@ -12,7 +12,7 @@ use crate::{
 };
 
 const MAX_PARTS: usize = 8;
-const THETA: f64 = 0.1;
+const THETA: f64 = 0.3;
 const NEGS: [usize; MAX_PARTS] = [usize::MAX; MAX_PARTS];
 
 #[derive(Clone, Copy, Debug)]
@@ -168,7 +168,7 @@ pub fn build_tree_par3_chunk(
             split_dim = Axis::Z
         }
         let size = max[split_dim] - min[split_dim];
-        println!("cur_node = {}, size = {}, split_dim={:?}, min={}, max={}",cur_node, size, split_dim, max[split_dim], min[split_dim]);
+        // println!("cur_node = {}, size = {}, split_dim={:?}, min={}, max={}",cur_node, size, split_dim, max[split_dim], min[split_dim]);
 
         // Partition particles on split_dim
         let mid = indices.len() / 2;

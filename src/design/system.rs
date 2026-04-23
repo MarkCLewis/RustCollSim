@@ -173,6 +173,6 @@ impl<P: Population, F: Force, Out: Output> System<P, F, Out> {
     self.pop.apply_boundary_condition();
     self.step += 1;
     self.output.output(self.step, &self.pop);
-    println!("v_k = {:e}", self.kinetic_energy());
+    // println!("v_k = {:e}", self.kinetic_energy());
   }
 }
