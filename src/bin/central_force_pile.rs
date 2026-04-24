@@ -35,9 +35,9 @@ fn main() {
   let num_bodies: usize = (1000.0 * size_mult * size_mult * size_mult) as usize;
   println!("num_bodies = {}", num_bodies);
   let dt = 0.0001 * 2.0 * std::f64::consts::PI;
-  let sx = 2.0;
-  let sy = 2.0;
-  let sz = 2.0;
+  let sx = size_mult;
+  let sy = size_mult;
+  let sz = size_mult;
   let rad = 1e-2;
   let density = 1000.0;
   let bc = OpenBoundary {};
@@ -123,7 +123,7 @@ fn main() {
   let output = TextFileOutput::new( 10, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
-  for i in 0..2000 {
+  for i in 0..1000 {
     println!("Step {}", i);
     sys.advance();
   }
