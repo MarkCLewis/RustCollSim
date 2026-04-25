@@ -21,12 +21,20 @@ use rust_coll_sim::outputs::text_file_output::TextFileOutput;
 use rust_coll_sim::vectors::Vector;
 
 use std::f64;
+use std::env;
 
 fn main() {
-  const NUM_BODIES: usize = 10000;
+    let args: Vec<String> = env::args().collect();
+  let size_mult: f64 =   if args.len() > 1 {
+    args[1].parse().expect("Argument must be a number.")
+  } else {
+    1.0
+  };
+  let num_bodies: usize = (10000.0 * size_mult * size_mult) as usize;
+  println!("num_bodies = {}", num_bodies);
   let dt = 0.001 * 2.0 * std::f64::consts::PI;
-  let sx = 2e-7;
-  let sy = 2e-7;
+  let sx = 2e-7 * size_mult;
+  let sy = 2e-7 * size_mult;
   let rad = 1e-9;
   const CENTRAL_MASS: f64 = 5.683e26; // kg
   const R0: f64 = 1.33e8; // m
@@ -52,7 +60,7 @@ fn main() {
   //   }
   // ];
   fastrand::seed(123);
-  while parts.len() < NUM_BODIES {
+  while parts.len() < num_bodies {
     let i = parts.len();
     if !hard_code.is_empty() {
       parts.push(hard_code.pop().unwrap());
@@ -101,10 +109,10 @@ fn main() {
   // type Trav<'a> = BruteForceParticleTraverser;
   // let traverser = BruteForceParticleTraverser::new();
   type Trav<'a> = KDTreeParticleTraverser;
-  let traverser = KDTreeParticleTraverser::new(NUM_BODIES);
+  let traverser = KDTreeParticleTraverser::new(num_bodies);
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
   let spring = Rotter::new(0.5, 0.02);
-  let event_force = GravityAndSoftSphereEventForce::new(NUM_BODIES, spring, 20);
+  let event_force = GravityAndSoftSphereEventForce::new(num_bodies, spring, 20);
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
@@ -113,7 +121,7 @@ fn main() {
   let output = TextFileOutput::new(20, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
-  for i in 0..10000 {
+  for i in 0..1000 {
     println!("Step {}", i);
     sys.advance();
   }

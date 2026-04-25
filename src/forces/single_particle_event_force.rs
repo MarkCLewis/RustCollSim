@@ -128,7 +128,7 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       let batch = self.queue.get_next_batch();
       println!("Batch: {}", batch.len()); //, batch);
       let common_time = batch.first().map(|spe| spe.event_time ).unwrap_or(self.dt);
-      // println!("Common time: {}", common_time);
+      println!("Common time: {}", common_time);
       let mut elements: Vec<usize> = batch.into_iter().map(|spe| spe.index ).collect();
       elements.sort();
       elements.dedup();
