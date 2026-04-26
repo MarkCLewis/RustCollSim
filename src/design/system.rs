@@ -51,6 +51,14 @@ impl Particle {
   // pub fn kick(&mut self, dv: &Vector) {
   //   self.v += *dv;
   // }
+
+  pub fn distance(&self, other: &Self) -> f64 {
+      (self.x - other.x).mag()
+  }
+
+  pub fn is_colliding(&self, other: &Self) -> bool {
+      self.distance(other) < self.r + other.r
+  }
 }
 
 pub fn two_bodies() -> Vec<Particle> {
@@ -131,6 +139,24 @@ pub trait BoundaryCondition: Sync + Send {
 
 pub trait Output {
   fn output<P: Population>(&mut self, step: i64, pop: &P);
+}
+
+pub struct NoOutput {}
+
+impl Output for NoOutput {
+  fn output<P: Population>(&mut self, step: i64, pop: &P) {}
+}
+
+pub struct DoubleOutput<A: Output, B: Output> {
+  output1: A,
+  output2: B
+}
+
+impl<A: Output, B: Output> Output for DoubleOutput<A, B> {
+    fn output<P: Population>(&mut self, step: i64, pop: &P) {
+        self.output1.output(step, pop);
+        self.output2.output(step, pop);
+    }
 }
 
 pub struct System<P: Population, F: Force, Out: Output> {
