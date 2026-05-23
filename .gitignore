@@ -7,6 +7,10 @@
 .DS_Store
 __pycache__
 
+# Scala
+.bsp/
+.scala-build/
+
 # User specific settings
 .vscode/settings.json
 
