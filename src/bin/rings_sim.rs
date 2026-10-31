@@ -8,7 +8,7 @@ use rust_coll_sim::design::coords::{
 
 use rust_coll_sim::forces::kdtree_particle_traverser::KDTreeParticleTraverser;
 use rust_coll_sim::forces::single_particle_event_force::SingleParticleEventForcing;
-use rust_coll_sim::forces::gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce;
+use rust_coll_sim::forces::gravity_and_soft_sphere_event_force::{GravityAndSoftSphereEventForce, RadiusImpactVelocity};
 use rust_coll_sim::forces::heap_pq::HeapPQ;
 use rust_coll_sim::forces::hills_force::HillsForce;
 use rust_coll_sim::boundary_conditions::sliding_brick_boundary::SlidingBrickBoundary;
@@ -22,6 +22,7 @@ use rust_coll_sim::outputs::text_file_output::TextFileOutput;
 use rust_coll_sim::vectors::Vector;
 
 use core::num;
+use std::collections::HashMap;
 use std::f64;
 use std::env;
 
@@ -111,9 +112,10 @@ fn main() {
   // let traverser = BruteForceParticleTraverser::new();
   type Trav<'a> = KDTreeParticleTraverser;
   let traverser = KDTreeParticleTraverser::new(num_bodies);
-  type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
+  type VelocityData = HashMap<usize, f64>; // RadiusImpactVelocity;
+  type GravEventForce = GravityAndSoftSphereEventForce<Rotter, VelocityData>;
   let spring = Rotter::new(0.5, 0.02);
-  let event_force = GravityAndSoftSphereEventForce::new(num_bodies, spring, 20);
+  let event_force = GravityAndSoftSphereEventForce::<Rotter, VelocityData>::new(num_bodies, spring, 20);
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
@@ -122,7 +124,7 @@ fn main() {
   let output = NoOutput{}; //TextFileOutput::new(20, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
-  for i in 0..1000 {
+  for i in 0..10 {
     println!("Step {}", i);
     sys.advance();
   }

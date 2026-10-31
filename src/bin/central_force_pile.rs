@@ -22,6 +22,7 @@ use rust_coll_sim::forces::no_explode::{Lewis, Rotter};
 use rust_coll_sim::outputs::text_file_output::TextFileOutput;
 use rust_coll_sim::vectors::Vector;
 
+use std::collections::HashMap;
 use std::f64;
 use std::env;
 
@@ -112,9 +113,9 @@ fn main() {
   // let traverser = BruteForceParticleTraverser::new();
   type Trav<'a> = KDTreeParticleTraverser;
   let traverser = KDTreeParticleTraverser::new(num_bodies);
-  type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
+  type GravEventForce = GravityAndSoftSphereEventForce<Rotter, HashMap<usize, f64>>;
   let spring = Rotter::new(0.5, 0.02);
-  let event_force = GravityAndSoftSphereEventForce::new(num_bodies, spring, 20);
+  let event_force = GravityAndSoftSphereEventForce::<Rotter, HashMap<usize, f64>>::new(num_bodies, spring, 20);
   let queue = HeapPQ::new();
   type GravForce<'a> =  SingleParticleEventForcing::<Trav<'a>, GravEventForce, HeapPQ>;
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);

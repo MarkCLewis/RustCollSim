@@ -253,7 +253,9 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
 
 #[cfg(test)]
 mod test {
-  use crate::{boundary_conditions::{open_boundaries::OpenBoundary}, design::{basic_population::BasicPopulation, system::{Force, Particle, Population}}, forces::{brute_force_particle_traverser::BruteForceParticleTraverser, gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce, heap_pq::HeapPQ, no_explode::Rotter, single_particle_event_force::{SingleParticleEventForcing}}, vectors::Vector};
+  use std::collections::HashMap;
+
+use crate::{boundary_conditions::{open_boundaries::OpenBoundary}, design::{basic_population::BasicPopulation, system::{Force, Particle, Population}}, forces::{brute_force_particle_traverser::BruteForceParticleTraverser, gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce, heap_pq::HeapPQ, no_explode::Rotter, single_particle_event_force::{SingleParticleEventForcing}}, vectors::Vector};
 
   // TODO: wrap this in a loop that goes through different parameters
   #[test]
@@ -273,9 +275,9 @@ mod test {
     let mut pop = BasicPopulation::new(particles, boundary_conditions);
     type Trav<'a> = BruteForceParticleTraverser;
     let traverser = BruteForceParticleTraverser::new();
-    type GravEventForce = GravityAndSoftSphereEventForce<Rotter>;
+    type GravEventForce = GravityAndSoftSphereEventForce<Rotter, HashMap<usize, f64>>;
     let spring = Rotter::new(0.5, 0.02);
-    let event_force = GravityAndSoftSphereEventForce::new(2, spring, 20);
+    let event_force = GravityAndSoftSphereEventForce::<Rotter, HashMap<usize, f64>>::new(2, spring, 20);
     let queue = HeapPQ::new();
     let mut grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
 
