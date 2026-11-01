@@ -197,7 +197,6 @@ fn permute_two<A, B>(permutation_map: &mut Vec<usize>, a_data: &mut [A], b_data:
 }
 
 impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventForcing<T, F, Q> {
-<<<<<<< Updated upstream
     fn apply_force(&mut self, pop: &mut impl Population) {
         self.traverser.setup(pop);
         let mut spds = self.event_force.get_all_particle_data();
