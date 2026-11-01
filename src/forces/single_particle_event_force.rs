@@ -194,47 +194,13 @@ fn permute_two<A, B>(permutation_map: &mut Vec<usize>, a_data: &mut [A], b_data:
           permutation_map.swap(current_idx, target_idx);
       }
     }
-    // let mut visited = vec![false; permutation_map.len()];
-
-    // for i in 0..permutation_map.len() {
-    //     if visited[i] {
-    //         continue;
-    //     }
-
-    //     let mut current_idx = i;
-    //     let mut next_idx = permutation_map[current_idx];
-
-    //     // If the element is already in the correct spot, skip
-    //     if current_idx == next_idx {
-    //         visited[i] = true;
-    //         continue;
-    //     }
-
-    //     // Walk the cycle in the correct direction for old_to_new
-    //     while !visited[current_idx] {
-    //         visited[current_idx] = true;
-
-    //         // Swap elements into their correct target destinations
-    //         a_data.swap(i, next_idx);
-    //         b_data.swap(i, next_idx);
-
-    //         current_idx = next_idx;
-    //         next_idx = permutation_map[current_idx];
-    //     }
-    // }
 }
 
 impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventForcing<T, F, Q> {
+<<<<<<< Updated upstream
     fn apply_force(&mut self, pop: &mut impl Population) {
         self.traverser.setup(pop);
         let mut spds = self.event_force.get_all_particle_data();
-        // if let Some(mut permutation_map) = self.traverser.build_permutation_map() {
-        //     for i in 0..spds.len() {
-        //         spds[i] = spds[i].reindex(&permutation_map);
-        //     }
-        //     let mut particles = pop.particles_mut();
-        //     permute_two(&mut permutation_map, &mut particles, &mut spds);
-        // }
         // println!("pop size {}, spds size {}", pop.particles().len(), spds.len());
         let mut accels: Vec<Vector> = pop
             .particles()
