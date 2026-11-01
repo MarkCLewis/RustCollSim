@@ -5,7 +5,7 @@ use std::fmt::Debug;
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator};
 
-use crate::{debugln, design::system::Particle, forces::{ no_explode::SpringDerivation, single_particle_event_force::{EventForce, SingleParticleEvent} }, vectors::Vector};
+use crate::{debugln, design::system::Particle, forces::{ no_explode::SpringDerivation, single_particle_event_force::{EventForce, Reindexable, SingleParticleEvent} }, vectors::Vector};
 
 pub struct GravityAndSoftSphereEventForce<SD: SpringDerivation + Sync + Send, SPD: Sync + Send + Debug + Default> {
   spring_derivation: SD,
@@ -87,6 +87,22 @@ impl SingleParticleDataType for RadiusImpactVelocity {
   }
 }
 
+impl Reindexable for HashMap<usize, f64> {
+  fn reindex(&self, permutation_map: &Vec<usize>) -> Self {
+    let mut ret = HashMap::<usize, f64>::new();
+    for (k, v) in self {
+      ret.insert(permutation_map[*k], *v);
+    }
+    ret
+  }
+}
+
+impl Reindexable for RadiusImpactVelocity {
+  fn reindex(&self, permutation_map: &Vec<usize>) -> Self {
+    RadiusImpactVelocity {}
+  }
+}
+
 impl<SD: SpringDerivation + Sync + Send, SPDT: SingleParticleDataType> GravityAndSoftSphereEventForce<SD, SPDT> {
   pub fn new(n: usize, spring_derivation: SD, desired_collision_step_count: i32) -> GravityAndSoftSphereEventForce<SD, SPDT> {
     let collision_velocity = vec![SPDT::new(); n];
@@ -131,7 +147,7 @@ impl<SD: SpringDerivation + Sync + Send, SPDT: SingleParticleDataType> GravityAn
 
 }
 
-impl<SD: SpringDerivation + Sync + Send, SPDT: SingleParticleDataType> EventForce for GravityAndSoftSphereEventForce<SD, SPDT> {
+impl<SD: SpringDerivation + Sync + Send, SPDT: SingleParticleDataType + Reindexable> EventForce for GravityAndSoftSphereEventForce<SD, SPDT> {
   type SingleParticleData = SPDT;
   type ParticlePairData = f64;
 

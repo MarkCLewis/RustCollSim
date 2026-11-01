@@ -103,8 +103,10 @@ fn main() {
       }
     }
   };
-  let parts = generate(num_bodies, particle_gen, rad);
+  let mut parts = generate(num_bodies, particle_gen, rad);
   println!("Parts generated");
+
+  // parts.sort_by(|p1, p2| { p1.x.x().total_cmp(&p2.x.x()) });
 
   type Pop = BasicPopulation<SlidingBrickBoundary>;
   let pop = BasicPopulation::new(parts, bc);
@@ -112,7 +114,7 @@ fn main() {
   // let traverser = BruteForceParticleTraverser::new();
   type Trav<'a> = KDTreeParticleTraverser;
   let traverser = KDTreeParticleTraverser::new(num_bodies);
-  type VelocityData = HashMap<usize, f64>; // RadiusImpactVelocity;
+  type VelocityData = RadiusImpactVelocity; // HashMap<usize, f64>;
   type GravEventForce = GravityAndSoftSphereEventForce<Rotter, VelocityData>;
   let spring = Rotter::new(0.5, 0.02);
   let event_force = GravityAndSoftSphereEventForce::<Rotter, VelocityData>::new(num_bodies, spring, 20);
@@ -121,7 +123,7 @@ fn main() {
   let grav_coll_force = SingleParticleEventForcing::<Trav<'_>, GravEventForce, HeapPQ>::new(traverser, event_force, queue, dt);
   let hills_force = HillsForce::new(dt);
   let force = DoubleForce::<HillsForce, GravForce>::new(hills_force, grav_coll_force);
-  let output = NoOutput{}; //TextFileOutput::new(20, "data.txt");
+  let output = NoOutput{}; // TextFileOutput::new(1, "data.txt");
   let mut sys = System::new(pop, force, output, dt);
 
   for i in 0..10 {

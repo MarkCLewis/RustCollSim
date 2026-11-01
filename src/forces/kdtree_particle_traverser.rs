@@ -23,6 +23,7 @@ pub enum KDTree {
     },
 
     Internal {
+        num_parts: usize,
         split_dim: Axis,
         split_val: f64,
         m: f64,
@@ -60,6 +61,7 @@ impl KDTree {
                 (m, cmx / m, cmv / m)
             }
             KDTree::Internal {
+                num_parts,
                 split_dim: _,
                 split_val: _,
                 m,
@@ -230,6 +232,7 @@ pub fn build_tree_par3_chunk(
         let cmx = (left_cmx * left_m + right_cmx * right_m) / m;
         let cmv = (left_cmv * left_m + right_cmv * right_m) / m;
         nodes[0] = KDTree::Internal {
+            num_parts: np,
             split_dim,
             split_val,
             m,
@@ -286,6 +289,7 @@ impl KDTreeParticleTraverser {
                 acc
             }
             KDTree::Internal {
+                num_parts,
                 m,
                 cmx,
                 cmv,
@@ -358,6 +362,7 @@ impl KDTreeParticleTraverser {
                 time
             }
             KDTree::Internal {
+                num_parts,
                 m,
                 cmx,
                 cmv,
@@ -384,6 +389,39 @@ impl KDTreeParticleTraverser {
                     // println!("Recur time {:e} {:e}", left_time, right_time);
                     f64::min(left_time, right_time)
                 }
+            }
+        }
+    }
+
+    fn num_parts_for(&self, index: usize) -> usize {
+        match self.nodes[index] {
+            KDTree::Internal { num_parts, .. } => {
+                num_parts
+            }
+            KDTree::Leaf { num_parts, .. } => {
+                num_parts
+            }
+        }
+    }
+
+    fn build_permutation_map_recur(&self, cur_node: usize, mut permutation_map: &mut Vec<usize>, offset: usize) {
+        match self.nodes[cur_node] {
+            KDTree::Leaf {
+                num_parts,
+                leaf_parts,
+            } => {
+                for i in 0..(num_parts) {
+                    // println!("{} goes to {}", leaf_parts[i], offset+i);
+                    permutation_map[leaf_parts[i]] = offset + i;
+                }
+            }
+            KDTree::Internal {
+                left,
+                right,
+                ..
+            } => {
+                self.build_permutation_map_recur(left, &mut permutation_map, offset);
+                self.build_permutation_map_recur(right, &mut permutation_map, offset + self.num_parts_for(left));
             }
         }
     }
@@ -463,6 +501,13 @@ impl Traverser for KDTreeParticleTraverser {
             }
         }
         total_time
+    }
+
+    fn build_permutation_map(&self) -> Option<Vec<usize>> {
+        let np = self.num_parts_for(0);
+        let mut permutation_map = vec![0; np];
+        self.build_permutation_map_recur(0, &mut permutation_map, 0);
+        Some(permutation_map)
     }
 }
 
@@ -665,6 +710,7 @@ mod tests {
               // No action for a leaf.
             }
             kdtree_particle_traverser::KDTree::Internal {
+                num_parts,
                 m,
                 cmx,
                 cmv,

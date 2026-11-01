@@ -20,6 +20,7 @@ pub trait Traverser: Sync {
   fn setup(&mut self, pop: &impl Population);
   fn accel_for_one<F: EventForce>(&self, i1: usize, p1: &Particle, spd1: &mut F::SingleParticleData, force: &F, pop: &impl Population) -> Vector;
   fn time_step_for_one<F: EventForce>(&self, i1: usize, p1: &Particle, spd1: &F::SingleParticleData, force: &F, pop: &impl Population, accs: &Vec<Vector>) -> f64;
+  fn build_permutation_map(&self) -> Option<Vec<usize>>;
 }
 
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -65,8 +66,12 @@ pub trait EventQueue {
   fn is_empty(&self) -> bool;
 }
 
+pub trait Reindexable {
+  fn reindex(&self, permutation_map: &Vec<usize>) -> Self;
+}
+
 pub trait EventForce: Sync {
-  type SingleParticleData: Sync + Send + Default + Debug;
+  type SingleParticleData: Reindexable + Sync + Send + Default + Debug;
   type ParticlePairData: Sync + Send + Default + Debug + Copy + Clone;
   fn get_all_particle_data(&mut self) -> Vec<Self::SingleParticleData>;
   fn set_all_particle_data(&mut self, spds: Vec<Self::SingleParticleData>);
@@ -103,10 +108,29 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> SingleParticleEventForcing<T, F
   }
 }
 
+fn permute_two<A, B>(permutation_map: &mut Vec<usize>, a_data: &mut [A], b_data: &mut [B]) {
+  for i in 0..a_data.len() {
+    let current_idx = i;
+    while permutation_map[current_idx] != current_idx {
+        let target_idx = permutation_map[current_idx];
+        a_data.swap(current_idx, target_idx);
+        b_data.swap(current_idx, target_idx);
+        permutation_map.swap(current_idx, target_idx);
+    }
+  }
+}
+
 impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventForcing<T, F, Q> {
   fn apply_force(&mut self, pop: &mut impl Population) {
     self.traverser.setup(pop);
     let mut spds = self.event_force.get_all_particle_data();
+    if let Some(mut permutation_map) = self.traverser.build_permutation_map() {
+      for i in 0..spds.len() {
+        spds[i] = spds[i].reindex(&permutation_map);
+      }
+      let mut particles = pop.particles_mut();
+      permute_two(&mut permutation_map, &mut particles, &mut spds);
+    }
     // println!("pop size {}, spds size {}", pop.particles().len(), spds.len());
     let mut accels: Vec<Vector> = pop.particles().par_iter().zip(spds.par_iter_mut()).enumerate().map(|t| {
       let (i1, (p1, spd)) = t;
@@ -167,7 +191,9 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
       self.queue.enqueue_many_optional(events);
       let next_time = self.queue.next_time();
       if let Some(next_time) = next_time {
-        self.queue.enqueue_many(self.event_force.check_data_for_events(next_time));
+        let new_events = self.event_force.check_data_for_events(next_time);
+        println!("unmatched events {:?}", new_events);
+        self.queue.enqueue_many(new_events);
       }
     }
     pop.particles_mut().par_iter_mut().enumerate().for_each(|t| {
@@ -253,9 +279,9 @@ impl<T: Traverser, F: EventForce, Q: EventQueue> Force for SingleParticleEventFo
 
 #[cfg(test)]
 mod test {
-  use std::collections::HashMap;
+  use std::{arch::x86_64::_MM_PERM_AABD, collections::HashMap};
 
-use crate::{boundary_conditions::{open_boundaries::OpenBoundary}, design::{basic_population::BasicPopulation, system::{Force, Particle, Population}}, forces::{brute_force_particle_traverser::BruteForceParticleTraverser, gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce, heap_pq::HeapPQ, no_explode::Rotter, single_particle_event_force::{SingleParticleEventForcing}}, vectors::Vector};
+use crate::{boundary_conditions::open_boundaries::OpenBoundary, design::{basic_population::BasicPopulation, system::{Force, Particle, Population}}, forces::{brute_force_particle_traverser::BruteForceParticleTraverser, gravity_and_soft_sphere_event_force::GravityAndSoftSphereEventForce, heap_pq::HeapPQ, no_explode::Rotter, single_particle_event_force::{SingleParticleEventForcing, permute_two}}, vectors::Vector};
 
   // TODO: wrap this in a loop that goes through different parameters
   #[test]
@@ -314,5 +340,15 @@ use crate::{boundary_conditions::{open_boundaries::OpenBoundary}, design::{basic
   #[test]
   fn check_particle_particle() {
 
+  }
+
+  #[test]
+  fn check_permute() {
+    let mut perm = vec![2, 4, 1, 0, 3];
+    let mut a = vec!['c', 'e', 'b', 'a', 'd'];
+    let mut b = vec!['C', 'E', 'B', 'A', 'D'];
+    permute_two(&mut perm, &mut a, &mut b);
+    assert_eq!(a, vec!['a', 'b', 'c', 'd', 'e']);
+    assert_eq!(b, vec!['A', 'B', 'C', 'D', 'E']);
   }
 }

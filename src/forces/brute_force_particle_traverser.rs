@@ -83,4 +83,8 @@ impl Traverser for BruteForceParticleTraverser {
     // println!("for-one time i1:{}, {}", i1, min_time_delta);
     min_time_delta
   }
+
+  fn build_permutation_map(&self) -> Option<Vec<usize>> {
+    None
+  }
 }
